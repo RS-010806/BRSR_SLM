@@ -167,8 +167,8 @@ function Trace({ t }: { t: any }) {
         <div className="stage">
           <div className="stage-k">4 Ground</div>
           <div className="stage-v" style={{ fontSize: 12.5 }}>
-            <div>{t.grounding?.citations} citations</div>
-            <div>{t.grounding?.numeric_paragraphs} numeric statements, {t.grounding?.uncited?.length ?? 0} uncited</div>
+            <div>{t.grounding?.citations} {t.grounding?.citations === 1 ? "citation" : "citations"}</div>
+            <div>{t.grounding?.numeric_paragraphs} numeric {t.grounding?.numeric_paragraphs === 1 ? "statement" : "statements"}, {t.grounding?.uncited?.length ?? 0} uncited</div>
             <div className="muted">{t.timing_ms?.understand} ms + {t.timing_ms?.compose} ms</div>
           </div>
         </div>

@@ -4,6 +4,8 @@ Pramana (Sanskrit: *means of valid knowledge, proof*) is a small, purpose-built 
 
 Built for the TCI-IIMB Supply Chain Sustainability Lab, using the E1 workbook, the E1 chapter, and the report *Business Responsibility and Sustainability in India* (IIMB, FY 2024-25).
 
+**Live:** https://pramana-brsr.onrender.com · **Features and design (PDF):** [docs/Pramana_Features.pdf](docs/Pramana_Features.pdf)
+
 ## Why it is built this way
 
 The brief called for answers that are accurate, never hallucinated, and **identical every time the same question is asked**. A generative LLM cannot guarantee either property, so Pramana splits the problem:

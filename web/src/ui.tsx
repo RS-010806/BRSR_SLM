@@ -16,33 +16,45 @@ const TOKEN = /(\*\*[^*]+\*\*|\[\d+\])/g;
 export function Rich({ text }: { text: string }) {
   const { openCite, activeCite } = useAnswer();
   const parts = text.split(TOKEN).filter(Boolean);
-  // keep a chip together with the punctuation that follows it, so it never wraps alone
-  const glue: string[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const nx = parts[i + 1];
-    if (/^\[\d+\]$/.test(parts[i]) && nx && /^[.,;:)]/.test(nx)) {
-      glue.push(parts[i] + "\u0000" + nx[0]);
-      parts[i + 1] = nx.slice(1);
-    } else glue.push(parts[i]);
-  }
-  return (
-    <>
-      {glue.filter(Boolean).map((p, i) => {
-        const m = p.match(/^\[(\d+)\](?:\u0000(.))?$/);
-        if (m) {
-          const n = Number(m[1]);
-          const chip = (
-            <button className={"cite" + (activeCite === n ? " on" : "")} onClick={() => openCite(n)} aria-label={`Source ${n}`}>
-              {n}
-            </button>
-          );
-          return m[2] ? <span key={i} style={{ whiteSpace: "nowrap" }}>{chip}{m[2]}</span> : <Fragment key={i}>{chip}</Fragment>;
-        }
-        if (p.startsWith("**") && p.endsWith("**")) return <strong key={i}><Rich text={p.slice(2, -2)} /></strong>;
-        return <Fragment key={i}>{p}</Fragment>;
-      })}
-    </>
+  const isCite = (x: string) => /^\[\d+\]$/.test(x);
+  const isBold = (x: string) => x.startsWith("**") && x.endsWith("**");
+  const chip = (n: number, k: number | string) => (
+    <button key={k} className={"cite" + (activeCite === n ? " on" : "")} onClick={() => openCite(n)} aria-label={`Source ${n}`}>{n}</button>
   );
+  // Citation chips never wrap alone: each run of chips is glued to the word
+  // before it and to any punctuation right after it.
+  const out: ReactNode[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    const cites: number[] = [];
+    let j = isCite(p) ? i : i + 1;
+    while (j < parts.length && isCite(parts[j])) cites.push(Number(parts[j++].slice(1, -1)));
+    if (!cites.length) {
+      out.push(isBold(p) ? <strong key={i}><Rich text={p.slice(2, -2)} /></strong> : <Fragment key={i}>{p}</Fragment>);
+      continue;
+    }
+    let tail: ReactNode = null;
+    if (!isCite(p)) {
+      if (isBold(p)) tail = <strong><Rich text={p.slice(2, -2)} /></strong>;
+      else {
+        const cut = p.search(/\S+\s*$/);
+        if (cut > 0) out.push(<Fragment key={"p" + i}>{p.slice(0, cut)}</Fragment>);
+        tail = cut >= 0 ? p.slice(cut) : p;
+      }
+    }
+    let punct = "";
+    if (j < parts.length && /^[.,;:)]/.test(parts[j])) {
+      punct = parts[j][0];
+      parts[j] = parts[j].slice(1);
+    }
+    out.push(
+      <span key={"g" + i} style={{ whiteSpace: "nowrap" }}>
+        {tail}{cites.map((n, k) => chip(n, k))}{punct}
+      </span>,
+    );
+    i = j - 1;
+  }
+  return <>{out}</>;
 }
 
 export function CiteChip({ refText }: { refText?: string | null }) {

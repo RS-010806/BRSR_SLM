@@ -233,8 +233,8 @@ def out_of_scope(ctx):
             f"company-level figures for it.")
         if es:
             first = es["text"].split("\n")[0].strip("• ").strip()
-            a.p("For context, the report's executive summary states:")
-            a.block("report_quotes", title=f"IIMB report, {o['chapter']}: {es['title']}", items=[
+            a.block("report_quotes", title=f"For context, the IIMB report's executive summary on {o['chapter']} "
+                                           f"({es['title']}) states", items=[
                 {"text": first, "cite": a.c_report_text(first, es["pdf_page"], f"Executive summary, {o['chapter']}"),
                  "where": f"Executive summary, {o['chapter']}", "pdf_page": es["pdf_page"]}])
     elif o["key"] == "FIN":
