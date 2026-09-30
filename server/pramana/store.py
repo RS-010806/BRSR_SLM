@@ -54,25 +54,40 @@ class Store:
         self.log_queries = os.environ.get("PRAMANA_LOG_QUERIES", "1") != "0"
         self.kind = "sqlite"
         self._lock = threading.Lock()
-        url = os.environ.get("DATABASE_URL", "")
         self._pg = None
-        if url.startswith(("postgres://", "postgresql://")):
-            try:
-                import psycopg
-                self._pg = psycopg.connect(url, autocommit=True, connect_timeout=5)
-                self.kind = "postgres"
-            except Exception as e:  # never block startup on the database
-                log.warning("Postgres unavailable (%s); using SQLite", e)
-        if self._pg is None:
-            path = Path(os.environ.get("PRAMANA_APP_DB", Path(__file__).resolve().parents[2] / "data" / "app" / "app.db"))
-            path.parent.mkdir(parents=True, exist_ok=True)
-            self._sq = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
-            self._sq.execute("PRAGMA journal_mode=WAL")
-        pk = "BIGSERIAL PRIMARY KEY" if self.kind == "postgres" else "INTEGER PRIMARY KEY AUTOINCREMENT"
+        # SQLite is always available locally and serves until Postgres is reachable.
+        path = Path(os.environ.get("PRAMANA_APP_DB", Path(__file__).resolve().parents[2] / "data" / "app" / "app.db"))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._sq = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
+        self._sq.execute("PRAGMA journal_mode=WAL")
         for stmt in SCHEMA:
-            self._exec(stmt.format(pk=pk))
+            self._exec(stmt.format(pk="INTEGER PRIMARY KEY AUTOINCREMENT"))
         self._q: queue.Queue = queue.Queue(maxsize=5000)
         threading.Thread(target=self._worker, daemon=True, name="pramana-store").start()
+        # Postgres is attached in the background: startup never waits on the database,
+        # and a database that becomes available later (or recovers) is picked up.
+        self._url = os.environ.get("DATABASE_URL", "")
+        if self._url.startswith(("postgres://", "postgresql://")):
+            threading.Thread(target=self._attach_postgres, daemon=True, name="pramana-pg").start()
+
+    def _attach_postgres(self):
+        delay = 2.0
+        while self._pg is None:
+            try:
+                import psycopg
+                con = psycopg.connect(self._url, autocommit=True, connect_timeout=4)
+                with con.cursor() as cur:
+                    for stmt in SCHEMA:
+                        cur.execute(stmt.format(pk="BIGSERIAL PRIMARY KEY"))
+                with self._lock:
+                    self._pg = con
+                    self.kind = "postgres"
+                log.warning("app store attached to Postgres")
+                return
+            except Exception as e:
+                log.warning("Postgres not reachable yet (%s); retrying in %.0fs", str(e).splitlines()[0], delay)
+                time.sleep(delay)
+                delay = min(delay * 2, 120.0)
 
     # ------------------------------------------------------------------ low level
     def _sql(self, sql: str) -> str:
@@ -96,7 +111,7 @@ class Store:
     def _reconnect(self):
         try:
             import psycopg
-            self._pg = psycopg.connect(os.environ["DATABASE_URL"], autocommit=True, connect_timeout=5)
+            self._pg = psycopg.connect(self._url, autocommit=True, connect_timeout=4)
         except Exception as e:
             log.warning("reconnect failed: %s", e)
 
