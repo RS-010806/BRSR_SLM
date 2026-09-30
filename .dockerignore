@@ -1,0 +1,11 @@
+.venv
+.git
+**/__pycache__
+**/node_modules
+web/dist
+.pytest_cache
+.claude
+docs
+pipeline
+data/raw/E1_data.xlsx
+data/raw/E1_report.docx

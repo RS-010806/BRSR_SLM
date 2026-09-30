@@ -1,0 +1,2849 @@
+{
+ "title": "GHG Emissions and Climate Risk",
+ "sections": [
+  {
+   "title": "1. Introduction",
+   "level": 2
+  },
+  {
+   "title": "2. Analytical Insights from BRSR Data",
+   "level": 2
+  },
+  {
+   "title": "Section 1: Policy Development and Periodic Review",
+   "level": 3
+  },
+  {
+   "title": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "level": 3
+  },
+  {
+   "title": "Section 3: Performance Outcomes of Implemented Measures",
+   "level": 3
+  },
+  {
+   "title": "3. Key Insights",
+   "level": 2
+  }
+ ],
+ "tables": [
+  {
+   "id": "1.1",
+   "title": "Does the entity have policies in place to address this NGRBC Principle and its core elements?",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Does the entity have policies in place to address this NGRBC Principle and its core elements?",
+   "rows": [
+    [
+     "Response",
+     "No. of Companies",
+     "% of Total"
+    ],
+    [
+     "Yes",
+     "963",
+     "98.1%"
+    ],
+    [
+     "No / NA / Blank",
+     "19",
+     "1.9%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 31,
+   "printed_page": 25,
+   "observations": []
+  },
+  {
+   "id": "1.2",
+   "title": "Have the policies been approved by the Board?",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Have the policies been approved by the Board?",
+   "rows": [
+    [
+     "Response",
+     "No. of Companies",
+     "% of Total"
+    ],
+    [
+     "Yes",
+     "923",
+     "94.0%"
+    ],
+    [
+     "No / NA / Blank",
+     "59",
+     "6.0%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 32,
+   "printed_page": 26,
+   "observations": []
+  },
+  {
+   "id": "1.3",
+   "title": "Are the policies publicly accessible, and are web links provided?",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Are the policies publicly accessible, and are web links provided?",
+   "rows": [
+    [
+     "Response",
+     "No. of Companies",
+     "% of Total"
+    ],
+    [
+     "Valid URL Available",
+     "877",
+     "89.3%"
+    ],
+    [
+     "No URL / NA / Blank",
+     "105",
+     "10.7%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 32,
+   "printed_page": 26,
+   "observations": []
+  },
+  {
+   "id": "1.4",
+   "title": "Has the entity translated its policies into operational procedures?",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Has the entity translated its policies into operational procedures?",
+   "rows": [
+    [
+     "Response",
+     "No. of Companies",
+     "% of Total"
+    ],
+    [
+     "Yes",
+     "953",
+     "97.0%"
+    ],
+    [
+     "No / NA / Blank",
+     "29",
+     "3.0%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 32,
+   "printed_page": 26,
+   "observations": []
+  },
+  {
+   "id": "1.5",
+   "title": "Do these policies extend to value chain partners?",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Do these policies extend to value chain partners?",
+   "rows": [
+    [
+     "Response",
+     "No. of Companies",
+     "% of Total"
+    ],
+    [
+     "Yes",
+     "765",
+     "77.9%"
+    ],
+    [
+     "No / NA / Blank",
+     "217",
+     "22.1%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 32,
+   "printed_page": 26,
+   "observations": []
+  },
+  {
+   "id": "1.6",
+   "title": "Number of national and international codes, certifications, labels, and standards adopted per company",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Do these policies extend to value chain partners?",
+   "rows": [
+    [
+     "Certificate Count",
+     "No. of Companies",
+     "Percentage (%)"
+    ],
+    [
+     "0 Certificates",
+     "161",
+     "16.4%"
+    ],
+    [
+     "1 Certificate",
+     "307",
+     "31.3%"
+    ],
+    [
+     "2 Certificates",
+     "130",
+     "13.2%"
+    ],
+    [
+     "3 Certificates",
+     "136",
+     "13.8%"
+    ],
+    [
+     "4 or More Certificates",
+     "248",
+     "25.3%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 33,
+   "printed_page": 27,
+   "observations": []
+  },
+  {
+   "id": "1.7",
+   "title": "Quality of commitments, goals, and targets defined for Principle 6",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Has the entity defined specific commitments, goals, and targets with clear timelines for this Principle?",
+   "rows": [
+    [
+     "Description",
+     "No. of Companies",
+     "Percentage (%)"
+    ],
+    [
+     "No clear targets or commitments mentioned or Just written “Yes” or shared that they would be doing it in future.",
+     "191",
+     "19.5%"
+    ],
+    [
+     "Targets are vague, generic, or lack measurable indicators.",
+     "459",
+     "46.7%"
+    ],
+    [
+     "Targets are partially clear and measurable but lack ambition or completeness.",
+     "53",
+     "5.4%"
+    ],
+    [
+     "Targets are specific, measurable, and time-bound with moderate ambition.",
+     "169",
+     "17.2%"
+    ],
+    [
+     "Targets are highly specific, measurable, time-bound, and demonstrate strong ambition (e.g., science-based, aligned with global standards).",
+     "110",
+     "11.2%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 33,
+   "printed_page": 27,
+   "observations": []
+  },
+  {
+   "id": "1.8",
+   "title": "Quality of performance reported against stated commitments, goals, and targets",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "How has the entity performed against its stated commitments, goals, and targets?",
+   "rows": [
+    [
+     "Description",
+     "No. of Companies",
+     "Percentage (%)"
+    ],
+    [
+     "No performance data provided or no action taken",
+     "244",
+     "24.8%"
+    ],
+    [
+     "Minimal progress reported, with poor or no explanation for shortfalls",
+     "253",
+     "25.8%"
+    ],
+    [
+     "Some progress made; partial achievement of targets with limited explanation for gaps",
+     "235",
+     "23.9%"
+    ],
+    [
+     "Good progress with most targets achieved or well-justified reasons for any gaps",
+     "138",
+     "14.1%"
+    ],
+    [
+     "Targets fully achieved or exceeded, supported by transparent, verifiable performance data",
+     "112",
+     "11.4%"
+    ],
+    [
+     "Total",
+     "982",
+     "100.0%"
+    ]
+   ],
+   "pdf_page": 33,
+   "printed_page": 27,
+   "observations": []
+  },
+  {
+   "id": "1.9",
+   "title": "Governance level at which performance against climate policies is reviewed",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "At what level of governance is performance against these policies reviewed?",
+   "rows": [
+    [
+     "Governance Level",
+     "No. of Companies"
+    ],
+    [
+     "Director",
+     "326"
+    ],
+    [
+     "Committee of the Board",
+     "443"
+    ],
+    [
+     "Any other Committee",
+     "207"
+    ],
+    [
+     "Other / Blank",
+     "6"
+    ],
+    [
+     "Total",
+     "982"
+    ]
+   ],
+   "pdf_page": 34,
+   "printed_page": 28,
+   "observations": []
+  },
+  {
+   "id": "1.10",
+   "title": "Frequency of performance review against climate policies",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "How frequently is performance against these policies reviewed?",
+   "rows": [
+    [
+     "Frequency",
+     "No. of Companies"
+    ],
+    [
+     "Annually",
+     "436"
+    ],
+    [
+     "Half Yearly",
+     "53"
+    ],
+    [
+     "Quarterly",
+     "111"
+    ],
+    [
+     "Any other",
+     "376"
+    ],
+    [
+     "Other / Blank",
+     "6"
+    ],
+    [
+     "Total",
+     "982"
+    ]
+   ],
+   "pdf_page": 34,
+   "printed_page": 28,
+   "observations": []
+  },
+  {
+   "id": "1.11",
+   "title": "Has the entity undertaken an independent external assessment of policy effectiveness?",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "question": "Has the entity undertaken an independent external assessment of the effectiveness of its policies?",
+   "rows": [
+    [
+     "Assessment Carried Out",
+     "No. of Companies"
+    ],
+    [
+     "Yes – Independent assessment carried out",
+     "349"
+    ],
+    [
+     "No – Not carried out",
+     "633"
+    ],
+    [
+     "Total",
+     "982"
+    ]
+   ],
+   "pdf_page": 34,
+   "printed_page": 28,
+   "observations": []
+  },
+  {
+   "id": "2.1",
+   "title": "Does the entity have any projects related to reducing GHG emissions? — by sector",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Yes",
+     "No/NA/Blanks",
+     "Total"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "54",
+     "4",
+     "58"
+    ],
+    [
+     "S2 - Capital Goods",
+     "121",
+     "32",
+     "153"
+    ],
+    [
+     "S3 - Chemicals",
+     "63",
+     "11",
+     "74"
+    ],
+    [
+     "S4 - Construction",
+     "24",
+     "10",
+     "34"
+    ],
+    [
+     "S5 - Construction Materials",
+     "22",
+     "1",
+     "23"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "48",
+     "13",
+     "61"
+    ],
+    [
+     "S7 - Consumer Services",
+     "35",
+     "14",
+     "49"
+    ],
+    [
+     "S8 - Diversified",
+     "4",
+     "0",
+     "4"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "60",
+     "8",
+     "68"
+    ],
+    [
+     "S10 - Financial Services",
+     "84",
+     "51",
+     "135"
+    ],
+    [
+     "S11 - Forest Materials",
+     "4",
+     "0",
+     "4"
+    ],
+    [
+     "S12 - Healthcare",
+     "69",
+     "12",
+     "81"
+    ],
+    [
+     "S13 - Information Technology",
+     "31",
+     "19",
+     "50"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "4",
+     "9",
+     "13"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "22",
+     "1",
+     "23"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "22",
+     "3",
+     "25"
+    ],
+    [
+     "S17 - Power",
+     "17",
+     "3",
+     "20"
+    ],
+    [
+     "S18 - Realty",
+     "19",
+     "4",
+     "23"
+    ],
+    [
+     "S19 - Services",
+     "25",
+     "10",
+     "35"
+    ],
+    [
+     "S20 - Telecommunication",
+     "10",
+     "5",
+     "15"
+    ],
+    [
+     "S21 - Textiles",
+     "25",
+     "5",
+     "30"
+    ],
+    [
+     "S22 - Utilities",
+     "3",
+     "1",
+     "4"
+    ],
+    [
+     "Total",
+     "766",
+     "216",
+     "982"
+    ]
+   ],
+   "pdf_page": 36,
+   "printed_page": 30,
+   "observations": [
+    "766 of 982 companies (78.0%) report having GHG reduction projects. Diversified and Forest Materials sectors achieve 100% adoption. Construction Materials (95.7%) and Chemicals (85.1%) lead among larger sectors.",
+    "Financial Services has the highest absolute non-adoption count (51 of 135, 37.8%) — the largest governance gap in the sector given its significant Scope 3 exposure through lending and investment portfolios. Media Entertainment & Publication reports more companies without projects (9) than with (4)."
+   ]
+  },
+  {
+   "id": "2.2",
+   "title": "Quality of GHG reduction projects undertaken — by sector",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.2  Details of Projects Undertaken to Reduce Greenhouse Gas (GHG) Emissions",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "",
+     "High Impact Projects",
+     "Projects are well defined",
+     "Projects have some measurable reduction",
+     "Projects are small in scale",
+     "No Projects",
+     ""
+    ],
+    [
+     "",
+     "Projects are highly impactful, innovative, and large in scale; achieve significant, measurable, and time-bound GHG reductions; aligned with global best practices or standards (e.g., SBTi, Net Zero pathways).",
+     "Projects are well-defined, implemented at a reasonable scale, with measurable and time-bound GHG reductions; demonstrate moderate ambition and alignment with company goals.",
+     "Projects show some measurable reduction in GHG emissions but are limited in scope, coverage, or ambition; outcomes are partially documented.",
+     "Projects are ad-hoc, small in scale, or symbolic in nature with negligible measurable impact on GHG reduction.",
+     "No projects undertaken or only intent expressed without any concrete action (e.g., just written \"Yes\" or mentioned plans for the future).",
+     ""
+    ],
+    [
+     "Sector",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "Total"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "13",
+     "21",
+     "3",
+     "17",
+     "4",
+     "58"
+    ],
+    [
+     "S2 - Capital Goods",
+     "25",
+     "53",
+     "5",
+     "36",
+     "34",
+     "153"
+    ],
+    [
+     "S3 - Chemicals",
+     "12",
+     "25",
+     "3",
+     "23",
+     "11",
+     "74"
+    ],
+    [
+     "S4 - Construction",
+     "5",
+     "8",
+     "0",
+     "11",
+     "10",
+     "34"
+    ],
+    [
+     "S5 - Construction Materials",
+     "4",
+     "9",
+     "2",
+     "7",
+     "1",
+     "23"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "9",
+     "26",
+     "1",
+     "12",
+     "13",
+     "61"
+    ],
+    [
+     "S7 - Consumer Services",
+     "1",
+     "20",
+     "1",
+     "13",
+     "14",
+     "49"
+    ],
+    [
+     "S8 - Diversified",
+     "0",
+     "3",
+     "0",
+     "1",
+     "0",
+     "4"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "8",
+     "23",
+     "3",
+     "26",
+     "8",
+     "68"
+    ],
+    [
+     "S10 - Financial Services",
+     "17",
+     "38",
+     "4",
+     "24",
+     "52",
+     "135"
+    ],
+    [
+     "S11 - Forest Materials",
+     "0",
+     "2",
+     "1",
+     "1",
+     "0",
+     "4"
+    ],
+    [
+     "S12 - Healthcare",
+     "9",
+     "39",
+     "3",
+     "18",
+     "12",
+     "81"
+    ],
+    [
+     "S13 - Information Technology",
+     "6",
+     "17",
+     "0",
+     "8",
+     "19",
+     "50"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "1",
+     "2",
+     "0",
+     "1",
+     "9",
+     "13"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "5",
+     "8",
+     "0",
+     "9",
+     "1",
+     "23"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "11",
+     "6",
+     "2",
+     "3",
+     "3",
+     "25"
+    ],
+    [
+     "S17 - Power",
+     "6",
+     "6",
+     "0",
+     "5",
+     "3",
+     "20"
+    ],
+    [
+     "S18 - Realty",
+     "1",
+     "7",
+     "1",
+     "10",
+     "4",
+     "23"
+    ],
+    [
+     "S19 - Services",
+     "3",
+     "13",
+     "1",
+     "8",
+     "10",
+     "35"
+    ],
+    [
+     "S20 - Telecommunication",
+     "4",
+     "4",
+     "1",
+     "1",
+     "5",
+     "15"
+    ],
+    [
+     "S21 - Textiles",
+     "4",
+     "9",
+     "0",
+     "12",
+     "5",
+     "30"
+    ],
+    [
+     "S22 - Utilities",
+     "2",
+     "0",
+     "0",
+     "1",
+     "1",
+     "4"
+    ],
+    [
+     "Total",
+     "146",
+     "339",
+     "31",
+     "247",
+     "219",
+     ""
+    ]
+   ],
+   "pdf_page": 37,
+   "printed_page": 31,
+   "observations": [
+    "339 companies (34.5%) have well-defined projects, and 146 (14.9%) have high-impact projects. However, 219 companies (22.3%) have no projects at all, and 247 (25.2%) have only small-scale or symbolic projects — meaning nearly half the sector lacks meaningful GHG reduction activity.",
+    "Financial Services has the highest no-projects count (52 of 135, 38.5%) despite being a significant climate risk channel. Oil Gas & Consumable Fuels leads proportionally on high-impact projects (11 of 25, 44.0%) — consistent with its regulatory and investor pressure profile."
+   ]
+  },
+  {
+   "id": "2.3",
+   "title": "Number of companies reporting Scope 3 emissions — current year vs previous year — by sector",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.3  Number of Companies Reporting Total Scope 3 Emissions and Emissions Intensity",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "",
+     "No. of Companies",
+     "No. of Companies",
+     "No. of Companies",
+     ""
+    ],
+    [
+     "Sector",
+     "Total",
+     "Current Year - 2024-25",
+     "Previous Year",
+     "Percentage Change"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "58",
+     "24",
+     "17",
+     "41%"
+    ],
+    [
+     "S2 - Capital Goods",
+     "153",
+     "59",
+     "40",
+     "48%"
+    ],
+    [
+     "S3 - Chemicals",
+     "74",
+     "35",
+     "25",
+     "40%"
+    ],
+    [
+     "S4 - Construction",
+     "34",
+     "11",
+     "6",
+     "83%"
+    ],
+    [
+     "S5 - Construction Materials",
+     "23",
+     "8",
+     "8",
+     "0%"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "61",
+     "27",
+     "14",
+     "93%"
+    ],
+    [
+     "S7 - Consumer Services",
+     "49",
+     "17",
+     "9",
+     "89%"
+    ],
+    [
+     "S8 - Diversified",
+     "4",
+     "3",
+     "2",
+     "50%"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "68",
+     "29",
+     "22",
+     "32%"
+    ],
+    [
+     "S10 - Financial Services",
+     "135",
+     "67",
+     "40",
+     "68%"
+    ],
+    [
+     "S11 - Forest Materials",
+     "4",
+     "1",
+     "1",
+     "0%"
+    ],
+    [
+     "S12 - Healthcare",
+     "81",
+     "29",
+     "20",
+     "45%"
+    ],
+    [
+     "S13 - Information Technology",
+     "50",
+     "28",
+     "23",
+     "22%"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "13",
+     "3",
+     "3",
+     "0%"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "23",
+     "11",
+     "9",
+     "22%"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "25",
+     "14",
+     "13",
+     "8%"
+    ],
+    [
+     "S17 - Power",
+     "20",
+     "11",
+     "8",
+     "38%"
+    ],
+    [
+     "S18 - Realty",
+     "23",
+     "10",
+     "7",
+     "43%"
+    ],
+    [
+     "S19 - Services",
+     "35",
+     "19",
+     "15",
+     "27%"
+    ],
+    [
+     "S20 - Telecommunication",
+     "15",
+     "8",
+     "5",
+     "60%"
+    ],
+    [
+     "S21 - Textiles",
+     "30",
+     "6",
+     "4",
+     "50%"
+    ],
+    [
+     "S22 - Utilities",
+     "4",
+     "1",
+     "1",
+     "0%"
+    ],
+    [
+     "Total",
+     "982",
+     "421",
+     "292",
+     "44%"
+    ]
+   ],
+   "pdf_page": 38,
+   "printed_page": 32,
+   "observations": [
+    "421 companies (42.9%) reported Scope 3 emissions in the current year vs 292 (29.7%) in the previous year — a 44% increase in reporting companies overall, the strongest year-on-year improvement in any disclosure dimension. Consumer Durables (+93%), Consumer Services (+89%), and Construction (+83%) show the largest growth.",
+    "Despite strong growth, 561 companies (57.1%) still do not report Scope 3 emissions. Utilities (0% growth), Construction Materials (0% growth), Forest Materials (0% growth), and Media Entertainment & Publication (0% growth) show no improvement — collectively representing sectors where value chain emission accountability remains entirely absent."
+   ]
+  },
+  {
+   "id": "2.4",
+   "title": "Has the entity undertaken independent assessment or assurance of GHG emissions? — by sector",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.4  Independent Assessment, Evaluation, or Assurance of Greenhouse Gas Emissions Conducted by an External Agency",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Yes",
+     "No/NA/Blanks",
+     "Total"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "28",
+     "30",
+     "58"
+    ],
+    [
+     "S2 - Capital Goods",
+     "42",
+     "111",
+     "153"
+    ],
+    [
+     "S3 - Chemicals",
+     "32",
+     "42",
+     "74"
+    ],
+    [
+     "S4 - Construction",
+     "11",
+     "23",
+     "34"
+    ],
+    [
+     "S5 - Construction Materials",
+     "12",
+     "11",
+     "23"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "18",
+     "43",
+     "61"
+    ],
+    [
+     "S7 - Consumer Services",
+     "14",
+     "35",
+     "49"
+    ],
+    [
+     "S8 - Diversified",
+     "2",
+     "2",
+     "4"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "23",
+     "45",
+     "68"
+    ],
+    [
+     "S10 - Financial Services",
+     "57",
+     "78",
+     "135"
+    ],
+    [
+     "S11 - Forest Materials",
+     "1",
+     "3",
+     "4"
+    ],
+    [
+     "S12 - Healthcare",
+     "32",
+     "49",
+     "81"
+    ],
+    [
+     "S13 - Information Technology",
+     "23",
+     "27",
+     "50"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "2",
+     "11",
+     "13"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "12",
+     "11",
+     "23"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "12",
+     "13",
+     "25"
+    ],
+    [
+     "S17 - Power",
+     "10",
+     "10",
+     "20"
+    ],
+    [
+     "S18 - Realty",
+     "7",
+     "16",
+     "23"
+    ],
+    [
+     "S19 - Services",
+     "10",
+     "25",
+     "35"
+    ],
+    [
+     "S20 - Telecommunication",
+     "7",
+     "8",
+     "15"
+    ],
+    [
+     "S21 - Textiles",
+     "11",
+     "19",
+     "30"
+    ],
+    [
+     "S22 - Utilities",
+     "1",
+     "3",
+     "4"
+    ],
+    [
+     "Total",
+     "367",
+     "615",
+     "982"
+    ]
+   ],
+   "pdf_page": 39,
+   "printed_page": 33,
+   "observations": [
+    "367 companies (37.4%) have undertaken independent GHG assurance — a materially higher rate than the 35.5% policy assessment rate, suggesting that emissions data credibility is receiving targeted investment. Construction Materials (52.2%) and Chemicals (43.2%) lead on independent assurance adoption.",
+    "615 companies (62.6%) have not undertaken independent assurance. Capital Goods (42 of 153, 27.5%), Consumer Services (14 of 49, 28.6%), and Consumer Durables (18 of 61, 29.5%) are among the larger sectors with the lowest assurance adoption rates — representing significant data credibility gaps for investor-grade emissions reporting."
+   ]
+  },
+  {
+   "id": "3.1",
+   "title": "Absolute Scope 1 and Scope 2 GHG emissions by sector (tCO₂e) — current year",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.1  Absolute Scope 1 and Scope 2 Greenhouse Gas Emissions (tCO₂e)",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Total Scope 1\n(tCO₂e)\n (A)",
+     "Total Scope 2 (tCO₂e)\n(B)",
+     "Total Scope 1 and 2\n(C = A+B)",
+     "Ratio of Scope 1\nto Scope 2\n(A/B)"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "3,032,968",
+     "4,633,570",
+     "7,666,537",
+     "0.7"
+    ],
+    [
+     "S2 - Capital Goods",
+     "88,832,213",
+     "11,071,187",
+     "99,903,399",
+     "8.0"
+    ],
+    [
+     "S3 - Chemicals",
+     "28,224,373",
+     "7,911,140",
+     "36,135,513",
+     "3.6"
+    ],
+    [
+     "S4 - Construction",
+     "2,619,859",
+     "1,092,557",
+     "3,712,416",
+     "2.4"
+    ],
+    [
+     "S5 - Construction Materials",
+     "208,515,073",
+     "7,659,545",
+     "216,174,618",
+     "27.2"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "5,601,512",
+     "1,635,437",
+     "7,236,949",
+     "3.4"
+    ],
+    [
+     "S7 - Consumer Services",
+     "830,970",
+     "2,193,923",
+     "3,024,894",
+     "0.4"
+    ],
+    [
+     "S8 - Diversified",
+     "45,955",
+     "67,095",
+     "113,050",
+     "0.7"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "14,777,081",
+     "2,813,857",
+     "17,590,939",
+     "5.3"
+    ],
+    [
+     "S10 - Financial Services",
+     "390,734",
+     "4,295,496",
+     "4,686,230",
+     "0.1"
+    ],
+    [
+     "S11 - Forest Materials",
+     "1,738,322",
+     "27,430",
+     "1,765,752",
+     "63.4"
+    ],
+    [
+     "S12 - Healthcare",
+     "4,127,681",
+     "4,809,232",
+     "8,936,913",
+     "0.9"
+    ],
+    [
+     "S13 - Information Technology",
+     "96,533",
+     "432,348",
+     "528,882",
+     "0.2"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "23,775",
+     "2,298,380",
+     "2,322,155",
+     "0.0"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "128,057,007",
+     "8,633,338",
+     "136,690,345",
+     "14.8"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "117,948,959",
+     "13,708,169",
+     "131,657,128",
+     "8.6"
+    ],
+    [
+     "S17 - Power",
+     "567,335,320",
+     "4,924,146",
+     "572,259,465",
+     "115.2"
+    ],
+    [
+     "S18 - Realty",
+     "49,479",
+     "371,801",
+     "421,280",
+     "0.1"
+    ],
+    [
+     "S19 - Services",
+     "37,919,717",
+     "1,032,166",
+     "38,951,883",
+     "36.7"
+    ],
+    [
+     "S20 - Telecommunication",
+     "779,715",
+     "8,141,672",
+     "8,921,387",
+     "0.1"
+    ],
+    [
+     "S21 - Textiles",
+     "3,432,797",
+     "5,195,426",
+     "8,628,223",
+     "0.7"
+    ],
+    [
+     "S22 - Utilities",
+     "38,615",
+     "63,337",
+     "101,952",
+     "0.6"
+    ],
+    [
+     "Total (All Sectors)",
+     "1,214,418,660",
+     "93,011,252",
+     "1,307,429,911",
+     "13.1"
+    ]
+   ],
+   "pdf_page": 41,
+   "printed_page": 35,
+   "observations": [
+    "Power dominates total Scope 1+2 emissions at 572,259,465 tCO₂e — 43.8% of all sector Scope 1+2 emissions. Construction Materials (216,174,618), Metals & Mining (136,690,345), and Oil Gas & Consumable Fuels (131,657,128) are the next three highest emitters. These four sectors account for 81.4% of all disclosed Scope 1+2 emissions.",
+    "Power has the highest Scope 1/Scope 2 ratio at 115.2x — entirely Scope 1 dominated by coal combustion in power generation. Forest Materials (63.4x) and Services (36.7x) also show high Scope 1 intensity. Financial Services, IT, Realty, and Telecommunication have ratios below 0.2x — entirely electricity-dominated footprints susceptible to grid decarbonisation."
+   ]
+  },
+  {
+   "id": "3.2",
+   "title": "Year-on-year change in absolute total Scope 1 and Scope 2 GHG emissions by sector",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.2  Year-on-Year Change in Absolute Total Emissions (tCO₂e)",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Total Scope 1 and 2 (tCO₂e)\n– Current Year (A)",
+     "Total Scope 1 and 2 (tCO₂e)\n– Previous Year (B)",
+     "Year on Year Change in % ((A-B)/B)"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "7,666,537.47",
+     "7,444,555.32",
+     "2.98%"
+    ],
+    [
+     "S2 - Capital Goods",
+     "99,903,399.26",
+     "98,009,382.62",
+     "1.93%"
+    ],
+    [
+     "S3 - Chemicals",
+     "36,135,513.31",
+     "32,650,616.95",
+     "10.67%"
+    ],
+    [
+     "S4 - Construction",
+     "3,712,416.31",
+     "3,269,362.79",
+     "13.55%"
+    ],
+    [
+     "S5 - Construction Materials",
+     "216,174,618.02",
+     "209,335,160.13",
+     "3.27%"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "7,236,948.94",
+     "6,986,122.95",
+     "3.59%"
+    ],
+    [
+     "S7 - Consumer Services",
+     "3,024,893.74",
+     "2,599,619.68",
+     "16.36%"
+    ],
+    [
+     "S8 - Diversified",
+     "113,050.16",
+     "119,319.02",
+     "-5.25%"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "17,590,938.50",
+     "15,878,558.48",
+     "10.78%"
+    ],
+    [
+     "S10 - Financial Services",
+     "4,686,230.46",
+     "3,805,142.01",
+     "23.16%"
+    ],
+    [
+     "S11 - Forest Materials",
+     "1,765,751.79",
+     "2,069,631.40",
+     "-14.68%"
+    ],
+    [
+     "S12 - Healthcare",
+     "8,936,913.22",
+     "9,282,057.41",
+     "-3.72%"
+    ],
+    [
+     "S13 - Information Technology",
+     "528,881.51",
+     "611,351.28",
+     "-13.49%"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "2,322,155.39",
+     "2,558,086.35",
+     "-9.22%"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "136,690,344.93",
+     "127,969,005.03",
+     "6.82%"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "131,657,127.69",
+     "131,446,657.04",
+     "0.16%"
+    ],
+    [
+     "S17 - Power",
+     "572,259,465.23",
+     "539,189,800.62",
+     "6.13%"
+    ],
+    [
+     "S18 - Realty",
+     "421,279.80",
+     "455,934.21",
+     "-7.60%"
+    ],
+    [
+     "S19 - Services",
+     "38,951,883.22",
+     "37,636,291.73",
+     "3.50%"
+    ],
+    [
+     "S20 - Telecommunication",
+     "8,921,387.02",
+     "8,450,728.46",
+     "5.57%"
+    ],
+    [
+     "S21 - Textiles",
+     "8,628,223.12",
+     "13,847,178.66",
+     "-37.69%"
+    ],
+    [
+     "S22 - Utilities",
+     "101,952.10",
+     "90,897.36",
+     "12.16%"
+    ],
+    [
+     "Total (All Sectors)",
+     "1,307,429,911.19",
+     "1,253,705,459.50",
+     "4.29%"
+    ]
+   ],
+   "pdf_page": 42,
+   "printed_page": 36,
+   "observations": [
+    "Total Scope 1+2 emissions across all sectors increased 4.29% year-on-year — from 1,253,705,460 tCO₂e to 1,307,429,911 tCO₂e — an absolute increase of 53,724,451 tCO₂e. Financial Services (+23.16%), Consumer Services (+16.36%), and Construction (+13.55%) show the sharpest increases, driven by rapid activity expansion.",
+    "Textiles recorded the largest absolute decrease (−37.69%), followed by Forest Materials (−14.68%) and Information Technology (−13.49%). Power, which contributes 43.8% of total emissions, increased 6.13% — adding approximately 32.9 million tCO₂e year-on-year, largely negating emission reductions achieved across all other sectors combined."
+   ]
+  },
+  {
+   "id": "3.3",
+   "title": "Year-on-year company-wise change in absolute total Scope 1 and Scope 2 emissions — by sector",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.3  Year-on-Year Company-wise Change in Absolute Total Scope 1 and Scope 2 Emissions",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "",
+     "No. of Companies",
+     "No. of Companies",
+     "No. of Companies",
+     "No. of Companies"
+    ],
+    [
+     "Sector",
+     "Decreased",
+     "Increased",
+     "Data not available",
+     "Total"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "21",
+     "34",
+     "3",
+     "58"
+    ],
+    [
+     "S2 - Capital Goods",
+     "49",
+     "87",
+     "17",
+     "153"
+    ],
+    [
+     "S3 - Chemicals",
+     "24",
+     "43",
+     "7",
+     "74"
+    ],
+    [
+     "S4 - Construction",
+     "12",
+     "16",
+     "6",
+     "34"
+    ],
+    [
+     "S5 - Construction Materials",
+     "15",
+     "8",
+     "0",
+     "23"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "18",
+     "35",
+     "8",
+     "61"
+    ],
+    [
+     "S7 - Consumer Services",
+     "15",
+     "29",
+     "5",
+     "49"
+    ],
+    [
+     "S8 - Diversified",
+     "2",
+     "2",
+     "0",
+     "4"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "31",
+     "35",
+     "2",
+     "68"
+    ],
+    [
+     "S10 - Financial Services",
+     "36",
+     "74",
+     "25",
+     "135"
+    ],
+    [
+     "S11 - Forest Materials",
+     "4",
+     "0",
+     "0",
+     "4"
+    ],
+    [
+     "S12 - Healthcare",
+     "30",
+     "43",
+     "8",
+     "81"
+    ],
+    [
+     "S13 - Information Technology",
+     "21",
+     "19",
+     "10",
+     "50"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "3",
+     "8",
+     "2",
+     "13"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "11",
+     "11",
+     "1",
+     "23"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "7",
+     "15",
+     "3",
+     "25"
+    ],
+    [
+     "S17 - Power",
+     "8",
+     "12",
+     "0",
+     "20"
+    ],
+    [
+     "S18 - Realty",
+     "8",
+     "11",
+     "4",
+     "23"
+    ],
+    [
+     "S19 - Services",
+     "11",
+     "19",
+     "5",
+     "35"
+    ],
+    [
+     "S20 - Telecommunication",
+     "7",
+     "6",
+     "2",
+     "15"
+    ],
+    [
+     "S21 - Textiles",
+     "15",
+     "10",
+     "5",
+     "30"
+    ],
+    [
+     "S22 - Utilities",
+     "0",
+     "4",
+     "0",
+     "4"
+    ],
+    [
+     "Total (All Sectors)",
+     "348",
+     "521",
+     "113",
+     "982"
+    ]
+   ],
+   "pdf_page": 43,
+   "printed_page": 37,
+   "observations": [
+    "521 companies (53.1%) increased absolute Scope 1+2 emissions versus 348 (35.4%) that decreased — a net balance of 173 more companies increasing than decreasing. This confirms that sector-level emission increases are broad-based, not driven solely by a few large emitters. 113 companies (11.5%) have data not available.",
+    "Forest Materials is the only sector where all reporting companies decreased emissions (4 decreased, 0 increased). Construction Materials (15 decreased vs 8 increased) and Textiles (15 vs 10) are the only other sectors where decreasing companies outnumber increasing ones."
+   ]
+  },
+  {
+   "id": "3.4",
+   "title": "Year-on-year change in emission intensity (Scope 1+2 per crore rupee of turnover) — distribution by change band",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.4  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 per Rupee of Turnover",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Year-on-Year Change",
+     "No. of Companies",
+     "Median % Change for All Sector"
+    ],
+    [
+     "< -10%",
+     "309",
+     ""
+    ],
+    [
+     "-10% to -5%",
+     "82",
+     ""
+    ],
+    [
+     "-5% to +5%",
+     "208",
+     ""
+    ],
+    [
+     "+5% to +10%",
+     "55",
+     ""
+    ],
+    [
+     "> +10%",
+     "172",
+     ""
+    ],
+    [
+     "Total",
+     "826",
+     "-4.19%"
+    ]
+   ],
+   "pdf_page": 44,
+   "printed_page": 38,
+   "observations": []
+  },
+  {
+   "id": "3.5",
+   "title": "Year-on-year change in emission intensity (Scope 1+2 per crore rupee of turnover) — median % change by sector",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.4  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 per Rupee of Turnover",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Year-on-Year Change - Median % for the Sector",
+     "Median Emission Intensity per Crore Rupee of Turnover"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "-4.71%",
+     "26.9"
+    ],
+    [
+     "S2 - Capital Goods",
+     "-5.07%",
+     "14.9"
+    ],
+    [
+     "S3 - Chemicals",
+     "-2.15%",
+     "95.8"
+    ],
+    [
+     "S4 - Construction",
+     "1.34%",
+     "13.8"
+    ],
+    [
+     "S5 - Construction Materials",
+     "0.17%",
+     "1,095.9"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "-1.81%",
+     "5.6"
+    ],
+    [
+     "S7 - Consumer Services",
+     "-2.59%",
+     "26.7"
+    ],
+    [
+     "S8 - Diversified",
+     "-17.12%",
+     "5.7"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "-4.60%",
+     "10.9"
+    ],
+    [
+     "S10 - Financial Services",
+     "-6.55%",
+     "1.3"
+    ],
+    [
+     "S11 - Forest Materials",
+     "-8.01%",
+     "208.7"
+    ],
+    [
+     "S12 - Healthcare",
+     "-4.37%",
+     "31.8"
+    ],
+    [
+     "S13 - Information Technology",
+     "-14.38%",
+     "1.5"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "2.82%",
+     "9.1"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "2.06%",
+     "55.9"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "0.08%",
+     "25.0"
+    ],
+    [
+     "S17 - Power",
+     "0.42%",
+     "1,079.0"
+    ],
+    [
+     "S18 - Realty",
+     "-23.09%",
+     "5.1"
+    ],
+    [
+     "S19 - Services",
+     "-3.09%",
+     "8.2"
+    ],
+    [
+     "S20 - Telecommunication",
+     "-8.51%",
+     "8.4"
+    ],
+    [
+     "S21 - Textiles",
+     "-10.22%",
+     "62.4"
+    ],
+    [
+     "S22 - Utilities",
+     "-3.42%",
+     "11.4"
+    ],
+    [
+     "Total (All Sectors)",
+     "-4.19%",
+     "15.4"
+    ]
+   ],
+   "pdf_page": 44,
+   "printed_page": 38,
+   "observations": [
+    "826 companies report emission intensity data. 309 companies (37.5%) achieved >10% intensity reduction — the largest improvement cohort — and 82 (9.9%) achieved 5–10% reduction. The overall median intensity improvement of −4.19% indicates that economic growth is outpacing emission growth for the majority of the sector.",
+    "Realty (−23.09%), Diversified (−17.12%), and IT (−14.38%) show the strongest median intensity improvements. Construction Materials (1,095.9 tCO₂e/crore) and Power (1,079.0 tCO₂e/crore) have by far the highest absolute intensity levels — structural features of their business models, not governance failures."
+   ]
+  },
+  {
+   "id": "3.6",
+   "title": "Year-on-year change in emission intensity (Scope 1+2 per unit of physical output) — distribution by change band",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.5  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 in Terms of Physical Output",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Year-on-Year Change",
+     "No. of Companies",
+     "Median % Change for Sector"
+    ],
+    [
+     "< -10%",
+     "155",
+     ""
+    ],
+    [
+     "-10% to -5%",
+     "55",
+     ""
+    ],
+    [
+     "-5% to +5%",
+     "154",
+     ""
+    ],
+    [
+     "+5% to +10%",
+     "29",
+     ""
+    ],
+    [
+     "> +10%",
+     "108",
+     ""
+    ],
+    [
+     "Total",
+     "501",
+     "-2.28%"
+    ]
+   ],
+   "pdf_page": 45,
+   "printed_page": 39,
+   "observations": []
+  },
+  {
+   "id": "3.7",
+   "title": "Year-on-year change in emission intensity (Scope 1+2 per unit of physical output) — median % change by sector",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.5  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 in Terms of Physical Output",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Year-on-Year Change Median % for the Sector"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "-2.47%"
+    ],
+    [
+     "S2 - Capital Goods",
+     "-4.22%"
+    ],
+    [
+     "S3 - Chemicals",
+     "-1.15%"
+    ],
+    [
+     "S4 - Construction",
+     "2.83%"
+    ],
+    [
+     "S5 - Construction Materials",
+     "-3.24%"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "0.00%"
+    ],
+    [
+     "S7 - Consumer Services",
+     "-0.81%"
+    ],
+    [
+     "S8 - Diversified",
+     "-18.22%"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "0.00%"
+    ],
+    [
+     "S10 - Financial Services",
+     "0.00%"
+    ],
+    [
+     "S11 - Forest Materials",
+     "-12.85%"
+    ],
+    [
+     "S12 - Healthcare",
+     "0.00%"
+    ],
+    [
+     "S13 - Information Technology",
+     "-8.57%"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "11.97%"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "-0.16%"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "-2.28%"
+    ],
+    [
+     "S17 - Power",
+     "-1.10%"
+    ],
+    [
+     "S18 - Realty",
+     "-10.00%"
+    ],
+    [
+     "S19 - Services",
+     "-3.89%"
+    ],
+    [
+     "S20 - Telecommunication",
+     "-6.85%"
+    ],
+    [
+     "S21 - Textiles",
+     "-9.92%"
+    ],
+    [
+     "S22 - Utilities",
+     ""
+    ],
+    [
+     "Total (All Sectors)",
+     "-2.28%"
+    ]
+   ],
+   "pdf_page": 45,
+   "printed_page": 39,
+   "observations": [
+    "501 companies report physical output intensity data. The median change is −2.28% — a more modest improvement than the turnover-based intensity metric (−4.19%), reflecting that absolute emission growth partially offsets physical efficiency gains. 155 companies (30.9%) achieve >10% physical intensity reduction.",
+    "Diversified (−18.22%) and Realty (−10.00%) show the strongest physical intensity improvements. Media Entertainment & Publication (+11.97%) is the only sector with a positive median change — indicating that physical output growth is outpacing emission efficiency gains. Utilities has a blank for physical output intensity, indicating non-reporting."
+   ]
+  },
+  {
+   "id": "3.8",
+   "title": "Absolute Scope 3 GHG emissions — current year vs previous year — by sector (tCO₂e)",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.6  Absolute Scope 3 Greenhouse Gas Emissions (tCO₂e) (for Companies That Reported the Data)",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Total Scope 3 — Current Year in (tCO₂e)",
+     "Total Scope 3 — Previous Year in (tCO₂e)"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "65,214,712.43",
+     "93,078,472.83"
+    ],
+    [
+     "S2 - Capital Goods",
+     "105,314,825.80",
+     "89,155,053.29"
+    ],
+    [
+     "S3 - Chemicals",
+     "20,506,869.19",
+     "16,102,943.75"
+    ],
+    [
+     "S4 - Construction",
+     "9,540,687.51",
+     "7,544,417.80"
+    ],
+    [
+     "S5 - Construction Materials",
+     "21,462,719.54",
+     "17,238,918.16"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "52,954,945.92",
+     "14,058,748.60"
+    ],
+    [
+     "S7 - Consumer Services",
+     "2,453,108.13",
+     "2,171,403.34"
+    ],
+    [
+     "S8 - Diversified",
+     "983,598.00",
+     "476,803.00"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "158,804,977.73",
+     "151,308,402.43"
+    ],
+    [
+     "S10 - Financial Services",
+     "107,787,194.99",
+     "71,371,687.26"
+    ],
+    [
+     "S11 - Forest Materials",
+     "127,230.00",
+     "194,118.00"
+    ],
+    [
+     "S12 - Healthcare",
+     "11,914,986.44",
+     "10,204,123.17"
+    ],
+    [
+     "S13 - Information Technology",
+     "1,341,276.53",
+     "1,260,795.98"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "168,291.74",
+     "152,990.14"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "102,128,743.77",
+     "95,763,322.92"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "737,572,261.01",
+     "715,139,120.12"
+    ],
+    [
+     "S17 - Power",
+     "64,351,584.69",
+     "63,421,881.61"
+    ],
+    [
+     "S18 - Realty",
+     "3,794,769.52",
+     "4,190,180.25"
+    ],
+    [
+     "S19 - Services",
+     "10,560,608.34",
+     "7,469,015.91"
+    ],
+    [
+     "S20 - Telecommunication",
+     "2,757,729.70",
+     "2,717,995.70"
+    ],
+    [
+     "S21 - Textiles",
+     "1,978,152.16",
+     "1,661,853.04"
+    ],
+    [
+     "S22 - Utilities",
+     "0.03",
+     "0.02"
+    ],
+    [
+     "Total (All Sectors)",
+     "1,481,719,273.17",
+     "1,364,682,247.32"
+    ]
+   ],
+   "pdf_page": 47,
+   "printed_page": 41,
+   "observations": [
+    "Total disclosed Scope 3 emissions grew 8.6% year-on-year — from 1,364,682,247 tCO₂e to 1,481,719,273 tCO₂e. Oil Gas & Consumable Fuels dominates at 737,572,261 tCO₂e (49.8% of total Scope 3) — reflecting the sector's extensive value chain emissions from fossil fuel combustion by end-users. FMCG (158,804,978) and Financial Services (107,787,195) are the next largest Scope 3 emitters.",
+    "Consumer Durables shows the most dramatic Scope 3 increase (+276.7%, from 14,058,749 to 52,954,946 tCO₂e) — likely reflecting improved boundary definition and supply chain inclusion rather than genuine emission growth. Forest Materials recorded a Scope 3 decrease (−34.5%), the only sector with declining absolute Scope 3 emissions."
+   ]
+  },
+  {
+   "id": "3.9",
+   "title": "Year-on-year change in Scope 3 emission intensity per rupee of turnover — distribution by change band",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.7  Year-on-Year Change in the Emission Intensity for Scope 3 per Rupee of Turnover (for Companies That Reported the Data)",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Year-on-Year Change",
+     "No. of Companies",
+     "Median % Change for All Sector"
+    ],
+    [
+     "< -10%",
+     "95",
+     ""
+    ],
+    [
+     "-10% to -5%",
+     "28",
+     ""
+    ],
+    [
+     "-5% to +5%",
+     "56",
+     ""
+    ],
+    [
+     "+5% to +10%",
+     "14",
+     ""
+    ],
+    [
+     "> +10%",
+     "79",
+     ""
+    ],
+    [
+     "Total",
+     "272",
+     "-0.52%"
+    ]
+   ],
+   "pdf_page": 48,
+   "printed_page": 42,
+   "observations": []
+  },
+  {
+   "id": "3.10",
+   "title": "Year-on-year change in Scope 3 emission intensity per rupee of turnover — median % change by sector",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.7  Year-on-Year Change in the Emission Intensity for Scope 3 per Rupee of Turnover (for Companies That Reported the Data)",
+   "question": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "rows": [
+    [
+     "Sector",
+     "Median % for the Sector"
+    ],
+    [
+     "S1 - Automobile and Auto Components",
+     "-7.50%"
+    ],
+    [
+     "S2 - Capital Goods",
+     "-6.59%"
+    ],
+    [
+     "S3 - Chemicals",
+     "-5.68%"
+    ],
+    [
+     "S4 - Construction",
+     "12.00%"
+    ],
+    [
+     "S5 - Construction Materials",
+     "3.73%"
+    ],
+    [
+     "S6 - Consumer Durables",
+     "10.71%"
+    ],
+    [
+     "S7 - Consumer Services",
+     "-16.70%"
+    ],
+    [
+     "S8 - Diversified",
+     "100.00%"
+    ],
+    [
+     "S9 - Fast Moving Consumer Goods",
+     "1.65%"
+    ],
+    [
+     "S10 - Financial Services",
+     "-1.67%"
+    ],
+    [
+     "S11 - Forest Materials",
+     "-46.15%"
+    ],
+    [
+     "S12 - Healthcare",
+     "-8.47%"
+    ],
+    [
+     "S13 - Information Technology",
+     "0.00%"
+    ],
+    [
+     "S14 - Media Entertainment & Publication",
+     "-10.81%"
+    ],
+    [
+     "S15 - Metals & Mining",
+     "-7.44%"
+    ],
+    [
+     "S16 - Oil Gas & Consumable Fuels",
+     "1.01%"
+    ],
+    [
+     "S17 - Power",
+     "-2.47%"
+    ],
+    [
+     "S18 - Realty",
+     "50.00%"
+    ],
+    [
+     "S19 - Services",
+     "0.00%"
+    ],
+    [
+     "S20 - Telecommunication",
+     "0.00%"
+    ],
+    [
+     "S21 - Textiles",
+     "-3.97%"
+    ],
+    [
+     "S22 - Utilities",
+     ""
+    ],
+    [
+     "Total (All Sectors)",
+     "-0.52%"
+    ]
+   ],
+   "pdf_page": 48,
+   "printed_page": 42,
+   "observations": [
+    "272 companies report Scope 3 intensity data — the smallest reporting cohort in the chapter — confirming that Scope 3 intensity management is the least mature dimension of corporate GHG governance. The median intensity change of −0.52% is close to neutral, indicating minimal aggregate Scope 3 intensity improvement.",
+    "Forest Materials (−46.15%), Consumer Services (−16.70%), and Healthcare (−8.47%) show the strongest Scope 3 intensity improvements. Diversified (+100%), Realty (+50%), and Construction (+12%) show the largest increases — for Diversified and Realty these are likely driven by improved Scope 3 boundary definition rather than genuine intensity deterioration."
+   ]
+  }
+ ],
+ "paragraphs": [
+  {
+   "id": "P1",
+   "section": "1. Introduction",
+   "subsection": null,
+   "text": "Climate change, driven predominantly by anthropogenic greenhouse gas (GHG) emissions, has emerged as a systemic risk to economic stability, ecological integrity, and long-term business viability. The Intergovernmental Panel on Climate Change (IPCC) has unequivocally established that limiting global warming to 1.5°C requires emissions to peak before 2025, be reduced by approximately half by 2030, and reach net-zero CO₂ by mid-century — necessitating rapid, deep, and immediate action across all sectors (IPCC, 2023). India, as the world's third-largest GHG emitter, recorded gross emissions of approximately 2.9–3.3 GtCO₂e in 2019 (excluding land-use change and forestry), with the energy sector alone accounting for nearly three-quarters of total emissions, followed by industrial processes, agriculture, and transport (MoEFCC/TNC, 2023; IEA, 2023). At the same time, India's development imperative — balancing rapid economic growth, energy access, and poverty alleviation — makes corporate GHG emissions disclosure a strategically critical component of both national climate governance and global decarbonisation efforts.",
+   "pdf_page": 31
+  },
+  {
+   "id": "P2",
+   "section": "1. Introduction",
+   "subsection": null,
+   "text": "Within this context, the Business Responsibility and Sustainability Reporting (BRSR) framework mandates standardised disclosure of Scope 1, Scope 2, and Scope 3 emissions for India's top 1,000 listed companies by market capitalisation. The BRSR Core further establishes a phased assurance glide path, beginning with the top 150 companies in FY 2023–24 and extending to all top 1,000 companies by FY 2026–27 (SEBI, 2021; SEBI, 2023). Climate stewardship is explicitly embedded within Principle 6 of the National Guidelines on Responsible Business Conduct (NGRBC), underscoring environmental responsibility as a core dimension of corporate conduct. The materiality of GHG emissions disclosures under BRSR is further amplified by regulatory convergence with global frameworks — notably the IFRS Sustainability Disclosure Standards (IFRS S1 and IFRS S2) issued by the International Sustainability Standards Board (ISSB), which have effectively subsumed the earlier Task Force on Climate-related Financial Disclosures (TCFD) recommendations — both of which emphasise transparency, comparability, and decision-useful climate-related financial information (IFRS Foundation, 2023).",
+   "pdf_page": 31
+  },
+  {
+   "id": "P3",
+   "section": "1. Introduction",
+   "subsection": null,
+   "text": "Despite these significant regulatory advances, prior research indicates substantial heterogeneity in corporate climate disclosures across emerging markets, including India, with persistent challenges related to data completeness, methodological consistency, limited Scope 3 coverage, and inadequate value chain reporting (Kumar & Prakash, 2019; CDP, 2022). This creates a critical gap in understanding the depth, quality, and comparability of GHG emissions disclosures among India's largest listed firms. Addressing this gap is essential not only for strengthening investor confidence and corporate accountability, but also for aligning corporate behaviour with India's Nationally Determined Contributions (NDCs) under the Paris Agreement and its broader long-term goal of achieving net-zero emissions by 2070 (UNFCCC, 2015).",
+   "pdf_page": 31
+  },
+  {
+   "id": "P4",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "This section evaluates the extent to which companies have institutionalised policies aligned with the relevant NGRBC Principle and its core elements. It examines whether such policies are formally approved by the Board, publicly disclosed with accessible web links, and effectively translated into operational procedures, including their extension across value chain partners. Further, it assesses whether entities have articulated clear commitments, goals, and time-bound targets, and the degree of progress achieved against them. The analysis also reviews governance mechanisms, including the level and frequency of oversight, as well as the presence of independent external assessments to validate policy effectiveness.",
+   "pdf_page": 31
+  },
+  {
+   "id": "P5",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Does the entity have policies in place to address this NGRBC Principle and its core elements?",
+   "pdf_page": 31
+  },
+  {
+   "id": "P6",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of whether companies have formally institutionalised climate governance policies aligned with Principle 6 of the NGRBC — the foundational requirement from which all GHG disclosure obligations, targets, and performance accountability derive.",
+   "pdf_page": 31
+  },
+  {
+   "id": "P7",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Have the policies been approved by the Board?",
+   "pdf_page": 32
+  },
+  {
+   "id": "P8",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of whether climate governance policies carry the highest level of institutional authority, distinguishing companies with formal Board-level accountability for climate risk from those with policy adoption without governance backing.",
+   "pdf_page": 32
+  },
+  {
+   "id": "P9",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Are the policies publicly accessible, and are web links provided?",
+   "pdf_page": 32
+  },
+  {
+   "id": "P10",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the public verifiability of climate governance commitments, reflecting whether stakeholders — investors, regulators, and civil society — can independently access and assess the scope and depth of a company's climate policy.",
+   "pdf_page": 32
+  },
+  {
+   "id": "P11",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Has the entity translated its policies into operational procedures?",
+   "pdf_page": 32
+  },
+  {
+   "id": "P12",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of whether climate policy commitments have been converted into day-to-day management systems, processes, and controls — moving governance from declaration to operational reality.",
+   "pdf_page": 32
+  },
+  {
+   "id": "P13",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Do these policies extend to value chain partners?",
+   "pdf_page": 32
+  },
+  {
+   "id": "P14",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of whether climate governance permeates the full value chain, reflecting whether companies hold their suppliers, distributors, and partners to the same environmental standards applied to their own operations.",
+   "pdf_page": 32
+  },
+  {
+   "id": "P15",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "National and International Codes, Certifications, Labels, and Standards Adopted",
+   "pdf_page": 33
+  },
+  {
+   "id": "P16",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the breadth of external framework alignment, reflecting the depth of voluntary commitments to recognised climate and sustainability standards beyond BRSR minimum compliance.",
+   "pdf_page": 33
+  },
+  {
+   "id": "P17",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Has the entity defined specific commitments, goals, and targets with clear timelines for this Principle?",
+   "pdf_page": 33
+  },
+  {
+   "id": "P18",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the ambition and specificity of climate commitments, distinguishing companies with science-based, measurable, time-bound targets from those with generic intent statements or no targets at all.",
+   "pdf_page": 33
+  },
+  {
+   "id": "P19",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "How has the entity performed against its stated commitments, goals, and targets?",
+   "pdf_page": 33
+  },
+  {
+   "id": "P20",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the gap between climate commitments and actual performance outcomes, reflecting whether companies can demonstrate credible progress or whether targets remain disconnected from measurable action.",
+   "pdf_page": 33
+  },
+  {
+   "id": "P21",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "At what level of governance is performance against these policies reviewed?",
+   "pdf_page": 34
+  },
+  {
+   "id": "P22",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the seniority of climate governance oversight, reflecting whether performance accountability sits at the Board, committee, or management level — a key determinant of the strategic weight given to climate risk.",
+   "pdf_page": 34
+  },
+  {
+   "id": "P23",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "How frequently is performance against these policies reviewed?",
+   "pdf_page": 34
+  },
+  {
+   "id": "P24",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the regularity and rigour of climate governance oversight, with higher-frequency review generally associated with more operationally embedded climate risk management.",
+   "pdf_page": 34
+  },
+  {
+   "id": "P25",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "Has the entity undertaken an independent external assessment of the effectiveness of its policies?",
+   "pdf_page": 34
+  },
+  {
+   "id": "P26",
+   "section": "Section 1: Policy Development and Periodic Review",
+   "subsection": null,
+   "text": "An indicator of the credibility and accountability of climate governance, distinguishing companies that subject their policies to independent scrutiny from those relying on self-assessed compliance.",
+   "pdf_page": 34
+  },
+  {
+   "id": "P27",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": null,
+   "text": "This section examines how companies translate ESG policies into concrete actions and practices. It focuses on implementation across operations and value chains, highlighting initiatives, processes, and resource commitments. The analysis also assesses alignment with stated goals and the extent to which actions demonstrate measurable progress on the reporting theme.",
+   "pdf_page": 35
+  },
+  {
+   "id": "P28",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "text": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "pdf_page": 36
+  },
+  {
+   "id": "P29",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.1  Does the Entity Have Any Projects Related to Reducing Greenhouse Gas (GHG) Emissions?",
+   "text": "An indicator of whether companies have moved beyond policy adoption into active emission reduction investment, distinguishing those with concrete GHG reduction projects from those with intent or declaration only.",
+   "pdf_page": 36
+  },
+  {
+   "id": "P30",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.2  Details of Projects Undertaken to Reduce Greenhouse Gas (GHG) Emissions",
+   "text": "2.2  Details of Projects Undertaken to Reduce Greenhouse Gas (GHG) Emissions",
+   "pdf_page": 36
+  },
+  {
+   "id": "P31",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.2  Details of Projects Undertaken to Reduce Greenhouse Gas (GHG) Emissions",
+   "text": "An indicator of the quality, scale, and measurability of GHG reduction project portfolios, distinguishing companies with impactful, structured programmes from those with ad-hoc, symbolic, or declarative-only initiatives.",
+   "pdf_page": 36
+  },
+  {
+   "id": "P32",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.3  Number of Companies Reporting Total Scope 3 Emissions and Emissions Intensity",
+   "text": "2.3  Number of Companies Reporting Total Scope 3 Emissions and Emissions Intensity",
+   "pdf_page": 38
+  },
+  {
+   "id": "P33",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.3  Number of Companies Reporting Total Scope 3 Emissions and Emissions Intensity",
+   "text": "An indicator of Scope 3 disclosure maturity and year-on-year trend, reflecting whether value chain emissions reporting is growing, stable, or declining — a critical dimension given that Scope 3 often represents the dominant share of total corporate emissions.",
+   "pdf_page": 38
+  },
+  {
+   "id": "P34",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.4  Independent Assessment, Evaluation, or Assurance of Greenhouse Gas Emissions Conducted by an External Agency",
+   "text": "2.4  Independent Assessment, Evaluation, or Assurance of Greenhouse Gas Emissions Conducted by an External Agency",
+   "pdf_page": 39
+  },
+  {
+   "id": "P35",
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "subsection": "2.4  Independent Assessment, Evaluation, or Assurance of Greenhouse Gas Emissions Conducted by an External Agency",
+   "text": "An indicator of the credibility and auditability of GHG emissions data, distinguishing companies whose emissions have been independently verified from those relying on unaudited self-reported figures.",
+   "pdf_page": 39
+  },
+  {
+   "id": "P36",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": null,
+   "text": "This section evaluates the effectiveness of actions undertaken by companies by analysing measurable outcomes against stated ESG goals and targets. It focuses on key performance indicators, trends, and impact achieved over time. The analysis also assesses consistency, comparability, and the extent to which outcomes reflect meaningful progress on the reporting theme.",
+   "pdf_page": 40
+  },
+  {
+   "id": "P37",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.1  Absolute Scope 1 and Scope 2 Greenhouse Gas Emissions (tCO₂e)",
+   "text": "3.1  Absolute Scope 1 and Scope 2 Greenhouse Gas Emissions (tCO₂e)",
+   "pdf_page": 41
+  },
+  {
+   "id": "P38",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.1  Absolute Scope 1 and Scope 2 Greenhouse Gas Emissions (tCO₂e)",
+   "text": "An indicator of the absolute scale and composition of direct and indirect energy emissions, enabling sector-level benchmarking of total climate footprint and the relative contribution of Scope 1 versus Scope 2 emissions.",
+   "pdf_page": 41
+  },
+  {
+   "id": "P39",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.2  Year-on-Year Change in Absolute Total Emissions (tCO₂e)",
+   "text": "3.2  Year-on-Year Change in Absolute Total Emissions (tCO₂e)",
+   "pdf_page": null
+  },
+  {
+   "id": "P40",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.2  Year-on-Year Change in Absolute Total Emissions (tCO₂e)",
+   "text": "An indicator of the absolute emission trajectory — whether the sector's aggregate Scope 1+2 footprint is growing, stable, or declining year-on-year — the most direct measure of climate performance outcomes.",
+   "pdf_page": 42
+  },
+  {
+   "id": "P41",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.3  Year-on-Year Company-wise Change in Absolute Total Scope 1 and Scope 2 Emissions",
+   "text": "3.3  Year-on-Year Company-wise Change in Absolute Total Scope 1 and Scope 2 Emissions",
+   "pdf_page": 43
+  },
+  {
+   "id": "P42",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.3  Year-on-Year Company-wise Change in Absolute Total Scope 1 and Scope 2 Emissions",
+   "text": "An indicator of the distribution of emission outcomes at company level — distinguishing how many individual companies reduced versus increased emissions — enabling assessment of whether sector-level trends reflect broad-based improvement or concentration in a few large emitters.",
+   "pdf_page": 43
+  },
+  {
+   "id": "P43",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.4  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 per Rupee of Turnover",
+   "text": "3.4  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 per Rupee of Turnover",
+   "pdf_page": 44
+  },
+  {
+   "id": "P44",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.4  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 per Rupee of Turnover",
+   "text": "An indicator of emission intensity improvement per unit of economic output, enabling assessment of decoupling between economic growth and GHG emissions — the most relevant metric for assessing progress in emission efficiency rather than absolute volume.",
+   "pdf_page": 44
+  },
+  {
+   "id": "P45",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.5  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 in Terms of Physical Output",
+   "text": "3.5  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 in Terms of Physical Output",
+   "pdf_page": 45
+  },
+  {
+   "id": "P46",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.5  Year-on-Year Change in the Emission Intensity for Scope 1 and Scope 2 in Terms of Physical Output",
+   "text": "An indicator of emission efficiency per unit of physical production, enabling sector-specific decarbonisation benchmarking independent of revenue fluctuations and pricing effects that may distort turnover-based intensity metrics.",
+   "pdf_page": 45
+  },
+  {
+   "id": "P47",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.6  Absolute Scope 3 Greenhouse Gas Emissions (tCO₂e) (for Companies That Reported the Data)",
+   "text": "3.6  Absolute Scope 3 Greenhouse Gas Emissions (tCO₂e) (for Companies That Reported the Data)",
+   "pdf_page": 47
+  },
+  {
+   "id": "P48",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.6  Absolute Scope 3 Greenhouse Gas Emissions (tCO₂e) (for Companies That Reported the Data)",
+   "text": "An indicator of the value chain emissions footprint for reporting companies, enabling sector-level benchmarking of Scope 3 scale and year-on-year trajectory — critical given that Scope 3 typically represents 70–90% of total corporate climate impact.",
+   "pdf_page": 47
+  },
+  {
+   "id": "P49",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.7  Year-on-Year Change in the Emission Intensity for Scope 3 per Rupee of Turnover (for Companies That Reported the Data)",
+   "text": "3.7  Year-on-Year Change in the Emission Intensity for Scope 3 per Rupee of Turnover (for Companies That Reported the Data)",
+   "pdf_page": 48
+  },
+  {
+   "id": "P50",
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "subsection": "3.7  Year-on-Year Change in the Emission Intensity for Scope 3 per Rupee of Turnover (for Companies That Reported the Data)",
+   "text": "An indicator of value chain emission efficiency per unit of revenue, enabling assessment of whether companies are managing Scope 3 intensity as their businesses grow — the most forward-looking measure of climate transition credibility.",
+   "pdf_page": 48
+  },
+  {
+   "id": "P51",
+   "section": "3. Key Insights",
+   "subsection": null,
+   "text": "The following table draws together the most significant findings from the GHG emissions and climate risk disclosures among India's top listed companies.",
+   "pdf_page": 50
+  },
+  {
+   "id": "P52",
+   "section": "3. Key Insights",
+   "subsection": null,
+   "text": "Collectively, these findings present a nuanced picture of GHG governance among India's top listed companies: strong on formal policy adoption, weak on target ambition, deteriorating on absolute emissions, and improving on intensity metrics and Scope 3 transparency. The structural concentration of emissions in Power, Construction Materials, Metals & Mining, and Oil Gas — which together account for over 80% of total disclosed Scope 1+2 emissions — means that India's corporate climate trajectory is disproportionately determined by decarbonisation decisions in four sectors. The 44% growth in Scope 3 reporting is the most significant positive development, but the absolute growth in both Scope 1+2 and Scope 3 emissions confirms that corporate India's climate footprint expanded in the reporting period. Bridging the distance between policy adoption rates above 98% and high-impact project delivery at 14.9% is the defining governance challenge for corporate India's contribution to the country's 2070 net-zero commitment.",
+   "pdf_page": 50
+  }
+ ],
+ "key_insights": [
+  {
+   "area": "Policy Foundation — Strong",
+   "signal": "Strong",
+   "observation": "98.1% of companies (963) have a Principle 6 policy with Board approval (94.0%) and operational translation (97.0%). The governance foundation for climate management is broadly in place across the sector.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Target Ambition — Weak",
+   "signal": "Critical",
+   "observation": "66.2% of companies (650) have no targets or only vague/generic targets. Only 11.2% (110) have science-based, globally aligned targets. Policy adoption far outpaces climate ambition — the defining governance gap.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Performance Reporting — Poor",
+   "signal": "Weak",
+   "observation": "50.6% of companies report no data or minimal progress against stated targets. Only 11.4% (112) demonstrate fully achieved targets with verifiable data. Disclosure quality does not yet translate into performance accountability.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Value Chain Policy Gap",
+   "signal": "Notable",
+   "observation": "22.1% of companies (217) do not extend climate policies to value chain partners — a material gap given that Scope 3 emissions frequently exceed Scope 1+2. Independent assurance is absent for 62.6% of companies.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Absolute Emissions — Rising",
+   "signal": "Concerning",
+   "observation": "Total Scope 1+2 emissions increased 4.29% year-on-year. 53.1% of companies increased absolute emissions. Power alone contributed ~32.9 million tCO₂e of the total 53.7 million tCO₂e net increase.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Intensity Improvement — Positive",
+   "signal": "Partial",
+   "observation": "Median emission intensity per rupee of turnover improved −4.19%, with 309 companies (37.5%) achieving >10% reduction. Economic growth is outpacing emission growth for the majority — but absolute volumes still increased.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Scope 3 Reporting Growth",
+   "signal": "Improving",
+   "observation": "Scope 3 reporting grew 44% year-on-year (292 to 421 companies). The strongest single-year governance improvement in the chapter. However 57.1% still do not disclose Scope 3 emissions.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Scope 3 Scale — Dominant",
+   "signal": "Notable",
+   "observation": "Disclosed Scope 3 (1,481,719,273 tCO₂e) exceeds Scope 1+2 (1,307,429,911 tCO₂e). Oil Gas accounts for 49.8% of total Scope 3. Scope 3 grew 8.6% year-on-year — more than double the Scope 1+2 growth rate.",
+   "pdf_page": 50
+  },
+  {
+   "area": "GHG Project Quality — Low",
+   "signal": "Mixed",
+   "observation": "Only 14.9% of companies (146) have high-impact GHG reduction projects. 22.3% (219) have no projects at all. The gap between policy adoption (98.1%) and high-impact project delivery (14.9%) is the starkest measure of implementation quality.",
+   "pdf_page": 50
+  },
+  {
+   "area": "Assurance — Insufficient",
+   "signal": "Critical",
+   "observation": "Only 37.4% of companies have undertaken independent GHG assurance. As BRSR Core extends mandatory assurance to all top 1,000 companies by FY 2026–27, 62.6% of companies face a near-term compliance gap that cannot be addressed without significant investment in data systems and third-party verification.",
+   "pdf_page": 50
+  }
+ ],
+ "conclusion": {
+  "id": "P52",
+  "section": "3. Key Insights",
+  "subsection": null,
+  "text": "Collectively, these findings present a nuanced picture of GHG governance among India's top listed companies: strong on formal policy adoption, weak on target ambition, deteriorating on absolute emissions, and improving on intensity metrics and Scope 3 transparency. The structural concentration of emissions in Power, Construction Materials, Metals & Mining, and Oil Gas — which together account for over 80% of total disclosed Scope 1+2 emissions — means that India's corporate climate trajectory is disproportionately determined by decarbonisation decisions in four sectors. The 44% growth in Scope 3 reporting is the most significant positive development, but the absolute growth in both Scope 1+2 and Scope 3 emissions confirms that corporate India's climate footprint expanded in the reporting period. Bridging the distance between policy adoption rates above 98% and high-impact project delivery at 14.9% is the defining governance challenge for corporate India's contribution to the country's 2070 net-zero commitment.",
+  "pdf_page": 50
+ },
+ "insight_blocks": [
+  {
+   "section": "Section 1: Policy Development and Periodic Review",
+   "items": [
+    "Climate policy adoption is near-universal: 963 companies (98.1%) have a Principle 6 policy, 923 (94.0%) have Board approval, and 953 (97.0%) have translated policies into operational procedures. This represents a strong governance foundation — the highest adoption rate across any ESG theme in the BRSR universe.",
+    "Public verifiability is materially lower: only 877 companies (89.3%) provide a valid policy URL, meaning 105 companies have adopted policies that cannot be independently verified by investors, regulators, or civil society — an accountability gap in an era of increasing mandatory disclosure.",
+    "Value chain extension lags direct operations: only 765 companies (77.9%) extend climate policies to value chain partners, a 20 percentage point gap relative to operational procedure translation. Given that Scope 3 emissions often represent the majority of a company's climate footprint, this gap is materially significant.",
+    "Climate target quality is predominantly aspirational: 46.7% of companies (459) define only vague or generic targets, and 19.5% (191) have no targets at all. Only 11.2% (110) have set highly specific, science-based, and globally aligned targets — the sector-wide ambition gap is the defining challenge for credible net-zero transition.",
+    "Performance reporting is chronically weak: 50.6% of companies (497) report either no performance data or only minimal progress. Only 11.4% (112) can demonstrate fully achieved or exceeded targets with verifiable data — a structural disconnect between policy ambition and disclosed performance outcomes.",
+    "Independent external assessment remains minority practice: only 349 companies (35.5%) have undertaken independent assessment of policy effectiveness, while 633 (64.5%) rely on self-assessed compliance. In a context of increasing assurance requirements under BRSR Core, this gap represents a significant near-term governance risk for the majority of the sector.",
+    "Board and committee-level oversight is the norm: 769 companies (78.3%) have climate performance reviewed at Director (326) or Committee of the Board (443) level. However, 376 companies (38.3%) review on an 'any other' frequency — suggesting that a substantial proportion of Board-level oversight is neither annual nor quarterly, raising questions about the depth of engagement."
+   ],
+   "pdf_page": 35,
+   "after_table": "1.11"
+  },
+  {
+   "section": "Section 2: Operationalization of the Reporting Theme: Actions Taken by Companies",
+   "items": [
+    "GHG project adoption at 78.0% (766 of 982) demonstrates strong operational intent, but quality is the critical gap: only 14.9% (146) of companies have high-impact projects, and 22.3% (219) have no projects at all. The structural gap between policy adoption (98.1%) and high-impact project delivery (14.9%) is the most telling performance measure in this section.",
+    "Scope 3 reporting has grown 44% year-on-year — from 292 to 421 companies — representing the most significant single-year improvement in GHG governance. However, 57.1% of companies still do not disclose Scope 3 emissions, leaving the dominant share of most companies' climate footprint unaccounted.",
+    "Independent GHG assurance at 37.4% is insufficient for an era of mandatory BRSR Core assurance requirements. The 62.6% of companies without independent verification represent a systemic data credibility risk as regulatory scrutiny of emissions data intensifies."
+   ],
+   "pdf_page": 40,
+   "after_table": "2.4"
+  },
+  {
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "items": [
+    "Total absolute Scope 1+2 emissions increased 4.29% year-on-year. Power, Construction Materials, Metals & Mining, and Oil Gas account for 81.4% of total disclosed emissions — these four sectors are the primary levers for any meaningful sector-level decarbonisation.",
+    "53.1% of companies increased emissions while only 35.4% decreased — confirming broad-based emission growth that is not explained by sector mix effects alone. The sector's collective emission trajectory is moving in the wrong direction relative to India's NDC commitments.",
+    "Financial Services (+23.16%) is the fastest-growing emitter on a percentage basis — in a sector whose primary climate exposure is Scope 3 financed emissions, a 23% increase in direct/indirect energy emissions represents a governance signal about the pace of transition."
+   ],
+   "pdf_page": 43,
+   "after_table": "3.3"
+  },
+  {
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "items": [
+    "Emission intensity per rupee of turnover improved by a median −4.19% across 826 reporting companies — indicating that most companies are growing revenues faster than emissions. However, 172 companies (20.8%) increased intensity by more than 10%, confirming that intensity improvement is not uniform.",
+    "Physical output intensity improvement (median −2.28% across 501 companies) is weaker than turnover-based intensity — suggesting that some of the turnover-based improvement reflects revenue growth or pricing effects rather than genuine operational efficiency gains.",
+    "Construction Materials and Power sectors carry intensity levels an order of magnitude higher than all other sectors — a structural reality that no governance intervention can rapidly resolve, but which makes decarbonisation in these sectors the most impactful lever for national emission reduction."
+   ],
+   "pdf_page": 46,
+   "after_table": "3.7"
+  },
+  {
+   "section": "Section 3: Performance Outcomes of Implemented Measures",
+   "items": [
+    "Total disclosed Scope 3 emissions of 1,481,719,273 tCO₂e exceed total Scope 1+2 emissions (1,307,429,911 tCO₂e) by 13.3% — confirming that value chain emissions are already the larger component for reporting companies, and materially larger for the 57.1% of companies that do not yet report Scope 3.",
+    "Scope 3 grew 8.6% year-on-year in absolute terms — more than double the 4.29% Scope 1+2 growth rate. Oil Gas & Consumable Fuels accounts for 49.8% of disclosed Scope 3 — its value chain emissions from end-use combustion dwarf all other sectors combined.",
+    "Only 272 companies report Scope 3 intensity — compared to 826 for Scope 1+2 intensity — a 67% gap in the most forward-looking emissions management metric. As BRSR Core assurance requirements extend to Scope 3, this reporting gap represents the most significant near-term governance risk in the chapter."
+   ],
+   "pdf_page": 48,
+   "after_table": "3.10"
+  }
+ ]
+}

@@ -1,0 +1,133 @@
+/* Design tokens. Light is the default; dark is its own set of steps, not an inversion. */
+:root {
+  color-scheme: light;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+
+  --page: #f6f5f1;
+  --rail: #efede7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ed;
+  --surface-3: #e9e7e0;
+  --ink: #121212;
+  --ink-2: #4f4e49;
+  --ink-3: #85837c;
+  --line: #e2e0d8;
+  --line-2: #d3d0c6;
+  --ring: rgba(28, 92, 171, 0.35);
+
+  --accent: #1c5cab;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6eef9;
+  --brand: #14213d;
+
+  /* validated categorical slots (dataviz reference palette) */
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+  --focus: #2a78d6;
+  --peer: #c4c1b6;
+  --peer-strong: #9d9a90;
+  --div-neg: #2a78d6;   /* decrease (good for emissions) */
+  --div-pos: #e34948;   /* increase */
+  --div-mid: #f0efec;
+  --seq-1: #cde2fb;
+  --seq-3: #86b6ef;
+  --seq-5: #3987e5;
+  --seq-7: #1c5cab;
+  --seq-9: #0d366b;
+
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --warn: #fab219;
+  --serious: #ec835a;
+  --bad: #d03b3b;
+  --bad-ink: #b3261e;
+  --warn-bg: #fdf5e1;
+  --warn-line: #f0d9a0;
+  --bad-bg: #fbeceb;
+  --good-bg: #e9f5e9;
+
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-1: 0 1px 2px rgba(18, 18, 18, 0.04), 0 1px 1px rgba(18, 18, 18, 0.03);
+  --shadow-2: 0 10px 30px -12px rgba(18, 18, 18, 0.18), 0 2px 6px rgba(18, 18, 18, 0.05);
+  --shadow-3: 0 24px 60px -20px rgba(18, 18, 18, 0.35);
+  --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0f0f0e;
+    --rail: #141413;
+    --surface: #1a1a19;
+    --surface-2: #211f1e;
+    --surface-3: #2a2927;
+    --ink: #f4f3ee;
+    --ink-2: #c3c2b7;
+    --ink-3: #8c8a82;
+    --line: #2c2c2a;
+    --line-2: #3a3936;
+    --ring: rgba(95, 168, 255, 0.45);
+    --accent: #5fa8ff;
+    --accent-ink: #0b1220;
+    --accent-soft: #16263d;
+    --brand: #e8eefb;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --focus: #5fa8ff;
+    --peer: #4a4945;
+    --peer-strong: #6d6b65;
+    --div-neg: #3987e5; --div-pos: #e66767; --div-mid: #383835;
+    --seq-1: #16263d; --seq-3: #1c5cab; --seq-5: #2a78d6; --seq-7: #6da7ec; --seq-9: #cde2fb;
+    --warn-bg: #2a2413; --warn-line: #5c4a17; --bad-bg: #2d1817; --good-bg: #13241a;
+    --good-ink: #52c552; --bad-ink: #f08a86;
+    --grid: #2c2c2a;
+    --axis: #3a3936;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 12px 30px -12px rgba(0, 0, 0, 0.6);
+    --shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0f0f0e;
+  --rail: #141413;
+  --surface: #1a1a19;
+  --surface-2: #211f1e;
+  --surface-3: #2a2927;
+  --ink: #f4f3ee;
+  --ink-2: #c3c2b7;
+  --ink-3: #8c8a82;
+  --line: #2c2c2a;
+  --line-2: #3a3936;
+  --ring: rgba(95, 168, 255, 0.45);
+  --accent: #5fa8ff;
+  --accent-ink: #0b1220;
+  --accent-soft: #16263d;
+  --brand: #e8eefb;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --focus: #5fa8ff;
+  --peer: #4a4945;
+  --peer-strong: #6d6b65;
+  --div-neg: #3987e5; --div-pos: #e66767; --div-mid: #383835;
+  --seq-1: #16263d; --seq-3: #1c5cab; --seq-5: #2a78d6; --seq-7: #6da7ec; --seq-9: #cde2fb;
+  --warn-bg: #2a2413; --warn-line: #5c4a17; --bad-bg: #2d1817; --good-bg: #13241a;
+  --good-ink: #52c552; --bad-ink: #f08a86;
+  --grid: #2c2c2a;
+  --axis: #3a3936;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+}

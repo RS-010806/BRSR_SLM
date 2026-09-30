@@ -1,0 +1,254 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { companies as fetchCompanies, meta as fetchMeta, type Company, type Meta } from "../api";
+import { I, Mark } from "../icons";
+import type { Thread } from "../store";
+
+export type View = "chat" | "companies" | "sectors" | "method";
+
+/* ---------------------------------------------------------------- sidebar */
+export function Sidebar(props: {
+  threads: Thread[]; active: string | null; view: View; lensName: string | null; theme: string; meta: Meta | null;
+  onNew: () => void; onOpen: (id: string) => void; onDelete: (id: string) => void; onView: (v: View) => void;
+  onLens: () => void; onTheme: () => void; onPalette: () => void; onClose: () => void;
+}) {
+  const [filter, setFilter] = useState("");
+  const list = props.threads.filter((t) => !filter || t.title.toLowerCase().includes(filter.toLowerCase()));
+  const today = new Date().setHours(0, 0, 0, 0);
+  const groups: [string, Thread[]][] = [
+    ["Today", list.filter((t) => t.updatedAt >= today)],
+    ["Earlier", list.filter((t) => t.updatedAt < today)],
+  ];
+  const r = props.meta?.reconciliation;
+  return (
+    <aside className="rail">
+      <div className="rail-head">
+        <button className="brand" onClick={props.onNew} aria-label="Pramana home">
+          <Mark />
+          <span><div className="brand-word">Pramana</div><div className="brand-sub">BRSR · E1 intelligence</div></span>
+        </button>
+        <button className="icon-btn menu-btn" onClick={props.onClose} aria-label="Close sidebar"><I.menu /></button>
+      </div>
+      <button className="new-btn" onClick={props.onNew}><span style={{ display: "flex", gap: 8, alignItems: "center" }}><I.plus style={{ width: 16, height: 16 }} />New question</span><span className="kbd">⌘K</span></button>
+      <button className={"lens" + (props.lensName ? " on" : "")} onClick={props.onLens} title="Set the company answers are framed around">
+        <span className="lens-dot" />
+        <span style={{ minWidth: 0 }}>
+          <div className="lens-lab">Your company lens</div>
+          <div className="lens-val">{props.lensName || "Not set, answers are general"}</div>
+        </span>
+      </button>
+      <nav className="rail-nav">
+        <button className={"nav-item" + (props.view === "chat" ? " active" : "")} onClick={() => props.onView("chat")}><I.chat />Ask</button>
+        <button className={"nav-item" + (props.view === "companies" ? " active" : "")} onClick={() => props.onView("companies")}><I.building />Companies</button>
+        <button className={"nav-item" + (props.view === "sectors" ? " active" : "")} onClick={() => props.onView("sectors")}><I.grid />Sectors</button>
+        <button className={"nav-item" + (props.view === "method" ? " active" : "")} onClick={() => props.onView("method")}><I.book />Method and sources</button>
+      </nav>
+      <div className="rail-sec"><span>Conversations</span><span>{props.threads.length}</span></div>
+      {props.threads.length > 6 && <input className="thread-search" placeholder="Search conversations" value={filter} onChange={(e) => setFilter(e.target.value)} />}
+      <div className="threads">
+        {props.threads.length === 0 && <div className="muted" style={{ fontSize: 13, padding: "6px 10px" }}>Your questions are remembered in this browser only.</div>}
+        {groups.map(([g, ts]) => ts.length > 0 && (
+          <div key={g}>
+            <div className="rail-sec" style={{ padding: "10px 8px 4px" }}>{g}</div>
+            {ts.map((t) => (
+              <div key={t.id} className={"thread" + (t.id === props.active && props.view === "chat" ? " active" : "")} onClick={() => props.onOpen(t.id)} role="button" tabIndex={0}
+                   onKeyDown={(e) => e.key === "Enter" && props.onOpen(t.id)}>
+                <span className="thread-title">{t.title}</span>
+                <button className="x" onClick={(e) => { e.stopPropagation(); props.onDelete(t.id); }} aria-label="Delete conversation"><I.x style={{ width: 13, height: 13 }} /></button>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="rail-foot">
+        <button className="verify" onClick={() => props.onView("method")}>
+          <I.shield className="verify-seal" />
+          <span><strong>{r ? `${r.matched} of ${r.total}` : "597 of 597"}</strong> report figures reproduced from raw data</span>
+        </button>
+        <div className="rail-row">
+          <span>{props.meta ? `${props.meta.dataset.n_companies} companies · FY 2024-25` : "Loading dataset"}</span>
+          <button className="icon-btn" onClick={props.onTheme} aria-label="Toggle theme" title={`Theme: ${props.theme}`}>{props.theme === "dark" ? <I.moon /> : <I.sun />}</button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ---------------------------------------------------------------- composer */
+const PLACEHOLDERS = [
+  "Ask about any of the 982 companies, sectors or the E1 report",
+  "What are Tata Steel's Scope 1 emissions?",
+  "How does ACC compare with its peers?",
+  "Best practices for GHG reduction projects in cement",
+  "Which companies mention green hydrogen?",
+];
+
+export function Composer({ onSend, busy, lensName, autoFocus }: { onSend: (q: string) => void; busy: boolean; lensName: string | null; autoFocus?: boolean }) {
+  const [v, setV] = useState("");
+  const [ph, setPh] = useState(0);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const t = setInterval(() => setPh((p) => (p + 1) % PLACEHOLDERS.length), 3800);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.style.height = "auto";
+    ref.current.style.height = Math.min(200, ref.current.scrollHeight) + "px";
+  }, [v]);
+  useEffect(() => { if (autoFocus) ref.current?.focus(); }, [autoFocus]);
+  const send = () => {
+    const q = v.trim();
+    if (!q || busy) return;
+    onSend(q);
+    setV("");
+  };
+  return (
+    <div className="composer">
+      <textarea ref={ref} rows={1} value={v} placeholder={PLACEHOLDERS[ph]} onChange={(e) => setV(e.target.value)} maxLength={600}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} aria-label="Ask a question" />
+      <div className="composer-bar">
+        <div className="composer-hints">
+          {lensName ? <span className="chip-lens" title="Answers use this company for 'we' and 'our'">Lens: {lensName}</span> : <span>No sign-in. Memory stays in this browser.</span>}
+          <span className="hide-sm">· Enter to send, Shift+Enter for a new line</span>
+        </div>
+        <button className="send" onClick={send} disabled={!v.trim() || busy} aria-label="Send"><I.send /></button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- empty state */
+const STARTERS = [
+  { k: "Plain data", c: "var(--s1)", q: "What are Tata Steel's Scope 1 and Scope 2 emissions?" },
+  { k: "Peer comparison", c: "var(--s2)", q: "How does ACC compare with its peers?" },
+  { k: "Best practices", c: "var(--s3)", q: "Best practices for GHG reduction projects in cement" },
+  { k: "Sector insight", c: "var(--s4)", q: "Give me an overview of the power sector" },
+  { k: "What-if", c: "var(--s7)", q: "What if NTPC cuts Scope 1 by 10%?" },
+  { k: "Search disclosures", c: "var(--s5)", q: "Which companies mention green hydrogen?" },
+];
+
+export function EmptyState({ onAsk, meta, sectorsTotal }: { onAsk: (q: string) => void; meta: Meta | null; sectorsTotal: number | null }) {
+  const r = meta?.reconciliation;
+  return (
+    <div className="hero">
+      <div className="eyebrow">BRSR FY 2024-25 · Theme E1 · GHG emissions and climate risk</div>
+      <h1>Ask the record. Get the <em>proof</em>.</h1>
+      <p className="lede">
+        Pramana answers questions on the climate disclosures of India's top listed companies using only the IIMB dataset.
+        Every figure links to the exact workbook cell, rating or report page it came from. If it is not in the data, it says so.
+      </p>
+      <div className="facts">
+        <div className="fact"><div className="fact-v">{meta ? meta.dataset.n_companies : 982}</div><div className="fact-l">companies with BRSR filings</div></div>
+        <div className="fact"><div className="fact-v">{meta ? meta.dataset.n_sectors : 22}</div><div className="fact-l">NSE sectors benchmarked</div></div>
+        <div className="fact"><div className="fact-v">{sectorsTotal ? `${(sectorsTotal / 1e9).toFixed(2)}B` : "1.31B"}</div><div className="fact-l">tCO₂e Scope 1+2 disclosed</div></div>
+        <div className="fact"><div className="fact-v">{r ? `${r.matched}/${r.total}` : "597/597"}</div><div className="fact-l">report figures reproduced</div></div>
+      </div>
+      <div className="starters-h"><h2>Start with a question</h2><span className="muted" style={{ fontSize: 12.5 }}>or press ⌘K to find a company</span></div>
+      <div className="starters">
+        {STARTERS.map((s, i) => (
+          <button key={s.k} className="starter" onClick={() => onAsk(s.q)} style={{ animation: `rise .5s ${i * 60}ms both` }}>
+            <span className="starter-k"><i style={{ background: s.c }} />{s.k}</span>
+            <span className="starter-q">{s.q}</span>
+            <span className="starter-go">Ask <I.arrow style={{ width: 13, height: 13 }} /></span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- thinking */
+const STEPS = ["Understanding the question", "Linking companies, sectors and metrics", "Computing from 982 filings", "Composing with citations"];
+export function Thinking() {
+  const [s, setS] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setS((x) => Math.min(STEPS.length - 1, x + 1)), 170);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="thinking" aria-live="polite">
+      {STEPS.map((t, i) => (
+        <div key={t} className={"think-row" + (i < s ? " done" : i === s ? " active" : "")}><span className="think-dot" />{t}</div>
+      ))}
+      <div className="skeleton" style={{ width: "62%", marginTop: 6 }} />
+      <div className="skeleton" style={{ width: "88%" }} />
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- command palette */
+type Item = { group: string; label: string; sub?: string; run: () => void; actions?: { label: string; run: () => void }[] };
+
+export function Palette({ onClose, onAsk, onLens, mode, threads, onOpenThread }: {
+  onClose: () => void; onAsk: (q: string) => void; onLens: (id: string | null, name?: string) => void; mode: "search" | "lens";
+  threads: Thread[]; onOpenThread: (id: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState(0);
+  const [cos, setCos] = useState<Company[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
+  useEffect(() => { fetchCompanies().then(setCos); fetchMeta().then(setMeta); }, []);
+  const items: Item[] = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    const score = (name: string) => {
+      const n = name.toLowerCase();
+      if (!s) return 1;
+      if (n.startsWith(s)) return 3;
+      if (n.split(/\s+/).some((w) => w.startsWith(s))) return 2;
+      return n.includes(s) ? 1 : 0;
+    };
+    const out: Item[] = [];
+    if (mode === "lens") {
+      out.push({ group: "Lens", label: "Clear lens (general answers)", run: () => onLens(null) });
+      cos.map((c) => ({ c, sc: score(c.name) })).filter((x) => x.sc > 0).sort((a, b) => b.sc - a.sc || a.c.name.localeCompare(b.c.name)).slice(0, 40)
+        .forEach(({ c }) => out.push({ group: "Companies", label: c.short, sub: c.sector_name, run: () => onLens(c.id, c.short) }));
+      return out;
+    }
+    if (s) out.push({ group: "Ask", label: `Ask: ${q.trim()}`, run: () => onAsk(q.trim()) });
+    cos.map((c) => ({ c, sc: score(c.name) })).filter((x) => x.sc > 0).sort((a, b) => b.sc - a.sc || a.c.name.localeCompare(b.c.name)).slice(0, s ? 12 : 6)
+      .forEach(({ c }) => out.push({
+        group: "Companies", label: c.short, sub: c.sector_name, run: () => onAsk(`Show ${c.short}'s E1 profile`),
+        actions: [
+          { label: "Peers", run: () => onAsk(`How does ${c.short} compare with its peers?`) },
+          { label: "Set lens", run: () => onLens(c.id, c.short) },
+        ],
+      }));
+    (meta?.sectors || []).filter((x) => score(x.name) > 0 || score(x.short) > 0).slice(0, s ? 6 : 4)
+      .forEach((x) => out.push({ group: "Sectors", label: x.name, sub: `${x.n} companies`, run: () => onAsk(`Give me an overview of the ${x.name} sector`) }));
+    threads.filter((t) => s && t.title.toLowerCase().includes(s)).slice(0, 5)
+      .forEach((t) => out.push({ group: "Conversations", label: t.title, run: () => onOpenThread(t.id) }));
+    return out;
+  }, [q, cos, meta, mode, threads]);
+  useEffect(() => setSel(0), [q]);
+  const go = (i: number) => { const it = items[i]; if (it) { it.run(); onClose(); } };
+  let lastGroup = "";
+  return (
+    <div className="pal-scrim" onClick={onClose}>
+      <div className="pal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Search">
+        <input autoFocus placeholder={mode === "lens" ? "Which company are you from? (optional, stays in this browser)" : "Search companies, sectors, or type a question"} value={q}
+               onChange={(e) => setQ(e.target.value)}
+               onKeyDown={(e) => {
+                 if (e.key === "Escape") onClose();
+                 if (e.key === "ArrowDown") { e.preventDefault(); setSel((x) => Math.min(items.length - 1, x + 1)); }
+                 if (e.key === "ArrowUp") { e.preventDefault(); setSel((x) => Math.max(0, x - 1)); }
+                 if (e.key === "Enter") go(sel);
+               }} />
+        <div className="pal-list">
+          {items.map((it, i) => {
+            const head = it.group !== lastGroup ? (lastGroup = it.group) : null;
+            return (
+              <div key={it.group + it.label + i}>
+                {head && <div className="pal-group">{head}</div>}
+                <div className={"pal-item" + (i === sel ? " sel" : "")} onMouseEnter={() => setSel(i)} onClick={() => go(i)}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label} {it.sub && <small>{it.sub}</small>}</span>
+                  {it.actions && <span className="pal-actions">{it.actions.map((a) => <button key={a.label} onClick={(e) => { e.stopPropagation(); a.run(); onClose(); }}>{a.label}</button>)}</span>}
+                </div>
+              </div>
+            );
+          })}
+          {items.length === 0 && <div className="pal-item muted">No match among the 982 companies.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
