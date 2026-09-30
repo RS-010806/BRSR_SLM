@@ -37,6 +37,17 @@ BOOL_PHRASE = {
 QTABLE = {"232": "1.1", "241": "1.2", "250": "1.3", "259": "1.4", "268": "1.5", "344": "1.11", "1340": "2.4",
           "1341": "2.1", "1387": "2.3"}
 
+# What each outcome rating actually scores (the Rating sheet scores the change on
+# some rows and the level against the industry on others).
+RATING_LABEL = {
+    "1330": "Scope 1: change vs FY 2023-24", "1332": "Scope 2: change vs FY 2023-24",
+    "1388": "Scope 3: change vs FY 2023-24",
+    "1334": "Intensity per rupee: level vs industry", "1335": "Intensity per rupee: change",
+    "1336": "PPP intensity: level vs industry", "1337": "PPP intensity: change",
+    "1338": "Physical intensity: level vs industry", "1339": "Physical intensity: change",
+    "1390": "Scope 3 intensity: level vs industry", "1391": "Scope 3 intensity: change",
+}
+
 RATIO_RULE = re.compile(r"if \(Q(\d+)/Q(\d+)\)\s*(.*)$", re.I)
 
 
@@ -492,7 +503,7 @@ def company_profile(ctx, c):
                 continue
             s = c["ratings"].get(q["qid"])
             ms = [m["ratings"].get(q["qid"]) for m in members if m["ratings"].get(q["qid"]) is not None]
-            grid.append({"section": sec_label, "qid": q["qid"], "label": q["label"], "score": s,
+            grid.append({"section": sec_label, "qid": q["qid"], "label": RATING_LABEL.get(q["qid"], q["label"]), "score": s,
                          "median": median(ms), "n": len(ms)})
     a.block("scoregrid", title="Question-level ratings", subtitle=f"{short_name(c['name'])} vs {sname} median",
             rows=grid, company=short_name(c["name"]))

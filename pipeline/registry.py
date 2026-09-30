@@ -215,3 +215,16 @@ INTENSITY_PER_RUPEE_PLAUSIBLE_MAX = 1e-3
 # Absolute Scope 1+2 below this share of the sector median is flagged as a
 # probable scaled-unit filing (see build_dataset.magnitude_check).
 MAGNITUDE_RATIO = 1e-3
+
+# Source sector classifications that look like a row swap in the Base Data
+# "Actual Sector" column (adjacent rows 378 and 379). They are kept as filed so
+# that sector figures keep matching the report, and flagged wherever shown.
+CLASSIFICATION_NOTES = {
+    "Hindustan Unilever Limited": "The source data classifies Hindustan Unilever Limited under Metals & Mining, and the "
+                                  "adjacent row, Hindustan Zinc Limited, under Consumer Durables; the two appear to be "
+                                  "swapped. Pramana keeps the source classification so that sector figures match the "
+                                  "IIMB report.",
+    "HINDUSTAN ZINC LIMITED": "The source data classifies Hindustan Zinc Limited under Consumer Durables, and the adjacent "
+                              "row, Hindustan Unilever Limited, under Metals & Mining; the two appear to be swapped. "
+                              "Pramana keeps the source classification so that sector figures match the IIMB report.",
+}

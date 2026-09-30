@@ -1,0 +1,96 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - button "Pramana home" [ref=e6] [cursor=pointer]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: Pramana
+        - generic [ref=e13]: BRSR · E1 intelligence
+    - button "New question ⌘K" [ref=e14] [cursor=pointer]:
+      - generic [ref=e15]: New question
+      - generic [ref=e18]: ⌘K
+    - button "Your company lens Not set, answers are general" [ref=e19] [cursor=pointer]:
+      - generic [ref=e21]:
+        - generic [ref=e22]: Your company lens
+        - generic [ref=e23]: Not set, answers are general
+    - navigation [ref=e24]:
+      - button "Ask" [ref=e25] [cursor=pointer]
+      - button "Companies" [ref=e28] [cursor=pointer]
+      - button "Sectors" [ref=e31] [cursor=pointer]
+      - button "Method and sources" [ref=e37] [cursor=pointer]
+    - generic [ref=e40]:
+      - generic [ref=e41]: Conversations
+      - generic [ref=e42]: "0"
+    - generic [ref=e43]: Your questions are remembered in this browser only.
+    - generic [ref=e45]:
+      - button [ref=e46] [cursor=pointer]:
+        - generic [ref=e50]:
+          - strong [ref=e51]: 597 of 597
+          - text: report figures reproduced from raw data
+      - generic [ref=e52]:
+        - generic [ref=e53]: Loading dataset
+        - button "Toggle theme" [ref=e54] [cursor=pointer]
+  - main [ref=e58]:
+    - generic [ref=e59]:
+      - generic [ref=e60]: New question
+      - generic [ref=e62]:
+        - button "Find a company ⌘K" [ref=e63] [cursor=pointer]:
+          - text: Find a company
+          - generic [ref=e67]: ⌘K
+        - button "Set lens" [ref=e68] [cursor=pointer]
+    - generic [ref=e74]:
+      - generic [ref=e75]: BRSR FY 2024-25 · Theme E1 · GHG emissions and climate risk
+      - heading [level=1] [ref=e76]:
+        - text: Ask the record. Get the
+        - emphasis [ref=e77]: proof
+        - text: .
+      - paragraph [ref=e78]: Pramana answers questions on the climate disclosures of India's top listed companies using only the IIMB dataset. Every figure links to the exact workbook cell, rating or report page it came from. If it is not in the data, it says so.
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]: "982"
+          - generic [ref=e82]: companies with BRSR filings
+        - generic [ref=e83]:
+          - generic [ref=e84]: "22"
+          - generic [ref=e85]: NSE sectors benchmarked
+        - generic [ref=e86]:
+          - generic [ref=e87]: 1.31B
+          - generic [ref=e88]: tCO₂e Scope 1+2 disclosed
+        - generic [ref=e89]:
+          - generic [ref=e90]: 597/597
+          - generic [ref=e91]: report figures reproduced
+      - generic [ref=e92]:
+        - heading "Start with a question" [level=2] [ref=e93]
+        - generic [ref=e94]: or press ⌘K to find a company
+      - generic [ref=e95]:
+        - button "Plain data What are Tata Steel's Scope 1 and Scope 2 emissions? Ask" [ref=e96] [cursor=pointer]:
+          - generic [ref=e97]: Plain data
+          - generic [ref=e99]: What are Tata Steel's Scope 1 and Scope 2 emissions?
+          - generic [ref=e100]: Ask
+        - button "Peer comparison How does ACC compare with its peers? Ask" [ref=e103] [cursor=pointer]:
+          - generic [ref=e104]: Peer comparison
+          - generic [ref=e106]: How does ACC compare with its peers?
+          - generic [ref=e107]: Ask
+        - button "Best practices Best practices for GHG reduction projects in cement Ask" [ref=e110] [cursor=pointer]:
+          - generic [ref=e111]: Best practices
+          - generic [ref=e113]: Best practices for GHG reduction projects in cement
+          - generic [ref=e114]: Ask
+        - button "Sector insight Give me an overview of the power sector Ask" [ref=e117] [cursor=pointer]:
+          - generic [ref=e118]: Sector insight
+          - generic [ref=e120]: Give me an overview of the power sector
+          - generic [ref=e121]: Ask
+        - button "What-if What if NTPC cuts Scope 1 by 10%? Ask" [ref=e124] [cursor=pointer]:
+          - generic [ref=e125]: What-if
+          - generic [ref=e127]: What if NTPC cuts Scope 1 by 10%?
+          - generic [ref=e128]: Ask
+        - button "Search disclosures Which companies mention green hydrogen? Ask" [ref=e131] [cursor=pointer]:
+          - generic [ref=e132]: Search disclosures
+          - generic [ref=e134]: Which companies mention green hydrogen?
+          - generic [ref=e135]: Ask
+    - generic [ref=e139]:
+      - generic [ref=e140]:
+        - textbox "Ask a question" [active] [ref=e141]:
+          - /placeholder: Ask about any of the 982 companies, sectors or the E1 report
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - generic [ref=e144]: No sign-in. Memory stays in this browser.
+            - generic [ref=e145]: · Enter to send, Shift+Enter for a new line
+          - button "Send" [disabled] [ref=e146]
+      - generic [ref=e149]: Answers come only from the IIMB E1 dataset and report. Figures are as filed by companies for FY 2024-25.

@@ -386,3 +386,13 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   .disclaimer { font-size: 11px; }
   .composer-wrap { padding: 6px 0 10px; }
 }
+
+.colink { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; }
+.colink:hover { color: var(--accent); text-decoration: underline; }
+.rowcard { border: 1px solid color-mix(in oklab, var(--focus) 35%, var(--line)); background: color-mix(in oklab, var(--focus) 6%, var(--surface)); border-radius: 12px; overflow: hidden; }
+.rowcard-h { padding: 10px 14px; font-weight: 600; font-size: 14px; border-bottom: 1px solid var(--line); }
+.rowcard dl { margin: 0; display: grid; grid-template-columns: 1fr auto; }
+.rowcard dt, .rowcard dd { margin: 0; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.rowcard dt { color: var(--ink-2); }
+.rowcard dd { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+.rowcard dl > :nth-last-child(-n+2) { border-bottom: 0; }

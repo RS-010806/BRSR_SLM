@@ -108,6 +108,9 @@ class Answer:
         ref = {"id": c["id"], "name": c["name"], "short": short_name(c["name"]), "sector": s["name"], "sector_id": s["id"]}
         if not any(e["id"] == c["id"] for e in self.entities):
             self.entities.append(ref)
+            for f in c.get("flags", []):
+                if f["type"] == "classification":
+                    self.note("data_quality", f["text"])
         return ref
 
     # ------------------------------------------------------------------ output

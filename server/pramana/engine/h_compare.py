@@ -190,12 +190,12 @@ def _compare_profile(ctx, cos):
                                                            "score": c["derived"]["index"]["overall"]} for c in cos]})
     a.block("compare", title="Scorecard", columns=[{"label": short_name(c["name"]), "sub": kb.sector_of(c)["name"],
                                                     "id": c["id"]} for c in cos], rows=rows)
-    a.block("radar", title="Pillar scores", axes=["Governance", "Action", "Performance"],
-            series=[{"name": short_name(c["name"]),
-                     "values": [c["derived"]["index"]["pillars"][p]["score"] for p in ("governance", "action", "performance")]}
-                    for c in cos[:3]], max=100)
-    if len(cos) > 3:
-        a.note("method", "The radar shows the first three companies; the scorecard covers all of them.")
+    groups = []
+    for p_key, p_label in (("governance", "Governance"), ("action", "Action"), ("performance", "Performance")):
+        vals = [c["derived"]["index"]["pillars"][p_key]["score"] for c in cos]
+        groups.append({"label": p_label, "values": vals, "displays": [f"{v:.0f}" if v is not None else "n/a" for v in vals]})
+    a.block("grouped", title="Pillar scores", subtitle="Average Rating-sheet score per pillar, 0 to 100",
+            series=[short_name(c["name"]) for c in cos], groups=groups, max=100)
     a.follow(f"Compare {join([short_name(c['name']) for c in cos])} on Scope 1",
              f"Compare {join([short_name(c['name']) for c in cos])} on targets",
              f"Compare {join([short_name(c['name']) for c in cos])} on GHG reduction projects")

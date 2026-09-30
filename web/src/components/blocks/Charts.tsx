@@ -198,10 +198,12 @@ export function Strip({ b }: { b: any }) {
 }
 
 /* =============================================================== Grouped */
-function seriesColor(name: string, i: number, n: number) {
-  if (/median|other|2023-24|all companies/i.test(name)) return "var(--peer-strong)";
-  if (n <= 2) return "var(--s1)";
-  return `var(--s${(i % 8) + 1})`;
+const GREY = /median|other|2023-24|all companies/i;
+function seriesColor(name: string, i: number, _n: number, all?: string[]) {
+  if (GREY.test(name)) return "var(--peer-strong)";
+  const coloured = (all || []).filter((s) => !GREY.test(s));
+  const k = all ? coloured.indexOf(name) : i;
+  return `var(--s${(Math.max(0, k) % 8) + 1})`;
 }
 
 export function Grouped({ b }: { b: any }) {
@@ -246,7 +248,7 @@ export function Grouped({ b }: { b: any }) {
                 const x1 = scale(log ? Math.max(v, scale.domain()[0]) : v);
                 return (
                   <g key={si} onMouseMove={(e) => show(e, `${g.label}`, [`${s}: ${g.displays?.[si] ?? v}`, ...(g.counts ? [`${g.counts[si]} companies`] : [])])} onMouseLeave={hide}>
-                    <path className="grow" d={barPath(labelW, labelW + x1, y, bh, 3)} style={{ fill: seriesColor(s, si, series.length), animationDelay: `${gi * 40 + si * 20}ms`, transformOrigin: `${labelW}px center` }} />
+                    <path className="grow" d={barPath(labelW, labelW + x1, y, bh, 3)} style={{ fill: seriesColor(s, si, series.length, series), animationDelay: `${gi * 40 + si * 20}ms`, transformOrigin: `${labelW}px center` }} />
                     <text className="val" x={labelW + x1 + 5} y={y + bh - 1.5} fontSize={11}>{g.displays?.[si]}</text>
                   </g>
                 );
@@ -256,7 +258,7 @@ export function Grouped({ b }: { b: any }) {
         })}
       </svg>
       <div className="legend">
-        {series.map((s, i) => <span key={s}><i style={{ background: seriesColor(s, i, series.length) }} />{s}</span>)}
+        {series.map((s, i) => <span key={s}><i style={{ background: seriesColor(s, i, series.length, series) }} />{s}</span>)}
         {log && <span className="muted">Log scale</span>}
       </div>
       {tip}

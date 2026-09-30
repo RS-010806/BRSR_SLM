@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { Answer, Citation, Ctx } from "../api";
 import { I } from "../icons";
 import { AnswerCtx, Rich, toast } from "../ui";
@@ -75,9 +75,21 @@ export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: C
           {c.kind === "report_table" && (
             <>
               <div className="card-s">{c.title}</div>
+              {(() => {
+                const clean = (h: string) => h.replace(/\s+/g, " ").trim();
+                const hit = c.row ? c.rows.find((r: string[]) => r[0] === c.row) : null;
+                return hit ? (
+                  <div className="rowcard">
+                    <div className="rowcard-h">Cited row: {clean(hit[0])}</div>
+                    <dl>{c.columns.slice(1).map((h: string, j: number) => <Fragment key={j}><dt>{clean(h) || "Value"}</dt><dd>{hit[j + 1]}</dd></Fragment>)}</dl>
+                  </div>
+                ) : null;
+              })()}
+              <details open={!c.row}>
+              <summary className="card-s" style={{ cursor: "pointer", margin: "4px 0 8px" }}>Full table as published</summary>
               <div className="tbl-wrap" style={{ maxHeight: 420 }}>
                 <table className="mini-table">
-                  <thead><tr>{c.columns.map((h: string, i: number) => <th key={i}>{h}</th>)}</tr></thead>
+                  <thead><tr>{c.columns.map((h: string, i: number) => <th key={i}>{h.replace(/\s+/g, " ").trim()}</th>)}</tr></thead>
                   <tbody>
                     {c.rows.map((r: string[], i: number) => (
                       <tr key={i} className={c.row && r[0] === c.row ? "hit" : ""}>{r.map((x, j) => <td key={j} className={j > 0 ? "num" : ""}>{x}</td>)}</tr>
@@ -85,6 +97,7 @@ export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: C
                   </tbody>
                 </table>
               </div>
+              </details>
               {c.note && <div className="card-s">{c.note}</div>}
               <div><a className="btn" href={`/files/report.pdf#page=${c.pdf_page}`} target="_blank" rel="noreferrer"><I.book />Open report at PDF page {c.pdf_page} (printed {c.printed_page})</a></div>
             </>
@@ -222,7 +235,7 @@ export function AnswerView({ a, q, ctx, ask, index }: { a: Answer; q: string; ct
         )}
         {a.citations.length > 0 && (
           <details className="sources">
-            <summary><span><b style={{ color: "var(--ink)" }}>{a.citations.length} sources</b> · every figure above links to one of these</span><I.down style={{ width: 14, height: 14 }} /></summary>
+            <summary><span><b style={{ color: "var(--ink)" }}>{a.citations.length} {a.citations.length === 1 ? "source" : "sources"}</b> · every figure above links to one of these</span><I.down style={{ width: 14, height: 14 }} /></summary>
             <div className="src-list">
               {a.citations.map((c) => (
                 <button key={c.id} className="src" onClick={() => setCite(c.id)}>

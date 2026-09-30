@@ -35,7 +35,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 from pramana.nlu.aliases import build_aliases  # noqa: E402
-from pipeline.registry import (MAGNITUDE_RATIO, AI_RUBRICS, INTENSITY_PER_RUPEE_PLAUSIBLE_MAX, PILLARS, QUESTIONS,
+from pipeline.registry import (CLASSIFICATION_NOTES, MAGNITUDE_RATIO, AI_RUBRICS, INTENSITY_PER_RUPEE_PLAUSIBLE_MAX, PILLARS, QUESTIONS,
                                REPORT_EXCLUSIONS, SECTIONS, SECTOR_NSE_CODE, SECTOR_SHORT)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -565,6 +565,9 @@ def main():
     for c in companies:
         c["sector"] = sid[c["sector_name"]]
     magnitude_check(companies, sectors)
+    for c in companies:
+        if c["name"] in CLASSIFICATION_NOTES:
+            c["flags"].append({"type": "classification", "qids": [], "text": CLASSIFICATION_NOTES[c["name"]]})
     companies.sort(key=lambda c: c["name"].lower())
 
     pages = load_pdf_pages()
