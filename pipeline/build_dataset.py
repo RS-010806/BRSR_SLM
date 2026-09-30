@@ -315,6 +315,34 @@ def magnitude_check(companies, sectors):
                             f"but it is kept out of level rankings and peer percentiles. Year-on-year change is unaffected."})
 
 
+def intensity_check(companies, sectors):
+    """Flag per-crore intensities below 0.1% of the sector median, or belonging to
+    a company whose absolute emissions failed the magnitude check: both point to
+    a scaled-unit filing. Shown as filed; kept out of level rankings only."""
+    by_sector = {}
+    for c in companies:
+        by_sector.setdefault(c["sector"], []).append(c)
+    for s in sectors:
+        mem = by_sector[s["id"]]
+        for key, qids in (("intensity", ["1334", "1335"]), ("scope3_intensity", ["1390", "1391"])):
+            vals = [c["derived"][f"{key}_cr_cy"] for c in mem
+                    if c["derived"][f"{key}_level_ok"] and c["derived"][f"{key}_cr_cy"]]
+            med = _median(vals)
+            for c in mem:
+                v = c["derived"][f"{key}_cr_cy"]
+                if not c["derived"][f"{key}_level_ok"] or not v:
+                    continue
+                scaled = key == "intensity" and not c["derived"].get("abs_level_ok", True)
+                tiny = med and v < MAGNITUDE_RATIO * med
+                if scaled or tiny:
+                    c["derived"][f"{key}_level_ok"] = False
+                    why = ("the company's absolute Scope 1+2 failed the magnitude check" if scaled else
+                           f"it is below 0.1% of the {s['name']} median ({med:,.2f} per crore)")
+                    c["flags"].append({"type": "unit_check", "qids": qids,
+                                       "text": f"Reported intensity of {v:,.4g} tCO2e per crore is implausibly low: {why}. "
+                                               f"Shown as filed; excluded from level rankings. Year-on-year change is unaffected."})
+
+
 def pct_change(cy, py):
     if cy is None or py is None or py == 0:
         return None
@@ -565,6 +593,7 @@ def main():
     for c in companies:
         c["sector"] = sid[c["sector_name"]]
     magnitude_check(companies, sectors)
+    intensity_check(companies, sectors)
     for c in companies:
         if c["name"] in CLASSIFICATION_NOTES:
             c["flags"].append({"type": "classification", "qids": [], "text": CLASSIFICATION_NOTES[c["name"]]})

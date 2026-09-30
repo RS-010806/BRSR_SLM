@@ -396,3 +396,26 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .rowcard dt { color: var(--ink-2); }
 .rowcard dd { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
 .rowcard dl > :nth-last-child(-n+2) { border-bottom: 0; }
+
+/* ------------------------------------------------------------------ v2: autocomplete, learned chips, delayed thinking */
+.composer { position: relative; }
+.ac { position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow-3); padding: 6px; z-index: 30; animation: pop .14s var(--ease) both; }
+.ac-item { display: flex; width: 100%; justify-content: space-between; gap: 12px; align-items: baseline; padding: 8px 10px; border: 0; background: none; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--ink); text-align: left; }
+.ac-item small { color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+.ac-item.sel, .ac-item:hover { background: var(--surface-3); }
+.ac-hint { font: 500 10.5px/1 var(--font-mono); color: var(--ink-3); padding: 6px 10px 2px; letter-spacing: .04em; }
+.learned-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 2px 8px; }
+.learned-k { font: 600 10.5px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-right: 2px; }
+.learned-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px; font-size: 12.5px; background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 25%, var(--line)); max-width: 100%; }
+.learned-chip button { width: 18px; height: 18px; border-radius: 50%; border: 0; background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.learned-chip button:hover { background: color-mix(in oklab, var(--accent) 18%, transparent); }
+.learned-chip button svg { width: 11px; height: 11px; }
+.thinking.delayed { animation: fade .2s ease 160ms both; }
+.fb { display: inline-flex; gap: 4px; align-items: center; }
+.fb .tool.on-up { color: var(--good-ink); border-color: color-mix(in oklab, var(--good) 45%, var(--line)); }
+.fb .tool.on-down { color: var(--bad-ink); border-color: color-mix(in oklab, var(--bad) 45%, var(--line)); }
+.fb-note { display: flex; gap: 8px; margin-top: 10px; animation: rise .25s var(--ease) both; }
+.fb-note input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-size: 13.5px; }
+.learned-card { display: grid; gap: 8px; }
+.learned-card .li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); color: var(--ink); font-size: 13.5px; }
+.learned-card .li b { color: var(--accent); font-weight: 600; }

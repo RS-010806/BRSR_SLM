@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Meta } from "../api";
+import { stats as fetchStats, type Meta } from "../api";
 import { I } from "../icons";
 import { compact } from "../ui";
 
@@ -58,7 +58,7 @@ export function CompaniesPage({ onAsk, meta }: { onAsk: (q: string) => void; met
           <tbody>
             {list.slice(0, limit).map((r) => (
               <tr key={r.id}>
-                <td className="co"><button className="colink" onClick={() => onAsk(`Show ${r.short}'s E1 profile`)}>{r.short}</button>{r.flags.includes("magnitude_check") && <span title="Magnitude check flag" style={{ color: "var(--serious)", marginLeft: 6 }}>{"▲"}</span>}</td>
+                <td className="co"><button className="colink" onClick={() => onAsk(`Show ${r.short}'s E1 profile`)}>{r.short}</button>{r.flags.includes("magnitude_check") && <span title="Magnitude check flag" style={{ color: "var(--warn-ink)", marginLeft: 6 }}>{"▲"}</span>}</td>
                 <td>{r.sector_name}</td>
                 <td className="r">{r.s12 == null ? <span className="muted">n/r</span> : compact(r.s12)}</td>
                 <td className="r" style={{ color: r.s12_yoy == null ? undefined : r.s12_yoy < 0 ? "var(--good-ink)" : "var(--bad-ink)" }}>{fmtPct(r.s12_yoy)}</td>
@@ -120,6 +120,8 @@ export function SectorsPage({ onAsk }: { onAsk: (q: string) => void }) {
 
 /* ---------------------------------------------------------------- method */
 export function MethodPage({ meta, onAsk }: { meta: Meta | null; onAsk: (q: string) => void }) {
+  const [usage, setUsage] = useState<any>(null);
+  useEffect(() => { fetchStats().then(setUsage).catch(() => {}); }, []);
   if (!meta) return <div className="page"><div className="skeleton" style={{ width: "40%", height: 30 }} /></div>;
   const r = meta.reconciliation;
   const m = meta.model;
@@ -141,8 +143,8 @@ export function MethodPage({ meta, onAsk }: { meta: Meta | null; onAsk: (q: stri
           {[
             ["01", "Normalise", "Unicode, possessives, Scope 1/2/3, fiscal years and numbers are canonicalised."],
             ["02", "Link", "A token trie resolves 2,664 company aliases, 22 sectors and 38 questions, with typo tolerance and known-absent names."],
-            ["03", "Understand", `A ${m.layers}-layer transformer (${(m.params / 1000).toFixed(0)}K parameters, custom BPE) predicts intent and topic; rules override where text is explicit.`],
-            ["04", "Compute", "Handlers compute values, ranks, medians and scenarios from the workbook, applying the report's own conventions."],
+            ["03", "Understand", `A ${m.layers}-layer transformer (${(m.params / 1000).toFixed(0)}K parameters, custom BPE) predicts intent and topic; a few-shot memory of ${meta.few_shot_exemplars ?? "100+"} labelled examples steadies unsure cases; rules override where text is explicit.`],
+            ["04", "Compute", "Handlers compute values, ranks, medians and scenarios over a SQLite knowledge base with precomputed evidence, applying the report's own conventions."],
             ["05", "Prove", "Sentences are assembled from templates; every number carries a citation to a cell, rating, table or page."],
           ].map(([n, t, d]) => (
             <div className="flow-step" key={n}><div className="flow-n">{n}</div><div className="flow-t">{t}</div><div className="flow-d">{d}</div></div>
@@ -215,12 +217,50 @@ export function MethodPage({ meta, onAsk }: { meta: Meta | null; onAsk: (q: stri
           </div>
         </div>
         <div className="card">
+          <div className="card-t">Database and speed</div>
+          <div className="card-s">Everything heavy is computed once, at build time</div>
+          <table className="mini-table" style={{ marginTop: 12 }}>
+            <tbody>
+              <tr><td>Knowledge base</td><td className="num">{meta.database?.knowledge_base || "SQLite"}: companies, answers, ratings, 26,576 pre-scored sentences, practice and technology indexes</td></tr>
+              <tr><td>App database</td><td className="num">{meta.database?.app === "postgres" ? "Postgres" : "SQLite"}: anonymous usage, feedback, share links</td></tr>
+              <tr><td>Best-practice answer</td><td className="num">1,504 ms before, under 3 ms now (same output, byte for byte)</td></tr>
+              <tr><td>Typical answer</td><td className="num">under 1 ms to compute; cached answers are served pre-compressed</td></tr>
+              <tr><td>In the browser</td><td className="num">answers cached per question and context; follow-ups prefetched on hover</td></tr>
+            </tbody>
+          </table>
+          <div style={{ marginTop: 12 }}><a className="btn" href="/api/export/companies.csv"><I.download />Download the company table (CSV)</a></div>
+        </div>
+        <div className="card">
+          <div className="card-t">In-context learning</div>
+          <div className="card-s">The conversation learns your definitions, deterministically</div>
+          <div style={{ display: "grid", gap: 8, marginTop: 12, fontSize: 13.5 }}>
+            <div><b>Peer groups:</b> "my peers are ACC, Ambuja and UltraTech" makes later peer comparisons use exactly that set.</div>
+            <div><b>Definitions:</b> "by emissions I mean Scope 1" changes what generic questions measure.</div>
+            <div><b>Defaults:</b> "always show the top 5" sets the ranking size.</div>
+            <div><b>Clarifications:</b> once you pick which "Dalmia Bharat" you meant, later mentions resolve automatically.</div>
+            <div className="muted">Preferences live in the conversation context sent with each question, shown as chips above the input, and can be removed with one click or "forget my preferences".</div>
+          </div>
+          <div style={{ marginTop: 12 }}><button className="btn" onClick={() => onAsk("My peers are Ambuja, UltraTech and Shree Cement")}><I.target />Try it</button></div>
+        </div>
+        {usage && usage.questions > 0 && (
+          <div className="card">
+            <div className="card-t">Usage, anonymously</div>
+            <div className="card-s">Counted from the app database; no accounts, IP addresses or device identifiers are stored</div>
+            <div style={{ display: "flex", gap: 24, alignItems: "baseline", margin: "14px 0 6px", flexWrap: "wrap" }}>
+              <div><div className="stat-big">{usage.questions.toLocaleString()}</div><div className="muted" style={{ fontSize: 12.5 }}>questions answered</div></div>
+              <div><div className="stat-big">{usage.answered_share ?? "n/a"}%</div><div className="muted" style={{ fontSize: 12.5 }}>fully answered</div></div>
+              <div><div className="stat-big">{usage.avg_latency_ms ?? "n/a"} ms</div><div className="muted" style={{ fontSize: 12.5 }}>average compute</div></div>
+            </div>
+            <div className="muted" style={{ fontSize: 12.5 }}>Feedback: {usage.feedback.up} helpful, {usage.feedback.down} not helpful</div>
+          </div>
+        )}
+        <div className="card">
           <div className="card-t">Sources and privacy</div>
           <div style={{ display: "grid", gap: 8, marginTop: 10, fontSize: 13.5 }}>
             <div><b>E1 data.xlsx</b>: Questions, Base Data (raw responses) and Rating sheets.</div>
             <div><b>E1 chapter</b>: tables, key observations and insights.</div>
             <div><b>Business Responsibility and Sustainability in India</b> (IIMB, FY 2024-25): methodology and page references. <a href="/files/report.pdf" target="_blank" rel="noreferrer">Open PDF</a></div>
-            <div className="muted">Dataset {meta.dataset.dataset_id}. No sign-in, no cookies for tracking. Conversations and your company lens are stored only in your browser.</div>
+            <div className="muted">Dataset {meta.dataset.dataset_id}. No sign-in and no tracking cookies. Conversations, your company lens and learned preferences stay in your browser. The server records only anonymous question text, routing and timing to improve coverage, plus feedback you choose to send.</div>
           </div>
           <div style={{ marginTop: 12 }}><button className="btn" onClick={() => onAsk("How do you avoid hallucinations?")}><I.shield />Ask how grounding works</button></div>
         </div>

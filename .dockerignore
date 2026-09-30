@@ -9,3 +9,6 @@ docs
 pipeline
 data/raw/E1_data.xlsx
 data/raw/E1_report.docx
+data/build/*.json
+data/app
+.playwright-mcp

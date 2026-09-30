@@ -52,6 +52,19 @@ class IntentModel:
         self.n_params = int(sum(v.size for v in self.w.values()))
 
     def forward(self, text: str):
+        cls = self._encode(text)
+        W = self.w
+        pi = _softmax(cls @ W["intent.w"].T + W["intent.b"])
+        pt = _softmax(cls @ W["topic.w"].T + W["topic.b"])
+        return pi, pt
+
+    def embed(self, text: str) -> np.ndarray:
+        """L2-normalised sentence embedding (the final [CLS] state), used for few-shot retrieval."""
+        v = self._encode(text).astype(np.float64)
+        return v / (np.linalg.norm(v) + 1e-12)
+
+    def _encode(self, text: str) -> np.ndarray:
+        """Pure function: text -> final [CLS] representation (no shared state, thread-safe)."""
         ids = np.array(self.bpe.encode(text, self.max_len), dtype=np.int64)
         mask = ids != 0
         W = self.w
@@ -74,10 +87,7 @@ class IntentModel:
             h = _ln(x, W[p + "ln2.g"], W[p + "ln2.b"])
             h = _gelu(h @ W[p + "ff1.w"].T + W[p + "ff1.b"]) @ W[p + "ff2.w"].T + W[p + "ff2.b"]
             x = x + h
-        cls = _ln(x[0], W["lnf.g"], W["lnf.b"])
-        pi = _softmax(cls @ W["intent.w"].T + W["intent.b"])
-        pt = _softmax(cls @ W["topic.w"].T + W["topic.b"])
-        return pi, pt
+        return _ln(x[0], W["lnf.g"], W["lnf.b"])
 
     def predict(self, text: str) -> dict:
         pi, pt = self.forward(text)

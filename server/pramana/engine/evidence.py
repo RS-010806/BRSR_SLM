@@ -71,8 +71,12 @@ def segments_for(corpus_index, cid: str, qid: str) -> list[dict]:
 
 
 def highlight(segs: list[dict], k: int = 3, min_score: float = 2.0) -> list[dict]:
-    """Pick the k most specific sentences (ties broken by position)."""
-    scored = [(specificity(s["text"]), s["seg"], s) for s in segs]
+    """Pick the k most specific sentences (ties broken by position).
+
+    Specificity is precomputed per sentence in the database (field `spec`);
+    it is recomputed only for text that did not come from the database.
+    """
+    scored = [(s["spec"] if s.get("spec") is not None else specificity(s["text"]), s["seg"], s) for s in segs]
     top = sorted([x for x in scored if x[0] >= min_score], key=lambda x: (-x[0], x[1]))[:k]
     keep = {x[1] for x in top}
     return [{"start": s["start"], "end": s["end"], "score": sc, "highlight": s["seg"] in keep}
@@ -85,34 +89,40 @@ TOKEN = re.compile(r"[a-z0-9]+")
 
 
 class DisclosureIndex:
-    """BM25 over sentence segments of every narrative disclosure plus report text."""
+    """Sentence-level evidence access backed by the SQLite knowledge base.
 
-    def __init__(self, corpus: list[dict]):
-        self.docs = corpus
+    * by_cell: sentences of every disclosure cell, with precomputed specificity
+    * bm25: ranking over report passages using corpus-wide statistics stored at
+      build time (identical scores to scoring the full corpus at runtime)
+    * search: technology keywords from the precomputed index, free-text phrases
+      from the FTS5 trigram index
+    """
+
+    def __init__(self, kb):
+        self.kb = kb
+        self.docs = kb.corpus
         self.by_cell: dict[tuple, list[dict]] = defaultdict(list)
-        for d in corpus:
+        self.tf: dict[int, tuple[Counter, int]] = {}
+        for i, d in enumerate(self.docs):
             if d["kind"] == "disclosure":
                 self.by_cell[(d["cid"], d["qid"])].append(d)
-        self.tf = []
-        df = Counter()
-        for d in corpus:
-            toks = TOKEN.findall(d["text"].lower())
-            c = Counter(toks)
-            self.tf.append((c, len(toks)))
-            df.update(c.keys())
-        n = len(corpus)
-        self.idf = {t: math.log(1 + (n - f + 0.5) / (f + 0.5)) for t, f in df.items()}
-        self.avgdl = sum(l for _, l in self.tf) / max(n, 1)
+            else:
+                toks = TOKEN.findall(d["text"].lower())
+                self.tf[i] = (Counter(toks), len(toks))
+        st = kb.bm25_stats
+        n = st["n"]
+        self.idf = {t: math.log(1 + (n - f + 0.5) / (f + 0.5)) for t, f in st["df"].items()}
+        self.avgdl = st["avgdl"]
 
     def bm25(self, query: str, kinds: set[str], limit: int = 8, k1: float = 1.2, b: float = 0.75):
         q = [t for t in TOKEN.findall(query.lower()) if t in self.idf]
         if not q:
             return []
         out = []
-        for i, d in enumerate(self.docs):
+        for i, (c, dl) in self.tf.items():
+            d = self.docs[i]
             if d["kind"] not in kinds:
                 continue
-            c, dl = self.tf[i]
             s = 0.0
             for t in q:
                 f = c.get(t, 0)
@@ -123,16 +133,26 @@ class DisclosureIndex:
         out.sort(key=lambda x: (-x[0], x[1]))
         return [(s, self.docs[i]) for s, i in out[:limit]]
 
-    def phrase(self, patterns: list[str], qids: set[str], cids: set[str] | None = None):
-        """Exact (regex) phrase search in disclosure segments. Returns {cid: [(doc, spans)]}."""
-        rx = re.compile("|".join(patterns), re.I)
+    def search(self, terms: list[str], keywords: list[str], qids: set[str], cids: set[str] | None = None):
+        """Matches for technology terms and quoted phrases. Returns {cid: [(doc, spans)]}."""
+        spans_by_seg: dict[int, list[tuple[int, int]]] = defaultdict(list)
+        for term in terms:
+            for seg_id, cid, qid, spans in self.kb.tech_hits.get(term, []):
+                if qid in qids and (cids is None or cid in cids):
+                    spans_by_seg[seg_id].extend(spans)
+        for kw in keywords:
+            rx = re.compile(re.escape(kw), re.I)
+            for seg_id in self.kb.substring_segments(kw, qids, cids):
+                spans_by_seg[seg_id].extend((m.start(), m.end()) for m in rx.finditer(self.docs[seg_id - 1]["text"]))
         hits: dict[str, list] = defaultdict(list)
-        for d in self.docs:
-            if d["kind"] != "disclosure" or d["qid"] not in qids:
-                continue
-            if cids is not None and d["cid"] not in cids:
-                continue
-            sp = [(m.start(), m.end()) for m in rx.finditer(d["text"])]
-            if sp:
-                hits[d["cid"]].append((d, sp))
+        for seg_id in sorted(spans_by_seg):
+            merged: list[tuple[int, int]] = []
+            for a, b in sorted(set(spans_by_seg[seg_id])):
+                if merged and a < merged[-1][1]:
+                    merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+                else:
+                    merged.append((a, b))
+            if merged:
+                d = self.docs[seg_id - 1]
+                hits[d["cid"]].append((d, merged))
         return hits

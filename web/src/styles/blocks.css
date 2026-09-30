@@ -54,9 +54,9 @@
 .stack-row { display: grid; grid-template-columns: minmax(90px, 170px) 1fr; gap: 12px; align-items: center; margin: 8px 0; }
 .stack-l { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stack-bar { display: flex; height: 26px; gap: 2px; border-radius: 6px; overflow: hidden; }
-.seg { position: relative; display: grid; place-items: center; font: 500 11.5px var(--font-sans); color: #fff; min-width: 0; transform-origin: left; animation: grow .7s var(--ease) both; cursor: default; }
+.seg { position: relative; display: grid; place-items: center; font: 600 11.5px var(--font-sans); color: var(--ink); min-width: 0; transform-origin: left; animation: grow .7s var(--ease) both; cursor: default; }
 .seg span { white-space: nowrap; overflow: hidden; padding: 0 4px; }
-.seg.pos { background: var(--s1); }
+.seg.pos { background: var(--pos-fill); color: var(--on-pos); }
 .seg.neg { background: var(--peer); color: var(--ink); }
 .seg.muted { background: var(--surface-3); color: var(--ink-2); }
 .seg.hl { outline: 2px solid var(--ink); outline-offset: -2px; }
@@ -185,8 +185,7 @@ input[type="range"].rng { width: 100%; accent-color: var(--accent); height: 28px
 .signal svg { width: 12px; height: 12px; }
 .signal.good { background: var(--good-bg); color: var(--good-ink); }
 .signal.bad { background: var(--bad-bg); color: var(--bad-ink); }
-.signal.warn { background: var(--warn-bg); color: #8a5a00; }
-:root[data-theme="dark"] .signal.warn { color: var(--warn); }
+.signal.warn { background: var(--warn-bg); color: var(--warn-ink); }
 .ins-a { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
 .ins-o { font-size: 14px; color: var(--ink-2); line-height: 1.6; }
 .gap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

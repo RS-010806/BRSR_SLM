@@ -306,7 +306,7 @@ def text_quote(ctx, c, qid, title=None, k=3):
     hl = highlight(segs, k=k)
     item = {"company": c["name"], "company_id": c["id"], "short": short_name(c["name"]),
             "sector": ctx.kb.sector_of(c)["name"], "qid": qid, "question": title or ctx.kb.q(qid)["label"],
-            "score": c["ratings"].get(qid), "text": text, "segments": hl, "themes": themes_in(text),
+            "score": c["ratings"].get(qid), "text": text, "segments": hl, "themes": ctx.kb.themes(c["id"], qid),
             "cite": a.c_cell(c, qid), "cell": c["cells"].get(qid)}
     a.block("quotes", items=[item], title=title)
     return item

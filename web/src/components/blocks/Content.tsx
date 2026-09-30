@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { I } from "../../icons";
-import { CiteChip, Rich, useAnswer, useCountUp } from "../../ui";
+import { CiteChip, Rich, useAnswer, useCountUp, useHoverPrefetch } from "../../ui";
 import { heat } from "./Charts";
 
 /* =============================================================== KPIs */
@@ -305,10 +305,11 @@ export function Gap({ b }: { b: any }) {
 
 export function Choices({ b }: { b: any }) {
   const { ask } = useAnswer();
+  const hover = useHoverPrefetch();
   return (
     <div className="choices">
       {b.items.map((o: any) => (
-        <button className="choice" key={o.id} onClick={() => ask(o.query)}>
+        <button className="choice" key={o.id} onClick={() => ask(o.query)} {...hover(o.query)}>
           <span><b style={{ fontWeight: 600 }}>{o.name}</b><div className="card-s">{o.sector}</div></span>
           <I.arrow style={{ width: 16, height: 16, color: "var(--ink-3)" }} />
         </button>
@@ -319,10 +320,11 @@ export function Choices({ b }: { b: any }) {
 
 export function Capabilities({ b }: { b: any }) {
   const { ask } = useAnswer();
+  const hover = useHoverPrefetch();
   return (
     <div className="caps">
       {b.items.map((c: any) => (
-        <button className="cap" key={c.title} onClick={() => ask(c.example)}>
+        <button className="cap" key={c.title} onClick={() => ask(c.example)} {...hover(c.example)}>
           <b>{c.title}</b><span>{c.text}</span><em>{"“"}{c.example}{"”"}</em>
         </button>
       ))}

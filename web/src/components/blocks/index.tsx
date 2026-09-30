@@ -75,6 +75,11 @@ export function BlockView({ b, i }: { b: Block; i: number }) {
     case "capabilities": return <Capabilities b={b} />;
     case "links": return <Card title={b.title} delay={i * 70}><Links b={b} /></Card>;
     case "callout": return <Callout b={b} />;
+    case "learned": return b.items?.length ? (
+      <Card title="Active for the rest of this conversation" delay={i * 70}>
+        <div className="learned-card">{b.items.map((it: any) => <div className="li" key={it.key}><span>{it.label}</span><b>{it.value}</b></div>)}</div>
+      </Card>
+    ) : null;
     default: return null;
   }
 }

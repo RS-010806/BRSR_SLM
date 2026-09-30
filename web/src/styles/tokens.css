@@ -12,7 +12,7 @@
   --surface-3: #e9e7e0;
   --ink: #121212;
   --ink-2: #4f4e49;
-  --ink-3: #85837c;
+  --ink-3: #6a6862;
   --line: #e2e0d8;
   --line-2: #d3d0c6;
   --ring: rgba(28, 92, 171, 0.35);
@@ -42,6 +42,10 @@
   --seq-5: #3987e5;
   --seq-7: #1c5cab;
   --seq-9: #0d366b;
+  /* text on each ramp step, chosen by computed WCAG contrast (>= 5:1) */
+  --on-seq-1: #121212; --on-seq-3: #121212; --on-seq-5: #121212; --on-seq-7: #ffffff; --on-seq-9: #ffffff;
+  --pos-fill: #1c5cab; --on-pos: #ffffff;
+  --warn-ink: #8a5a00;
 
   --good: #0ca30c;
   --good-ink: #006300;
@@ -75,7 +79,7 @@
     --surface-3: #2a2927;
     --ink: #f4f3ee;
     --ink-2: #c3c2b7;
-    --ink-3: #8c8a82;
+    --ink-3: #9a988f;
     --line: #2c2c2a;
     --line-2: #3a3936;
     --ring: rgba(95, 168, 255, 0.45);
@@ -89,7 +93,10 @@
     --peer: #4a4945;
     --peer-strong: #6d6b65;
     --div-neg: #3987e5; --div-pos: #e66767; --div-mid: #383835;
-    --seq-1: #16263d; --seq-3: #1c5cab; --seq-5: #2a78d6; --seq-7: #6da7ec; --seq-9: #cde2fb;
+    --seq-1: #16263d; --seq-3: #1c5cab; --seq-5: #5598e7; --seq-7: #86b6ef; --seq-9: #cde2fb;
+    --on-seq-1: #ffffff; --on-seq-3: #ffffff; --on-seq-5: #121212; --on-seq-7: #121212; --on-seq-9: #121212;
+    --pos-fill: #3987e5; --on-pos: #121212;
+    --warn-ink: #e0a526;
     --warn-bg: #2a2413; --warn-line: #5c4a17; --bad-bg: #2d1817; --good-bg: #13241a;
     --good-ink: #52c552; --bad-ink: #f08a86;
     --grid: #2c2c2a;
@@ -108,7 +115,7 @@
   --surface-3: #2a2927;
   --ink: #f4f3ee;
   --ink-2: #c3c2b7;
-  --ink-3: #8c8a82;
+  --ink-3: #9a988f;
   --line: #2c2c2a;
   --line-2: #3a3936;
   --ring: rgba(95, 168, 255, 0.45);
@@ -122,7 +129,10 @@
   --peer: #4a4945;
   --peer-strong: #6d6b65;
   --div-neg: #3987e5; --div-pos: #e66767; --div-mid: #383835;
-  --seq-1: #16263d; --seq-3: #1c5cab; --seq-5: #2a78d6; --seq-7: #6da7ec; --seq-9: #cde2fb;
+  --seq-1: #16263d; --seq-3: #1c5cab; --seq-5: #5598e7; --seq-7: #86b6ef; --seq-9: #cde2fb;
+  --on-seq-1: #ffffff; --on-seq-3: #ffffff; --on-seq-5: #121212; --on-seq-7: #121212; --on-seq-9: #121212;
+  --pos-fill: #3987e5; --on-pos: #121212;
+  --warn-ink: #e0a526;
   --warn-bg: #2a2413; --warn-line: #5c4a17; --bad-bg: #2d1817; --good-bg: #13241a;
   --good-ink: #52c552; --bad-ink: #f08a86;
   --grid: #2c2c2a;

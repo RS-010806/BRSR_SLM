@@ -8,3 +8,6 @@ web/dist/
 .claude/
 *.log
 docs/build/
+data/app/
+data/build/*.json
+.playwright-mcp/

@@ -17,10 +17,14 @@ TECH_LABEL = {"sbti": "SBTi", "net zero": "net zero", "renewable energy": "renew
 SEARCH_QIDS = {"286", "295", "1342", "277", "353", "1561"}
 
 
+def _in(scope: str) -> str:
+    """'in Power' for a sector, 'in the dataset' for the whole market."""
+    return "in the dataset" if scope == "all companies" else f"in {scope}"
+
+
 def _evidence_score(ctx, c, qid):
-    segs = ctx.index.by_cell.get((c["id"], qid), [])
-    scores = sorted((specificity(s["text"]) for s in segs), reverse=True)
-    return round(sum(scores[:3]), 3)
+    """Sum of the three highest sentence specificities (precomputed per cell)."""
+    return ctx.kb.evidence_score(c["id"], qid)
 
 
 def best_practice(ctx, mid, sid, cid):
@@ -52,11 +56,11 @@ def best_practice(ctx, mid, sid, cid):
                       note="Specificity counts quantities with units, years, baselines and named practices. "
                            "Selection is deterministic.")
     if n100:
-        a.p(f"In {scope}, **{n100} of {len(pool)} companies** score 100 on {lc(q['label'])}, the level described as "
+        a.p(f"{_in(scope)[0].upper() + _in(scope)[1:]}, **{n100} of {len(pool)} companies** score 100 on {lc(q['label'])}, the level described as "
             f"“{top_level.rstrip('.')}” {sel}. The most specific of these disclosures are reproduced verbatim below, "
             f"with their most concrete sentences highlighted.")
     else:
-        a.p(f"No company in {scope} scores 100 on {lc(q['label'])} {sel}.")
+        a.p(f"No company {_in(scope)} scores 100 on {lc(q['label'])} {sel}.")
     if widened:
         a.note("method", f"Fewer than three {scope} companies score 100 here, so the closest examples are drawn from other "
                          f"sectors and labelled with their sector.")
@@ -67,7 +71,7 @@ def best_practice(ctx, mid, sid, cid):
         text = c["values"][qid]
         items.append({"company": c["name"], "company_id": c["id"], "short": short_name(c["name"]),
                       "sector": kb.sector_of(c)["name"], "qid": qid, "question": q["label"], "score": 100,
-                      "text": text, "segments": highlight(segs, k=3), "themes": themes_in(text),
+                      "text": text, "segments": highlight(segs, k=3), "themes": ctx.kb.themes(c["id"], qid),
                       "cite": a.c_cell(c, qid), "rating_cite": a.c_rating(c, qid), "cell": c["cells"].get(qid)})
     if items:
         a.p(f"Examples: {join([f'**{i['short']}** ({i['sector']}) {i['cite']}' for i in items])}.")
@@ -79,8 +83,8 @@ def best_practice(ctx, mid, sid, cid):
     rows = []
     if len(all100) >= 2:
         for t in THEMES:
-            l = sum(1 for c in all100 if t in themes_in(c["values"][qid]))
-            r = sum(1 for c in rest if t in themes_in(c["values"][qid]))
+            l = sum(1 for c in all100 if t in ctx.kb.themes(c["id"], qid))
+            r = sum(1 for c in rest if t in ctx.kb.themes(c["id"], qid))
             if l:
                 rows.append({"label": t, "values": [100 * l / len(all100), 100 * r / len(rest) if rest else 0],
                              "displays": [f"{100 * l / len(all100):.0f}%", f"{100 * r / len(rest):.0f}%" if rest else "0%"],
@@ -102,7 +106,7 @@ def best_practice(ctx, mid, sid, cid):
     if me:
         a.company_ref(me)
         s = me["ratings"].get(qid)
-        mine = set(themes_in(me["values"].get(qid) or ""))
+        mine = set(ctx.kb.themes(me["id"], qid))
         common = [r["label"] for r in rows if r["values"][0] >= 40] if rows else []
         missing = [t for t in common if t not in mine]
         my_spec = _evidence_score(ctx, me, qid)
@@ -129,39 +133,33 @@ def best_practice(ctx, mid, sid, cid):
              f"Which companies mention green hydrogen?" if qid == "1342" else "Which companies mention SBTi?")
 
 
-def _patterns_for(ctx):
+def _labels(ctx):
     plan = ctx.plan
-    pats, labels = [], []
-    for term in plan.tech:
-        phs = TECH_TERMS.get(term, [term])
-        pats += [r"\b" + re.escape(p).replace(r"\ ", r"[\s-]+") + r"\b" for p in phs]
-        labels.append(TECH_LABEL.get(term, term))
-    for k in plan.keywords:
-        pats.append(re.escape(k))
-        labels.append(f"“{k}”")
-    return pats, labels
+    labels = [TECH_LABEL.get(t, t) for t in plan.tech] + [f"\u201c{k}\u201d" for k in plan.keywords]
+    return labels
 
 
 def text_search(ctx, sid):
     a, kb = ctx.a, ctx.kb
-    pats, labels = _patterns_for(ctx)
+    labels = _labels(ctx)
+    n_variants = sum(len(TECH_TERMS.get(t, [t])) for t in ctx.plan.tech) + len(ctx.plan.keywords)
     pool_ids = set(kb.sector_by_id[sid]["members"]) if sid else None
     pool_n = kb.sector_by_id[sid]["n"] if sid else len(kb.companies)
     scope = kb.sector_by_id[sid]["name"] if sid else "all companies"
     a.kicker = f"Disclosure search · {scope}"
     a.title = f"Mentions of {join(labels, 'or')}" if labels else "Disclosure search"
-    if not pats:
+    if not labels:
         a.status = "partial"
         a.p("Tell me what to look for, for example a technology (green hydrogen, waste heat recovery) or a quoted phrase.")
         return
-    hits = ctx.index.phrase(pats, SEARCH_QIDS, pool_ids)
+    hits = ctx.index.search(ctx.plan.tech, ctx.plan.keywords, SEARCH_QIDS, pool_ids)
     cids = sorted(hits, key=lambda cid: (-sum(len(sp) for _, sp in hits[cid]), kb.by_id[cid]["name"].lower()))
-    cite = a.c_derived("Disclosure search", f"exact, case-insensitive match of {len(pats)} phrase variants across "
+    cite = a.c_derived("Disclosure search", f"exact, case-insensitive match of {n_variants} phrase variants across "
                                             f"Q286, Q295, Q1342, Q277, Q353 and Q1561 for {pool_n} companies",
                        note="Matches are literal text in the filing. A mention is not a verified project.")
     if not cids:
         a.status = "partial"
-        a.p(f"No disclosure in {scope} mentions {join(labels, 'or')} {cite}. The search is literal, so companies may "
+        a.p(f"No disclosure {_in(scope)} mentions {join(labels, 'or')} {cite}. The search is literal, so companies may "
             f"describe the same practice in other words.")
         a.follow("Which companies mention renewable energy?", "Best practices on GHG reduction projects")
         return

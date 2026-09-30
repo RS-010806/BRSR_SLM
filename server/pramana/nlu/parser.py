@@ -81,6 +81,26 @@ COMBOS = [
 ]
 
 
+# ---- in-context learning: statements that teach the conversation something
+RE_FORGET = re.compile(r"\b(forget|reset|clear|remove|drop)\b.{0,20}\b(preferences|preference|peer group|peers|settings|"
+                       r"definitions|what i (said|told you))\b")
+RE_PEER_PREF = re.compile(r"\b(my|our)\s+(peers|peer group|peer set|competitors|comparables|comparison set|benchmark set)\s+"
+                          r"(are|is|include|includes|should be|will be)\b|\b(use|treat|consider|set)\b.{1,120}\bas\s+(my|our|the)\s+"
+                          r"(peers|peer group|competitors|comparison set)\b|\bset\s+(my|our)\s+(peer group|peers)\s+to\b")
+RE_EMIS_PREF = re.compile(r"\b(by|when i say|whenever i say|if i say|when i ask about|when i mention)\s+(emissions|emission|carbon|ghg|"
+                          r"footprint|carbon emissions|ghg emissions|carbon footprint)\b,?\s*(i mean|i am referring to|i refer to|"
+                          r"means|use|refers to|=|assume)\b(.*)$")
+RE_N_PREF = re.compile(r"\b(always|by default|from now on|default to)\b.{0,40}\btop\s+(\d{1,2})\b|\btop\s+(\d{1,2})\b.{0,40}"
+                       r"\b(by default|from now on|always)\b")
+RE_COMPARE_WORD = re.compile(r"\b(compare|compared|vs|versus|against|than|with)\b")
+GENERIC_EMISSIONS = {"emissions", "emission", "ghg", "ghg emissions", "carbon", "carbon emissions", "co2", "co2 emissions",
+                     "greenhouse gas emissions", "greenhouse gases", "total emissions", "total ghg emissions",
+                     "carbon footprint", "emitters", "emitter", "emitting", "emit", "emits", "absolute emissions",
+                     "operational emissions", "pollutes most"}
+PREF_METRICS = {"scope12": "Scope 1+2 emissions", "scope1": "Scope 1 emissions", "scope2": "Scope 2 emissions",
+                "scope3": "Scope 3 emissions", "intensity": "Scope 1+2 intensity"}
+
+
 @dataclass
 class Plan:
     query: str
@@ -110,6 +130,9 @@ class Plan:
     rules: list = field(default_factory=list)
     model: dict = field(default_factory=dict)
     masked: str = ""
+    prefs: dict = field(default_factory=dict)          # preferences learned in this conversation
+    learned: dict = field(default_factory=dict)        # what this turn taught
+    neighbors: list = field(default_factory=list)      # few-shot exemplars nearest to the query
 
     def to_dict(self):
         return asdict(self)
@@ -121,6 +144,54 @@ class Parser:
         self.model = IntentModel(ARTIFACTS)
         self.linker = Linker(kb, known_words=self.model.known_words)
         self.name_tokens = {c["id"]: set(tokenize(prep(c["name"]))) for c in kb.companies}
+        self._load_exemplars()
+
+    # ------------------------------------------------------------------ few-shot retrieval
+    def _load_exemplars(self):
+        """Embed a bank of labelled example questions with the model's own encoder.
+
+        At inference the nearest examples act as few-shot context: when the
+        model is unsure, a similarity-weighted vote of its nearest labelled
+        neighbours decides. The bank is versioned with the model, so this
+        stays deterministic.
+        """
+        path = ARTIFACTS / "exemplars.jsonl"
+        self.exemplars, self.ex_matrix = [], None
+        if not path.exists():
+            return
+        import json
+        import numpy as np
+        rows = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+        vecs = []
+        for r in rows:
+            toks, _, _ = mask(self.linker.link(r["q"]).masked)
+            vecs.append(self.model.embed(" ".join(toks)))
+            self.exemplars.append(r)
+        self.ex_matrix = np.stack(vecs)
+
+    def _neighbors(self, masked: str, k: int = 5):
+        if self.ex_matrix is None:
+            return []
+        import numpy as np
+        sims = self.ex_matrix @ self.model.embed(masked)
+        order = np.argsort(-sims, kind="stable")[:k]
+        return [(self.exemplars[int(i)]["q"], self.exemplars[int(i)]["intent"], round(float(sims[i]), 3)) for i in order]
+
+    def _clean_prefs(self, prefs: dict | None) -> dict:
+        prefs = dict(prefs or {})
+        out = {}
+        peers = [c for c in prefs.get("peers", []) if c in self.kb.by_id]
+        if peers:
+            out["peers"] = peers
+        if prefs.get("emissions") in PREF_METRICS:
+            out["emissions"] = prefs["emissions"]
+        n = prefs.get("n")
+        if isinstance(n, int) and 1 <= n <= 50:
+            out["n"] = n
+        aliases = {t: c for t, c in (prefs.get("aliases") or {}).items() if isinstance(t, str) and c in self.kb.by_id}
+        if aliases:
+            out["aliases"] = aliases
+        return out
 
     # ------------------------------------------------------------------ helpers
     def _pick_metric(self, ents, text):
@@ -151,6 +222,21 @@ class Parser:
         pred = self.model.predict(p.masked)
         p.model = pred
         p.intent, p.confidence = pred["intent"], pred["intent_p"]
+        p.prefs = self._clean_prefs(context.get("prefs"))
+        p.neighbors = self._neighbors(p.masked)
+        pred["neighbors"] = p.neighbors[:3]
+        top_q, top_lab, top_sim = p.neighbors[0] if p.neighbors else (None, None, 0.0)
+        if top_sim >= 0.97 and top_lab != p.intent:
+            self._set(p, top_lab, f"few-shot: near-identical labelled example ({top_sim:.2f})")
+        elif p.confidence < 0.55 and p.neighbors:
+            votes: dict[str, float] = {}
+            for _, lab, sim in p.neighbors:
+                if sim >= 0.5:
+                    votes[lab] = votes.get(lab, 0.0) + sim
+            if votes:
+                best = max(sorted(votes), key=lambda l: votes[l])
+                if best != p.intent and votes[best] / sum(votes.values()) >= 0.6:
+                    self._set(p, best, f"few-shot: nearest labelled examples favour {best} (model was {p.confidence:.2f})")
 
         # ---- entities
         for e in link.of("company"):
@@ -191,6 +277,34 @@ class Parser:
             else:
                 p.unknown_names.append(u)
 
+        # ---- in-context learning: earlier clarification choices
+        aliases = p.prefs.get("aliases", {})
+        still = []
+        for amb in p.ambiguous:
+            cid = aliases.get(amb["text"])
+            if cid in amb["ids"]:
+                if cid not in p.companies:
+                    p.companies.append(cid)
+                p.rules.append(f"'{amb['text']}' resolved from your earlier choice in this conversation")
+            else:
+                still.append(amb)
+        p.ambiguous = still
+        pending = context.get("pending") or {}
+        if pending.get("text") and pending.get("ids"):
+            chosen = [c for c in p.companies if c in pending["ids"]]
+            if len(chosen) == 1:
+                p.prefs.setdefault("aliases", {})[pending["text"]] = chosen[0]
+                p.learned["alias"] = {"text": pending["text"], "id": chosen[0]}
+                p.rules.append(f"learned: '{pending['text']}' means {self.kb.by_id[chosen[0]]['name']}")
+
+        # ---- in-context learning: statements that set a preference
+        learned = self._learn(low, p)
+        if learned:
+            p.learned.update(learned)
+            p.rules.append("in-context learning: " + ", ".join(sorted(learned)))
+            self._set(p, "set_pref", "the question teaches a preference")
+            return p
+
         # ---- direction words
         if RE_BEST.search(low):
             p.quality = "best"
@@ -206,6 +320,15 @@ class Parser:
             p.metric, p.metrics = "intensity", ["intensity"]
             p.quality = "worst" if RE_DIRTY.search(low) else "best"
             p.rules.append("cleanest/dirtiest -> emission intensity")
+
+        # ---- apply learned definitions
+        pref_m = p.prefs.get("emissions")
+        if pref_m and p.metric == "scope12" and "scope12" not in low.split():
+            generic = [e for e in link.of("metric") if e.value == "scope12" and e.text in GENERIC_EMISSIONS]
+            if generic:
+                p.metric = pref_m
+                p.metrics = [pref_m] + [m for m in p.metrics if m not in ("scope12", pref_m)]
+                p.rules.append(f"learned definition: '{generic[0].text}' means {PREF_METRICS[pref_m]}")
 
         # ---- rules
         hard = [o for o in p.offtopic if o in HARD_OFFTOPIC]
@@ -310,6 +433,16 @@ class Parser:
                 p.used_context["lens"] = lens
                 p.rules.append("'we/our' resolved to your company lens")
 
+            # "compare us with X": bring in the company lens
+            if we and lens and p.companies and lens not in p.companies and RE_COMPARE_WORD.search(low) and \
+                    p.intent in ("compare", "company_metric", "company_profile", "peer_benchmark"):
+                p.companies = [lens] + p.companies
+                p.used_context["lens"] = lens
+                self._set(p, "compare", "'us' plus a named company: comparison with your company lens")
+            if p.intent == "ranking" and p.n is None and p.prefs.get("n"):
+                p.n = p.prefs["n"]
+                p.rules.append(f"learned default: top {p.n}")
+
         # model topic as a fallback when the lexicon found no metric
         if p.metric is None and pred["topic"] != "none" and pred["topic_p"] >= 0.75 and \
                 p.intent in ("company_metric", "ranking", "aggregate", "screen", "best_practice", "compare",
@@ -318,6 +451,32 @@ class Parser:
             p.metrics = [p.metric]
             p.rules.append(f"metric inferred by model topic head ({pred['topic_p']:.2f})")
         return p
+
+    def _learn(self, low: str, p: Plan) -> dict:
+        """Detect a statement that teaches the conversation something."""
+        if RE_FORGET.search(low):
+            p.prefs = {}
+            return {"reset": True}
+        out = {}
+        if RE_PEER_PREF.search(low) and p.companies:
+            p.prefs["peers"] = list(p.companies)
+            out["peers"] = list(p.companies)
+        m = RE_EMIS_PREF.search(low)
+        if m:
+            tail = m.group(4)
+            for tok, mid in (("scope12", "scope12"), ("scope1", "scope1"), ("scope2", "scope2"), ("scope3", "scope3"),
+                             ("intensity", "intensity")):
+                if re.search(rf"\b{tok}\b", tail):
+                    p.prefs["emissions"] = mid
+                    out["emissions"] = mid
+                    break
+        m = RE_N_PREF.search(low)
+        if m:
+            n = int(m.group(2) or m.group(3))
+            if 1 <= n <= 50:
+                p.prefs["n"] = n
+                out["n"] = n
+        return out
 
     @staticmethod
     def _set(p: Plan, intent: str, why: str):

@@ -6,8 +6,20 @@ export type AnswerCtxT = {
   openCite: (id: number) => void;
   activeCite: number | null;
   ask: (q: string) => void;
+  prefetch?: (q: string) => void;
 };
 export const AnswerCtx = createContext<AnswerCtxT>({ citations: [], openCite: () => {}, activeCite: null, ask: () => {} });
+
+/* Hover intent: prefetch after a short dwell so drive-by mouse movement costs nothing. */
+export function useHoverPrefetch() {
+  const { prefetch } = useAnswer();
+  const t = useRef<number | undefined>(undefined);
+  return (q: string) => ({
+    onMouseEnter: () => { window.clearTimeout(t.current); t.current = window.setTimeout(() => prefetch?.(q), 90); },
+    onMouseLeave: () => window.clearTimeout(t.current),
+    onFocus: () => prefetch?.(q),
+  });
+}
 export const useAnswer = () => useContext(AnswerCtx);
 
 /* --------------------------------------------------------------- rich text */

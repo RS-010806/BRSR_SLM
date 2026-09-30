@@ -267,13 +267,16 @@ export function Grouped({ b }: { b: any }) {
 }
 
 /* =============================================================== Stack */
-const ORD = ["var(--seq-1)", "var(--seq-3)", "var(--seq-5)", "var(--seq-7)", "var(--seq-9)"];
+const STEPS = [1, 3, 5, 7, 9];
+const ORD = STEPS.map((k) => `var(--seq-${k})`);
+const ON_ORD = STEPS.map((k) => `var(--on-seq-${k})`);
 function segStyle(s: any, idx: number, b: any): React.CSSProperties {
   if (b.ordinal && s.score != null) {
-    const k = [0, 25, 50, 75, 100].indexOf(s.score);
-    return { background: ORD[Math.max(0, k)], color: k >= 3 ? "#fff" : "var(--ink)" };
+    const k = Math.max(0, [0, 25, 50, 75, 100].indexOf(s.score));
+    return { background: ORD[k], color: ON_ORD[k] };
   }
-  if (b.categorical) return { background: `var(--s${(idx % 8) + 1})`, color: "#fff" };
+  if (b.categorical) return { background: `var(--s${(idx % 8) + 1})` };
+  if (s.tone === "pos") return { background: "var(--pos-fill)", color: "var(--on-pos)" };
   return {};
 }
 
@@ -303,7 +306,7 @@ export function Stack({ b }: { b: any }) {
                 return (
                   <div key={i} className={`seg ${s.tone || ""} ${s.highlight ? "hl" : ""}`} style={{ width: `${pct}%`, animationDelay: `${ri * 80 + i * 40}ms`, ...segStyle(s, i, b) }}
                        onMouseMove={(e) => show(e, s.label, [`${s.value} of ${total} (${pct.toFixed(1)}%)`])} onMouseLeave={hide}>
-                    {pct >= 7 && <span>{s.value}</span>}
+                    {pct >= 7 && !b.categorical && <span>{s.value}</span>}
                   </div>
                 );
               })}
@@ -314,7 +317,7 @@ export function Stack({ b }: { b: any }) {
       <div className="legend">
         {legend.map(({ s, i }) => (
           <span key={i + s.label}>
-            <i style={{ ...(s.tone === "pos" ? { background: "var(--s1)" } : s.tone === "neg" ? { background: "var(--peer)" } : s.tone === "muted" ? { background: "var(--surface-3)" } : {}), ...segStyle(s, i, b) }} />
+            <i style={{ ...(s.tone === "pos" ? { background: "var(--pos-fill)" } : s.tone === "neg" ? { background: "var(--peer)" } : s.tone === "muted" ? { background: "var(--surface-3)" } : {}), ...segStyle(s, i, b) }} />
             {b.ordinal ? `Score ${s.score}` : s.label}
           </span>
         ))}
@@ -391,24 +394,27 @@ export function Treemap({ b }: { b: any }) {
           const d = n.data;
           const ww = n.x1 - n.x0, hh = n.y1 - n.y0;
           const fits = ww > 70 && hh > 34;
-          const op = 0.35 + 0.65 * Math.min(1, d.share / 25);
+          const k = d.share >= 20 ? 4 : d.share >= 8 ? 3 : d.share >= 3 ? 2 : d.share >= 1 ? 1 : 0;
           return (
             <g key={d.id} onMouseMove={(e) => show(e, d.label, [d.display, `${d.share}% of total`])} onMouseLeave={hide}
                onClick={() => ask(`Give me an overview of the ${d.label} sector`)} style={{ cursor: "pointer", animation: `fade .5s ${i * 25}ms both` }}>
-              <rect x={n.x0} y={n.y0} width={ww} height={hh} rx={4} fill="var(--s1)" fillOpacity={op} />
+              <rect x={n.x0} y={n.y0} width={ww} height={hh} rx={4} style={{ fill: ORD[k] }} />
               {fits && (
                 <>
-                  <text x={n.x0 + 8} y={n.y0 + 18} style={{ fill: op > 0.6 ? "#fff" : "var(--ink)", fontSize: 12.5, fontWeight: 600 }}>
-                    {d.short.length > ww / 7.5 ? d.short.slice(0, Math.floor(ww / 7.5) - 1) + "…" : d.short}
+                  <text x={n.x0 + 8} y={n.y0 + 18} style={{ fill: ON_ORD[k], fontSize: 12.5, fontWeight: 600 }}>
+                    {d.short.length > ww / 7.5 ? d.short.slice(0, Math.floor(ww / 7.5) - 1) + "\u2026" : d.short}
                   </text>
-                  <text x={n.x0 + 8} y={n.y0 + 33} style={{ fill: op > 0.6 ? "#fff" : "var(--ink-2)", fontSize: 11.5 }}>{d.share}%</text>
+                  <text x={n.x0 + 8} y={n.y0 + 33} style={{ fill: ON_ORD[k], fontSize: 11.5 }}>{d.share}%</text>
                 </>
               )}
             </g>
           );
         })}
       </svg>
-      <div className="legend"><span className="muted">Area is proportional to emissions; shade deepens with share. Click a sector to open it.</span></div>
+      <div className="legend">
+        {["< 1%", "1-3%", "3-8%", "8-20%", "20%+"].map((l, i) => <span key={l}><i style={{ background: ORD[i] }} />{l}</span>)}
+        <span className="muted">Area is proportional to emissions. Click a sector to open it.</span>
+      </div>
       {tip}
     </div>
   );
@@ -477,9 +483,9 @@ export function Position({ b }: { b: any }) {
 
 /* =============================================================== Score grid */
 function heat(score: number | null | undefined): React.CSSProperties {
-  if (score == null) return { background: "var(--surface-2)", color: "var(--ink-3)" };
-  const k = Math.round(score / 25);
-  return { background: ORD[Math.max(0, Math.min(4, k))], color: k >= 3 ? "#fff" : "var(--ink)" };
+  if (score == null) return { background: "var(--surface-2)", color: "var(--ink-2)" };
+  const k = Math.max(0, Math.min(4, Math.round(score / 25)));
+  return { background: ORD[k], color: ON_ORD[k] };
 }
 export { heat };
 

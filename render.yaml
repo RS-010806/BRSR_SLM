@@ -1,3 +1,9 @@
+databases:
+  - name: pramana-db
+    plan: free
+    databaseName: pramana
+    user: pramana
+
 services:
   - type: web
     name: pramana-brsr
@@ -8,4 +14,10 @@ services:
     autoDeploy: true
     envVars:
       - key: PRAMANA_RATE_PER_MIN
-        value: "90"
+        value: "150"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pramana-db
+          property: connectionString
+      - key: PRAMANA_ADMIN_TOKEN
+        generateValue: true

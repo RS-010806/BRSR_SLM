@@ -225,7 +225,7 @@ OFFTOPIC: list[dict] = [
          phrases=["forecast", "predict", "prediction", "projection", "next year", "future emissions", "will emit",
                   "expected emissions", "estimate for", "outlook", "going to emit", "will reduce"]),
     dict(key="WEB", label="Live web or news", chapter=None, pdf_page=None, summary_page=None,
-         phrases=["search the web", "search online", "google", "internet", "latest news", "news", "today",
+         phrases=["search the web", "search online", "google", "internet", "latest news", "news",
                   "twitter", "wikipedia", "chatgpt", "current events", "website of"]),
     dict(key="GENERAL", label="General knowledge", chapter=None, pdf_page=None, summary_page=None,
          phrases=["weather", "recipe", "poem", "joke", "song", "movie", "cricket", "football", "election",

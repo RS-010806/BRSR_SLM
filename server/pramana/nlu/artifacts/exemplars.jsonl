@@ -1,0 +1,101 @@
+{"q": "gimme the lowdown on Titan", "intent": "company_profile"}
+{"q": "Brief me on Bosch Limited's climate position", "intent": "company_profile"}
+{"q": "Pull the full GHG picture for Cummins India", "intent": "company_profile"}
+{"q": "What should an investor know about Havells on climate disclosure?", "intent": "company_profile"}
+{"q": "Dabur - climate snapshot", "intent": "company_profile"}
+{"q": "One-page view of Grasim's E1 disclosures", "intent": "company_profile"}
+{"q": "Is Eicher Motors disclosing well on GHG?", "intent": "company_profile"}
+{"q": "Kindly furnish the direct emissions figure reported by Lupin", "intent": "company_metric"}
+{"q": "GAIL scope two number?", "intent": "company_metric"}
+{"q": "how much electricity related emissions did Wipro report", "intent": "company_metric"}
+{"q": "Has Titan got its emissions verified by a third party?", "intent": "company_metric"}
+{"q": "Read out Britannia's climate commitments", "intent": "company_metric"}
+{"q": "value chain footprint of Hero MotoCorp", "intent": "company_metric"}
+{"q": "Did Bajaj Auto's emission intensity fall year on year?", "intent": "company_metric"}
+{"q": "What decarbonisation steps is Cipla taking?", "intent": "company_metric"}
+{"q": "Does Pidilite report scope 3 at all?", "intent": "company_metric"}
+{"q": "who oversees the environment policy at Asian Paints", "intent": "company_metric"}
+{"q": "Hindalco vs Vedanta vs NMDC, who is ahead?", "intent": "compare"}
+{"q": "Line up Dabur against Marico", "intent": "compare"}
+{"q": "Head to head: Tata Power and JSW Energy on direct emissions", "intent": "compare"}
+{"q": "Contrast the targets of HUL and Nestle", "intent": "compare"}
+{"q": "Who looks better between Axis Bank and Kotak on climate?", "intent": "compare"}
+{"q": "ACC or Shree Cement, which is cleaner per rupee?", "intent": "compare"}
+{"q": "Stack Titan up against the rest of its industry", "intent": "peer_benchmark"}
+{"q": "Is Bosch a leader or a laggard among auto component makers?", "intent": "peer_benchmark"}
+{"q": "Percentile position of Havells within consumer durables", "intent": "peer_benchmark"}
+{"q": "How far behind its sector is Vodafone Idea?", "intent": "peer_benchmark"}
+{"q": "Relative standing of Dabur among FMCG peers on intensity", "intent": "peer_benchmark"}
+{"q": "Where do we sit versus competitors?", "intent": "peer_benchmark"}
+{"q": "pharma sector at a glance", "intent": "sector_overview"}
+{"q": "What's happening in telecom on emissions?", "intent": "sector_overview"}
+{"q": "Give me the state of play for the textiles industry", "intent": "sector_overview"}
+{"q": "Realty climate disclosure overview please", "intent": "sector_overview"}
+{"q": "How concentrated are emissions across industries?", "intent": "sector_overview"}
+{"q": "Sector league table for total emissions", "intent": "sector_overview"}
+{"q": "Name the five heaviest emitters in chemicals", "intent": "ranking"}
+{"q": "Which banks have the smallest footprint?", "intent": "ranking"}
+{"q": "Leaderboard of E1 index in healthcare", "intent": "ranking"}
+{"q": "Biggest improvers on intensity this year", "intent": "ranking"}
+{"q": "Who grew emissions fastest among auto makers?", "intent": "ranking"}
+{"q": "Lowest scope 3 in consumer services", "intent": "ranking"}
+{"q": "Top 3 by scope 2 in IT services", "intent": "ranking"}
+{"q": "Exemplary emission reduction programmes in metals", "intent": "best_practice"}
+{"q": "Who sets the gold standard for climate targets in FMCG?", "intent": "best_practice"}
+{"q": "Give me model disclosures on performance against goals", "intent": "best_practice"}
+{"q": "What are the smartest decarbonisation moves in power?", "intent": "best_practice"}
+{"q": "Where should we look for inspiration on GHG projects?", "intent": "best_practice"}
+{"q": "Learn from the leaders: net zero commitments", "intent": "best_practice"}
+{"q": "What proportion of the top 1000 get external assurance?", "intent": "aggregate"}
+{"q": "Count of firms reporting value chain emissions", "intent": "aggregate"}
+{"q": "Combined direct emissions of the steel sector", "intent": "aggregate"}
+{"q": "Share of banks with a board-approved climate policy", "intent": "aggregate"}
+{"q": "What is the median intensity change across companies?", "intent": "aggregate"}
+{"q": "How many firms saw emissions go up?", "intent": "aggregate"}
+{"q": "Aggregate scope 3 disclosed by oil and gas", "intent": "aggregate"}
+{"q": "Show every textile company without GHG projects", "intent": "screen"}
+{"q": "Which telecom firms skip scope 3?", "intent": "screen"}
+{"q": "Filter: healthcare companies with independent assurance", "intent": "screen"}
+{"q": "Who in realty lacks a public policy link?", "intent": "screen"}
+{"q": "Enumerate the power companies", "intent": "screen"}
+{"q": "Companies whose policies do not cover the value chain", "intent": "screen"}
+{"q": "Anyone using biogas in FMCG?", "intent": "text_search"}
+{"q": "Look for mentions of carbon capture", "intent": "text_search"}
+{"q": "Which filings talk about electric buses?", "intent": "text_search"}
+{"q": "Find disclosures that cite RE100", "intent": "text_search"}
+{"q": "Who has installed rooftop solar?", "intent": "text_search"}
+{"q": "Search for internal carbon pricing in banks", "intent": "text_search"}
+{"q": "What counts as scope 2?", "intent": "explain"}
+{"q": "Walk me through how intensity is rated", "intent": "explain"}
+{"q": "Why does a zero both years get full marks?", "intent": "explain"}
+{"q": "What is BRSR Core?", "intent": "explain"}
+{"q": "How trustworthy are these numbers?", "intent": "explain"}
+{"q": "Explain the difference between direct and indirect emissions", "intent": "explain"}
+{"q": "What exactly is the E1 index?", "intent": "explain"}
+{"q": "Which year is this data from?", "intent": "explain"}
+{"q": "Run a scenario where Titan halves its scope 2", "intent": "simulate"}
+{"q": "Suppose Hindalco trims direct emissions by a fifth", "intent": "simulate"}
+{"q": "What reduction gets UltraTech to the median?", "intent": "simulate"}
+{"q": "Model a 30 percent cut for Coal India", "intent": "simulate"}
+{"q": "If we cut intensity by 15 percent, what happens to our rank?", "intent": "simulate"}
+{"q": "TL;DR of the climate chapter", "intent": "report_insights"}
+{"q": "What were the headline takeaways on GHG?", "intent": "report_insights"}
+{"q": "What does IIMB conclude about targets?", "intent": "report_insights"}
+{"q": "Key signals across Indian companies on climate", "intent": "report_insights"}
+{"q": "What red flags did the study raise?", "intent": "report_insights"}
+{"q": "How many employees does Titan have?", "intent": "out_of_scope"}
+{"q": "What's Infosys trading at?", "intent": "out_of_scope"}
+{"q": "Tell me a fun fact", "intent": "out_of_scope"}
+{"q": "Will Tata Power hit net zero in 2045?", "intent": "out_of_scope"}
+{"q": "Summarise today's headlines on Vedanta", "intent": "out_of_scope"}
+{"q": "Plastic waste generated by Nestle", "intent": "out_of_scope"}
+{"q": "Who chairs the board of ITC?", "intent": "out_of_scope"}
+{"q": "Write SQL for me", "intent": "out_of_scope"}
+{"q": "Hello there", "intent": "greeting"}
+{"q": "Hey, how can you help?", "intent": "greeting"}
+{"q": "What kinds of analysis can you run?", "intent": "greeting"}
+{"q": "Thanks, that was useful", "intent": "greeting"}
+{"q": "I'm with Havells", "intent": "set_lens"}
+{"q": "I head ESG at Dabur", "intent": "set_lens"}
+{"q": "Treat Titan as my company", "intent": "set_lens"}
+{"q": "Our organisation is Cipla", "intent": "set_lens"}

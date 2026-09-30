@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
-import type { Answer, Citation, Ctx } from "../api";
+import { createShare, sendFeedback, type Answer, type Citation, type Ctx } from "../api";
 import { I } from "../icons";
-import { AnswerCtx, Rich, toast } from "../ui";
+import { AnswerCtx, Rich, toast, useHoverPrefetch } from "../ui";
 import { BlockView } from "./blocks";
 import { Rubric } from "./blocks/Content";
 
@@ -169,31 +169,71 @@ function Trace({ t }: { t: any }) {
           <div className="stage-v" style={{ fontSize: 12.5 }}>
             <div>{t.grounding?.citations} {t.grounding?.citations === 1 ? "citation" : "citations"}</div>
             <div>{t.grounding?.numeric_paragraphs} numeric {t.grounding?.numeric_paragraphs === 1 ? "statement" : "statements"}, {t.grounding?.uncited?.length ?? 0} uncited</div>
-            <div className="muted">{t.timing_ms?.understand} ms + {t.timing_ms?.compose} ms</div>
+            <div className="muted">{t.timing_ms?.understand} ms understand + {t.timing_ms?.compose} ms compose</div>
           </div>
         </div>
       </div>
       <div className="card-s" style={{ marginBottom: 6 }}>Final route: <b className="mono">{t.final_intent}</b>{t.model && <> · model topic <span className="mono">{t.model.topic}</span> ({(t.model.topic_p * 100).toFixed(0)}%)</>}</div>
       {t.rules?.length > 0 && <div>{t.rules.map((r: string, i: number) => <div className="rule" key={i}>rule: {r}</div>)}</div>}
       {t.used_context && Object.keys(t.used_context).length > 0 && <div className="rule">memory: used {Object.keys(t.used_context).join(", ")} from earlier in this conversation</div>}
+      {t.learned && Object.keys(t.learned).length > 0 && <div className="rule">learned this turn: {Object.keys(t.learned).join(", ")}</div>}
+      {t.prefs && Object.keys(t.prefs).length > 0 && <div className="rule">active preferences: {Object.keys(t.prefs).join(", ")}</div>}
+      {t.few_shot?.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div className="card-s" style={{ marginBottom: 4 }}>Nearest labelled examples (few-shot memory)</div>
+          {t.few_shot.map((n: any) => <div className="rule" key={n.q}>{n.sim.toFixed(2)} · {n.intent} · {"\u201c"}{n.q}{"\u201d"}</div>)}
+        </div>
+      )}
       <div className="card-s" style={{ marginTop: 8 }}>BPE pieces: <span className="mono" style={{ fontSize: 11.5 }}>{(t.model?.tokens || []).join(" ")}</span></div>
     </div>
   );
 }
 
 /* ---------------------------------------------------------------- answer */
-export function AnswerView({ a, q, ctx, ask, index }: { a: Answer; q: string; ctx?: Ctx; ask: (q: string) => void; index: number }) {
+function readVote(fp: string): number {
+  try { return Number(localStorage.getItem("pramana.vote." + fp) || 0); } catch { return 0; }
+}
+
+function Followups({ items, ask }: { items: string[]; ask: (q: string) => void }) {
+  const hover = useHoverPrefetch();
+  return (
+    <div className="followups">
+      {items.map((f) => <button key={f} className="fu" onClick={() => ask(f)} {...hover(f)}><I.corner />{f}</button>)}
+    </div>
+  );
+}
+
+export function AnswerView({ a, q, ctx, ask, index, prefetch }: { a: Answer; q: string; ctx?: Ctx; ask: (q: string) => void; index: number; prefetch?: (q: string) => void }) {
   const [cite, setCite] = useState<number | null>(null);
   const [trace, setTrace] = useState(false);
+  const [vote, setVote] = useState<number>(() => readVote(a.fingerprint));
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const rate = (r: 1 | -1) => {
+    setVote(r);
+    try { localStorage.setItem("pramana.vote." + a.fingerprint, String(r)); } catch { /* storage unavailable */ }
+    if (r === 1) { sendFeedback(a, q, 1).catch(() => {}); toast("Thanks. Recorded anonymously."); setNoteOpen(false); }
+    else setNoteOpen(true);
+  };
+  const submitNote = () => {
+    sendFeedback(a, q, -1, note).catch(() => {});
+    setNoteOpen(false);
+    toast("Thanks. This helps improve coverage.");
+  };
   const c = a.citations.find((x) => x.id === cite) || null;
   const notes = [...a.notes].sort((x, y) => (x.kind === "data_quality" || x.kind === "scope" ? -1 : 0) - (y.kind === "data_quality" || y.kind === "scope" ? -1 : 0));
 
-  const share = () => {
-    const u = new URL(window.location.origin);
-    u.searchParams.set("q", q);
-    const c2 = { ...(ctx || {}) };
-    if (c2.companies?.length || c2.intent) u.searchParams.set("ctx", btoa(unescape(encodeURIComponent(JSON.stringify(c2)))));
-    navigator.clipboard?.writeText(u.toString()).then(() => toast("Link copied. It reproduces this exact answer."));
+  const share = async () => {
+    const short = await createShare(q, ctx, a.fingerprint);
+    let link = short;
+    if (!link) {
+      const u = new URL(window.location.origin);
+      u.searchParams.set("q", q);
+      const c2 = { ...(ctx || {}) };
+      if (c2.companies?.length || c2.intent || c2.prefs) u.searchParams.set("ctx", btoa(unescape(encodeURIComponent(JSON.stringify(c2)))));
+      link = u.toString();
+    }
+    navigator.clipboard?.writeText(link).then(() => toast("Link copied. It reproduces this exact answer."));
   };
   const copy = () => {
     const src = a.citations.map((c) => `[${c.id}] ${citeWhat(c)} (${citeWhere(c)})`).join("\n");
@@ -212,7 +252,7 @@ export function AnswerView({ a, q, ctx, ask, index }: { a: Answer; q: string; ct
   };
 
   return (
-    <AnswerCtx.Provider value={{ citations: a.citations, openCite: setCite, activeCite: cite, ask }}>
+    <AnswerCtx.Provider value={{ citations: a.citations, openCite: setCite, activeCite: cite, ask, prefetch }}>
       <article className="answer" id={`ans-${index}`}>
         <div className="ans-kicker"><span className={"status-dot " + a.status} />{a.kicker}</div>
         <h2 className="ans-title">{a.title}</h2>
@@ -228,11 +268,7 @@ export function AnswerView({ a, q, ctx, ask, index }: { a: Answer; q: string; ct
         )}
         <div className="lead">{a.lead.map((p, i) => <p key={i}><Rich text={p} /></p>)}</div>
         {a.blocks.length > 0 && <div className="blocks">{a.blocks.map((b, i) => <BlockView key={i} b={b} i={i} />)}</div>}
-        {a.followups.length > 0 && (
-          <div className="followups">
-            {a.followups.map((f) => <button key={f} className="fu" onClick={() => ask(f)}><I.corner />{f}</button>)}
-          </div>
-        )}
+        {a.followups.length > 0 && <Followups items={a.followups} ask={ask} />}
         {a.citations.length > 0 && (
           <details className="sources">
             <summary><span><b style={{ color: "var(--ink)" }}>{a.citations.length} {a.citations.length === 1 ? "source" : "sources"}</b> · every figure above links to one of these</span><I.down style={{ width: 14, height: 14 }} /></summary>
@@ -250,12 +286,23 @@ export function AnswerView({ a, q, ctx, ask, index }: { a: Answer; q: string; ct
             <I.shield style={{ width: 14, height: 14, color: "var(--good-ink)" }} />Answer ID <b>{a.fingerprint}</b> · dataset {a.trace?.dataset}
           </span>
           <span className="ans-actions">
+            <span className="fb">
+              <button className={"tool" + (vote === 1 ? " on-up" : "")} onClick={() => rate(1)} aria-label="Helpful" title="Helpful"><I.thumb style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
+              <button className={"tool" + (vote === -1 ? " on-down" : "")} onClick={() => rate(-1)} aria-label="Not helpful" title="Not helpful"><I.thumb style={{ width: 13, height: 13, verticalAlign: -2, transform: "rotate(180deg)" }} /></button>
+            </span>
             <button className={"tool" + (trace ? " on" : "")} onClick={() => setTrace(!trace)}><I.eye style={{ width: 13, height: 13, verticalAlign: -2 }} /> How I understood this</button>
             <button className="tool" onClick={copy} title="Copy text with sources"><I.copy style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
             <button className="tool" onClick={share} title="Copy share link"><I.link style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
             <button className="tool" onClick={print} title="Print or save as PDF"><I.print style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
           </span>
         </div>
+        {noteOpen && (
+          <div className="fb-note">
+            <input autoFocus placeholder="What did you expect instead? (optional, anonymous)" value={note} maxLength={400}
+                   onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitNote()} />
+            <button className="btn" onClick={submitNote}>Send</button>
+          </div>
+        )}
         {trace && a.trace && <Trace t={a.trace} />}
       </article>
       {c && <Evidence c={c} all={a.citations} onClose={() => setCite(null)} onCite={setCite} ask={ask} />}

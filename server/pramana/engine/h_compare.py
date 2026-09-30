@@ -127,14 +127,14 @@ def _compare_text(ctx, cos, qid):
         segs = ctx.index.by_cell.get((c["id"], qid), [])
         items.append({"company": c["name"], "company_id": c["id"], "short": short_name(c["name"]),
                       "sector": kb.sector_of(c)["name"], "qid": qid, "question": q["label"], "score": c["ratings"].get(qid),
-                      "text": text, "segments": highlight(segs, k=2), "themes": themes_in(text),
+                      "text": text, "segments": highlight(segs, k=2), "themes": ctx.kb.themes(c["id"], qid),
                       "cite": a.c_cell(c, qid), "cell": c["cells"].get(qid)})
     if items:
         a.block("quotes", title=f"{q['label']}, side by side", items=items, columns=True)
     blank = [short_name(c["name"]) for c in cos if not c["values"].get(qid)]
     if blank:
         a.p(f"No disclosure text: {join(blank)}.")
-    th = {c["id"]: set(themes_in(c["values"].get(qid) or "")) for c in cos}
+    th = {c["id"]: set(ctx.kb.themes(c["id"], qid)) for c in cos}
     all_th = sorted(set().union(*th.values()))
     if all_th:
         a.block("matrix", title="Practices named in each disclosure", columns=[short_name(c["name"]) for c in cos],
@@ -214,16 +214,26 @@ PEER_DIMENSIONS = [
 ]
 
 
-def peer_benchmark(ctx, c, mid):
+def peer_benchmark(ctx, c, mid, peers=None):
     a, kb = ctx.a, ctx.kb
     a.company_ref(c)
     sec = kb.sector_of(c)
     sname = sec["name"]
     members = kb.members(c["sector"])
+    grp, grp_n = sname, sec["n"]
+    custom = [kb.by_id[x] for x in (peers or []) if x in kb.by_id and x != c["id"]]
+    if custom:
+        members = [c] + custom
+        grp, grp_n = "your peer group", len(members)
+        for x in custom:
+            a.company_ref(x)
+        a.note("context", f"Using the peer group you set earlier in this conversation: "
+                          f"{join([short_name(x['name']) for x in custom])}. Say \u201cforget my peer group\u201d to "
+                          f"go back to the full {sname} sector.")
     from .h_company import flag_notes
     flag_notes(ctx, c, ["1330", "1331", "1332", "1333", "1334", "1335"])
     a.kicker = f"{c['name']} · Peer benchmark"
-    a.title = f"Against {sec['n'] - 1} {sname} peers"
+    a.title = f"Against {grp_n - 1} {sname} peers" if not custom else f"Against your {grp_n - 1} chosen peers"
     if mid and mid not in ("index",) and M.get(mid, kb) is not None:
         metric = M.get(mid, kb)
         by = "yoy" if not metric.comparable_levels else "value"
@@ -241,18 +251,18 @@ def peer_benchmark(ctx, c, mid):
             unit_word = "change" if by == "yoy" else ""
             shown = pct(mine) if by == "yoy" else fmt_value(metric, mine)
             a.p(f"On {lc(metric.label)}{' (year-on-year change)' if by == 'yoy' else ''}, {c['name']} "
-                f"({shown}) ranks **{rank_phrase(r, n)}** among {n} {sname} companies with comparable data "
+                f"({shown}) ranks **{rank_phrase(r, n)}** among {n} {'companies in ' + grp if custom else sname + ' companies'} with comparable data "
                 f"{a.c_derived('Peer ranking', f'{n} companies sorted high to low on ' + lc(metric.label) + (' change' if by == 'yoy' else ''))}. "
                 f"It is {'better' if (mine < med if metric.better == 'lower' else mine > med) else 'worse'} than the sector "
                 f"median ({pct(med) if by == 'yoy' else fmt_value(metric, med)}) and outperforms {beat} of {others} peers.")
-            a.blocks.append(bars(f"{metric.label}{' change' if by == 'yoy' else ''}: {sname}", ordered, metric,
+            a.blocks.append(bars(f"{metric.label}{' change' if by == 'yoy' else ''}: {grp}", ordered, metric,
                                  focus_ids={c["id"]}, median_v=med, subtitle=f"{n} companies, FY 2024-25",
                                  log=metric.kind == "abs" and by == "value", value_kind=by, limit=25 if n > 25 else None))
             if n > 25 and r > 25:
                 a.blocks[-1]["rows"].append({"id": c["id"], "label": short_name(c["name"]), "value": mine, "rank": r,
                                              "display": pct(mine) if by == "yoy" else fmt_short(metric, mine),
                                              "full": shown, "highlight": True})
-            a.blocks.append(strip(f"Distribution in {sname}", pairs, metric, focus_ids={c["id"]}, value_kind=by))
+            a.blocks.append(strip(f"Distribution in {grp}", pairs, metric, focus_ids={c["id"]}, value_kind=by))
         a.context.update({"metric": mid})
         a.follow(f"How does {short_name(c['name'])} compare with its peers?",
                  f"Best practices in {sname}", f"What if {short_name(c['name'])} cuts Scope 1 by 10%?")
@@ -279,13 +289,13 @@ def peer_benchmark(ctx, c, mid):
             (strong if pctl >= 67 else weak if pctl <= 33 else []).append((label, pctl))
     pc = a.c_derived("Peer percentiles", "share of sector peers with a worse value on each dimension",
                      note="Ties count as not outperformed. Companies without comparable data are excluded per dimension.")
-    a.p(f"{c['name']} benchmarked against the {sec['n']} companies in {sname} on seven E1 dimensions. Each row shows "
+    a.p(f"{c['name']} benchmarked against the {grp_n} companies in {grp} on seven E1 dimensions. Each row shows "
         f"the share of peers it outperforms (for emissions, lower is better; for scores, higher is better) {pc}.")
     if strong:
         a.p(f"**Relative strengths:** {join([f'{lc(l)} (beats {p}% of peers)' for l, p in strong])} {pc}.")
     if weak:
         a.p(f"**Relative weaknesses:** {join([f'{lc(l)} (beats {p}% of peers)' for l, p in weak])} {pc}.")
-    a.block("position", title=f"Position within {sname}", subtitle="Each dot is a company; the highlighted dot is "
+    a.block("position", title=f"Position within {grp}", subtitle="Each dot is a company; the highlighted dot is "
             f"{short_name(c['name'])}", rows=rows, company=short_name(c["name"]))
     idx_pairs = eligible(M.NUMERIC["index"], members)
     ordered = sorted(idx_pairs, key=lambda cv: (-cv[1], cv[0]["name"].lower()))
@@ -297,7 +307,7 @@ def peer_benchmark(ctx, c, mid):
                       "assured": "Yes" if x["ratings"].get("1340") == 100 else "No",
                       "scope3": "Yes" if x["ratings"].get("1387") == 100 else "No",
                       "highlight": x["id"] == c["id"]})
-    a.block("table", title=f"{sname}: all peers by derived E1 index", rows=table,
+    a.block("table", title=f"{grp[0].upper() + grp[1:]}: all peers by derived E1 index", rows=table,
             columns=[{"key": "rank", "label": "#", "align": "right"}, {"key": "company", "label": "Company"},
                      {"key": "index", "label": "E1 index", "align": "right"},
                      {"key": "s12", "label": "Scope 1+2 (tCO₂e)", "align": "right"},

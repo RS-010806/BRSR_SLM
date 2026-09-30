@@ -24,7 +24,7 @@ class Engine:
     def __init__(self, kb: KB):
         self.kb = kb
         self.parser = Parser(kb)
-        self.index = DisclosureIndex(kb.corpus)
+        self.index = DisclosureIndex(kb)
 
     # ------------------------------------------------------------------ public
     def ask(self, query: str, context: dict | None = None) -> dict:
@@ -39,6 +39,7 @@ class Engine:
             HI.greeting(ctx)
         else:
             self._route(ctx)
+        self._classification_notes(a)
         if plan.fy_out_of_range:
             a.note("scope", f"The dataset covers FY 2024-25 with FY 2023-24 comparatives only; {plan.fy_out_of_range} "
                             f"is not available, so the figures shown are for FY 2024-25.")
@@ -62,6 +63,10 @@ class Engine:
         a.context.setdefault("tech", plan.tech)
         if "lens" not in a.context and context.get("lens"):
             a.context["lens"] = context["lens"]
+        # in-context learning state travels with the conversation (client-held)
+        a.context["prefs"] = plan.prefs
+        a.context["pending"] = {"text": plan.ambiguous[0]["text"], "ids": plan.ambiguous[0]["ids"]} \
+            if a.status == "clarify" and plan.ambiguous else None
         body = a.payload()
         t2 = time.perf_counter()
         body["trace"] = self._trace(plan, a, body, (t1 - t0) * 1000, (t2 - t1) * 1000)
@@ -75,6 +80,8 @@ class Engine:
             return HI.out_of_scope(ctx)
         if intent == "greeting":
             return HI.greeting(ctx)
+        if intent == "set_pref":
+            return HI.learned(ctx)
         if p.ambiguous and (intent in COMPANY_INTENTS or intent in ("compare", "best_practice")):
             return HI.clarify(ctx)
         if (p.absent or p.unknown_names) and not p.companies and intent in COMPANY_INTENTS | {"compare"}:
@@ -101,7 +108,7 @@ class Engine:
         if intent == "compare":
             return HM.compare(ctx, cos, p.metric)
         if intent == "peer_benchmark":
-            return HM.peer_benchmark(ctx, c, p.metric)
+            return HM.peer_benchmark(ctx, c, p.metric, p.prefs.get("peers"))
         if intent == "simulate":
             return HC.simulate(ctx, c, p.metric or "scope12", p.pct)
         if intent == "sector_overview":
@@ -126,6 +133,27 @@ class Engine:
         if intent == "report_insights":
             return HI.report_insights(ctx)
         return HI.greeting(ctx)
+
+    def _classification_notes(self, a: Answer):
+        """Any company shown anywhere in the answer with a flagged source classification gets its note."""
+        seen = set()
+
+        def walk(x):
+            if isinstance(x, dict):
+                for k in ("id", "company_id"):
+                    cid = x.get(k)
+                    if isinstance(cid, str) and cid in self.kb.by_id and cid not in seen:
+                        seen.add(cid)
+                        for f in self.kb.by_id[cid]["flags"]:
+                            if f["type"] == "classification":
+                                a.note("data_quality", f["text"])
+                for v in x.values():
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+
+        walk(a.blocks)
 
     # ------------------------------------------------------------------ trace
     def _trace(self, plan, a: Answer, body, parse_ms, compose_ms) -> dict:
@@ -155,6 +183,9 @@ class Engine:
                 "negated": plan.negated,
             },
             "used_context": plan.used_context,
+            "learned": plan.learned,
+            "prefs": plan.prefs,
+            "few_shot": [{"q": q, "intent": i, "sim": s} for q, i, s in plan.neighbors[:3]],
             "grounding": {"numeric_paragraphs": numeric, "uncited": ungrounded,
                           "citations": len(a.citations), "dangling_refs": max_ref > len(a.citations)},
             "timing_ms": {"understand": round(parse_ms, 1), "compose": round(compose_ms, 1)},

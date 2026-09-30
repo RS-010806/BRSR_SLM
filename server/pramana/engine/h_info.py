@@ -314,3 +314,47 @@ def clarify(ctx):
     a.block("choices", items=opts)
     for o in opts[:4]:
         a.follow(o["query"])
+
+
+PREF_LABEL = {"scope12": "Scope 1+2 emissions", "scope1": "Scope 1 emissions", "scope2": "Scope 2 emissions",
+              "scope3": "Scope 3 emissions", "intensity": "Scope 1+2 intensity per crore of turnover"}
+
+
+def learned(ctx):
+    """Confirm what the conversation just learned (in-context learning)."""
+    a, kb, plan = ctx.a, ctx.kb, ctx.plan
+    up = plan.learned
+    a.kicker = "Learned in this conversation"
+    src = a.c_method("Conversation preference", "Set by you in this conversation. It lives only in this conversation's "
+                                                "context, applies to later questions, and can be cleared at any time.")
+    if up.get("reset"):
+        a.title = "Preferences cleared"
+        a.p(f"Done. I have forgotten the peer group, definitions and defaults learned in this conversation {src}.")
+        a.follow("How does Tata Steel compare with its peers?", "Top 10 emitters")
+        return
+    a.title = "Noted for this conversation"
+    lines = []
+    if up.get("peers"):
+        names = [short_name(kb.by_id[x]["name"]) for x in up["peers"]]
+        lens = plan.prefs.get("lens")
+        a.p(f"Your peer group is now **{join(names)}** {src}. Peer comparisons will use this group instead of the whole "
+            f"sector, and I will say so each time.")
+        lines.append({"key": "peers", "label": "Peer group", "value": join(names)})
+        for x in up["peers"]:
+            a.company_ref(kb.by_id[x])
+    if up.get("emissions"):
+        a.p(f"When you ask about \u201cemissions\u201d without saying which scope, I will use **{PREF_LABEL[up['emissions']]}** "
+            f"{src}. Naming a scope explicitly always overrides this.")
+        lines.append({"key": "emissions", "label": "\u201cEmissions\u201d means", "value": PREF_LABEL[up["emissions"]]})
+    if up.get("n"):
+        a.p(f"Rankings will show the top **{up['n']}** unless you ask for a different number {src}.")
+        lines.append({"key": "n", "label": "Ranking size", "value": f"Top {up['n']}"})
+    a.block("learned", items=lines)
+    a.note("method", "Preferences are part of the conversation context sent with each question, so answers stay "
+                     "deterministic: the same question in the same conversation always gets the same answer.")
+    first = kb.by_id[up["peers"][0]]["name"] if up.get("peers") else None
+    a.follow("How do we compare with our peers?" if ctx.plan.prefs.get("peers") else None,
+             f"How does {short_name(first)} compare with its peers?" if first else None,
+             "What are the emissions of NTPC?" if up.get("emissions") else None,
+             "Top emitters in cement" if up.get("n") else None,
+             "Forget my preferences")

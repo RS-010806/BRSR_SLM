@@ -151,3 +151,31 @@ def compact_value(metric: M.Metric, v):
     if metric.kind == "abs":
         return f"{compact(v)} {CO2}"
     return fmt_value(metric, v)
+
+
+def value_cite(a, c, metric: M.Metric, by: str = "value") -> str:
+    """Citation for a company's value on a metric: the cell itself, or the formula over cited cells."""
+    from .fmt import short_name as _sn
+    v = c["values"]
+    name = _sn(c["name"])
+    if by == "yoy" and metric.cy_q and metric.py_q:
+        return a.c_derived(f"{metric.label} change ({name})", f"({num(v.get(metric.cy_q))} - {num(v.get(metric.py_q))}) / "
+                           f"{num(v.get(metric.py_q))}", [a.c_cell(c, metric.cy_q), a.c_cell(c, metric.py_q)])
+    if metric.id == "scope12":
+        if by == "yoy":
+            return a.c_derived(f"Scope 1+2 change ({name})", "(FY 2024-25 Scope 1+2 - FY 2023-24 Scope 1+2) / FY 2023-24",
+                               [a.c_cell(c, q) for q in ("1330", "1332", "1331", "1333")])
+        return a.c_derived(f"Scope 1+2, FY 2024-25 ({name})",
+                           f"{num(v.get('1330'))} + {num(v.get('1332'))} = {num(metric.value(c))} {CO2}",
+                           [a.c_cell(c, "1330"), a.c_cell(c, "1332")])
+    if metric.kind == "intensity" and metric.comparable_levels and metric.cy_q:
+        return a.c_derived(f"{metric.label} per crore ({name})",
+                           f"{num(v.get(metric.cy_q))} per rupee x 10,000,000 = {num(metric.value(c))}",
+                           [a.c_cell(c, metric.cy_q)])
+    if metric.id == "index":
+        return a.c_method("E1 index (derived)", metric.note)
+    if metric.kind == "score" and metric.rating_q:
+        return a.c_rating(c, metric.rating_q[0])
+    if metric.cy_q:
+        return a.c_cell(c, metric.cy_q)
+    return ""

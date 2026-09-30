@@ -3,12 +3,17 @@ from __future__ import annotations
 
 from ..analytics import band_counts, median, rating_distribution, sector_sum, yes_count
 from . import metrics as M
-from .common import bars, eligible, fmt_short, fmt_value, kpi, strip, yes_rate
+from .common import bars, eligible, fmt_short, fmt_value, kpi, strip, value_cite, yes_rate
 from .fmt import lc, CO2, compact, join, num, pct, plural, share, short_name
 from .h_company import BOOL_PHRASE, QTABLE
 
 SECTOR_TABLES = {"1341": "2.1", "1340": "2.4", "1387": "2.3"}
 AI_TABLE = {"277": "1.6", "286": "1.7", "295": "1.8", "1342": "2.2"}
+
+
+def _in(scope: str) -> str:
+    """'in Power' for a sector, 'in the dataset' for the whole market."""
+    return "in the dataset" if scope == "all companies" else f"in {scope}"
 
 
 def _obs_for_sector(kb, sname):
@@ -197,7 +202,7 @@ def ranking(ctx, mid, sid, n, extreme, quality, change):
     a.title = f"{'Top' if desc or by == 'yoy' else 'Lowest'} {len(top)}: {what}"
     if not top:
         a.status = "partial"
-        a.p(f"No company in {scope} has comparable data for {what}.")
+        a.p(f"No company {_in(scope)} has comparable data for {what}.")
         return
     lead = top[0]
     cite = a.c_derived(f"Ranking of {scope} on {what}",
@@ -206,9 +211,9 @@ def ranking(ctx, mid, sid, n, extreme, quality, change):
                             f"Ties broken alphabetically.")
     val = (lambda v: pct(v, digits=2)) if by == "yoy" else (lambda v: fmt_value(metric, v))
     a.p(f"Ranked by the {direction} {what}, **{short_name(lead[0]['name'])}** comes first "
-        f"({val(lead[1])}) {a.c_cell(lead[0], metric.cy_q) if metric.cy_q else ''}"
+        f"({val(lead[1])})" + (f" {vc}" if (vc := value_cite(a, lead[0], metric, by)) else "")
         + (f", followed by {join([short_name(c['name']) + ' (' + val(v) + ')' for c, v in top[1:3]])}" if len(top) > 1 else "")
-        + f". {len(pairs)} of {len(members)} companies in {scope} have comparable data {cite}.")
+        + f". {len(pairs)} of {len(members)} companies {_in(scope)} have comparable data {cite}.")
     if by == "yoy" and metric.kind == "abs":
         a.note("method", "Percentage changes on very small baselines can be large; the absolute change is shown alongside.")
     if not metric.comparable_levels and metric.note:
@@ -414,7 +419,7 @@ def aggregate(ctx, mid, sid, change=None):
         bc = band_counts(vals)
         med = median(vals)
         tid = {"intensity": "3.4", "intensity_phys": "3.6", "scope3_intensity": "3.9"}.get(metric.id)
-        a.p(f"{len(vals)} companies in {scope} report a comparable year-on-year change in {lc(metric.label)}; the "
+        a.p(f"{len(vals)} companies {_in(scope)} report a comparable year-on-year change in {lc(metric.label)}; the "
             f"median change is **{pct(med, digits=2)}** {a.c_table(tid, 'Total') if tid and not sid else a.c_derived('Median change', f'median of {len(vals)} company-level changes')}.")
         bcite = a.c_table(tid, "Total") if tid and not sid else a.c_derived("Change bands", f"{len(vals)} companies grouped by year-on-year change")
         a.p(f"{bc[0]} companies cut intensity by more than 10%, {bc[1]} by 5 to 10%, {bc[2]} stayed within 5%, "
@@ -452,7 +457,7 @@ def screen(ctx, mid, sid, negated, change):
     if change in ("decreased", "increased") and (mid is None or mid in ("scope12", "scope1", "scope2")):
         hits = [c for c in members if c["derived"]["scope12_direction"] == change]
         a.title = f"Companies whose Scope 1+2 {change}"
-        a.p(f"**{len(hits)} of {len(members)}** companies in {scope} {change} absolute Scope 1+2 emissions between "
+        a.p(f"**{len(hits)} of {len(members)}** companies {_in(scope)} {change} absolute Scope 1+2 emissions between "
             f"FY 2023-24 and FY 2024-25 {a.c_table('3.3', _sector_row(kb.tables['3.3'], sname) if sid else 'Total (All Sectors)')}.")
         m = M.NUMERIC["scope12"]
         hits.sort(key=lambda c: ((m.yoy(c) or 0) * (1 if change == "decreased" else -1), c["name"].lower()))
@@ -478,7 +483,7 @@ def screen(ctx, mid, sid, negated, change):
             a.title = f"Strong disclosure: {lc(q['label'])}"
         rule = "Rating-sheet score is 0 or blank" if negated else "Rating-sheet score is 75 or more"
         cite = a.c_derived(f"Q{qid} screen", rule)
-        a.p(f"**{len(hits)} of {len(members)}** companies in {scope} score "
+        a.p(f"**{len(hits)} of {len(members)}** companies {_in(scope)} score "
             f"{'0 or blank' if negated else '75 or 100'} on {lc(q['label'])} (Q{qid}) {cite}.")
         hits.sort(key=lambda c: (-(c["ratings"].get(qid) or 0), c["name"].lower()))
         _list_table(ctx, hits, sid, extra=("score", "Score", lambda c: str(c["ratings"].get(qid)) if c["ratings"].get(qid) is not None else "blank"))
@@ -493,7 +498,7 @@ def screen(ctx, mid, sid, negated, change):
     tid = SECTOR_TABLES.get(qid) or QTABLE.get(qid)
     cite = a.c_table(tid, _sector_row(kb.tables[tid], sname) if sid and tid in ("2.1", "2.3", "2.4") else None) if tid else \
         a.c_derived(q["label"], f"Rating-sheet score {'not ' if negated else ''}= 100 on Q{qid}")
-    a.p(f"**{len(hits)} of {len(members)}** companies in {scope} "
+    a.p(f"**{len(hits)} of {len(members)}** companies {_in(scope)} "
         f"{('do not ' + plural_phrase) if negated else plural_phrase} {cite}.")
     hits.sort(key=lambda c: c["name"].lower())
     _list_table(ctx, hits, sid)
