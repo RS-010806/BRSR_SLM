@@ -432,6 +432,21 @@ def simulate(ctx, c, mid, pct_cut):
         calc = a.c_calc("What-if arithmetic", f"{num(v)} × (1 − {p:g}%) = {num(new)}; ({num(new)} − {num(pv)}) ÷ {num(pv)} = {pct(y1, digits=2)}",
                         [base, prev_cite(a, c, metric)])
         a.p(f"That would be {vs_prev(y1, fmt_value(metric, pv))} {calc}.")
+    if re.search(r"\b(median|average|peers?|sector|industry|typical)\b", ctx.plan.query.lower()) and metric.comparable_levels:
+        from ..analytics import median
+        from .common import eligible
+        others = [m for m in ctx.kb.members(c["sector"]) if m["id"] != c["id"]]
+        vals = [x for _, x in eligible(metric, others)]
+        if vals and (metric.level_ok is None or metric.level_ok(c)):
+            med = median(vals)
+            sname = ctx.kb.sector_of(c)["name"]
+            mc = a.c_calc(f"Peer median: {lc(metric.label)}", f"Median of the {len(vals)} other {sname} companies that disclosed "
+                          f"this figure = {fmt_value(metric, med)}")
+            if v > med:
+                a.p(f"To match the peer median of {fmt_value(metric, med)} {mc}, it would need a cut of about "
+                    f"**{(1 - med / v) * 100:.1f}%**.")
+            else:
+                a.p(f"It is already at or below the peer median of {fmt_value(metric, med)} {mc}.")
     a.note("method", "This is arithmetic on the disclosed figure, not a forecast.")
     a.block("simulator", company=short, metric=metric.label, unit=metric.unit, cy=v, py=pv, pct=p)
     a.flag_notes(c, metric.qids)

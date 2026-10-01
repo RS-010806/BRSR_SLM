@@ -95,7 +95,7 @@ ABOUT = [
     (re.compile(r"\b(year|period|fy)\b.*\b(cover|covered|available|does)\b|which (year|fy)"),
      "Years covered",
      "I cover FY 2024-25, with FY 2023-24 figures for comparison. Other years are not available."),
-    (re.compile(r"different unit|flag|outlier|unit"), "Values in a different unit",
+    (re.compile(r"different unit|flag|outlier|unit|exclu|left out|missing from"), "Values in a different unit",
      "A few companies appear to have disclosed emissions in a different unit, for example thousand tonnes. Those "
      "figures are shown exactly as disclosed, with a note, and are left out of comparisons and totals."),
 ]

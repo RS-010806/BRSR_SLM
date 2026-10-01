@@ -401,7 +401,8 @@ def coverage(ctx):
     a.kicker = "Coverage"
     a.title = "What is covered"
     a.p(f"I cover **{len(kb.companies)} listed companies** across **{len(kb.sectors)} sectors**, using what each company "
-        f"disclosed in its BRSR for FY 2024-25, with FY 2023-24 figures for comparison.")
+        f"disclosed in its BRSR for FY 2024-25, with FY 2023-24 figures for comparison "
+        f"{a.c_note('Coverage', 'Listed companies whose BRSR filing for FY 2024-25 is included, grouped by sector.')}.")
     a.p("Topics: Scope 1, Scope 2 and Scope 3 emissions, emission intensity, targets, projects to reduce GHG emissions, "
         "independent assurance and environment policy.")
     a.block("bars", title="Companies per sector", unit="companies",
@@ -485,6 +486,8 @@ def screen(ctx, mid, sid, negated, change):
         _list(ctx, sorted(hits, key=lambda c: c["name"].lower()), sid, names_only=True)
         a.follow(f"Examples of {topic}" + (f" from {sname} companies" if sname else ""))
         return
+    if mid == "scope3":
+        mid = "scope3_reported"
     qid = M.BOOL_Q.get(mid)
     if qid is None:
         return ranking(ctx, mid, sid, None, None, None, None)

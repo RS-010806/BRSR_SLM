@@ -41,7 +41,7 @@ RE_MINE = [
 RE_INFOGRAPHIC = re.compile(r"\b(infographics?|info graphic|poster|one[- ]pager|fact ?sheet|visual summary|summary card|"
                             r"snapshot card|social(?: media)? post|post[- ]style|shareable (?:image|visual|card))\b")
 RE_PEER_NOUN = re.compile(r"\b(peers?|competitors?|peer group|peer set|peer companies|comparable companies|rivals?)\b")
-RE_PEER_VERB = re.compile(r"\b(compare|compares|compared|comparison|versus|vs|against|benchmark|stand|stands|stack|fare|fares|"
+RE_PEER_VERB = re.compile(r"\b(compare|compares|compared|comparison|analysis|analyse|analyze|versus|vs|against|benchmark|stand|stands|stack|fare|fares|"
                           r"perform|performs|performing|position|rank|ranks|better|worse|ahead|behind|lag|lead|"
                           r"how do|how does|how am|how are|how is|relative to|than)\b")
 RE_DEFINE = re.compile(r"\b(define|definition|meaning of|mean|means|meant|stand for|stands for|difference between|"
@@ -49,8 +49,13 @@ RE_DEFINE = re.compile(r"\b(define|definition|meaning of|mean|means|meant|stand 
 RE_MARKET = re.compile(r"\b(how many|number of|count of|total|overall|all companies|companies|sector|sectors|sector wise|"
                        r"industry|industries|market|india|across|average|median|top|highest|lowest|largest|biggest|"
                        r"smallest|most|least|best|worst|rank|ranking|list|which|who|everyone|each)\b")
-RE_ADVICE = re.compile(r"\b(best practices?|practices|examples?|learn|adopt|improve|ideas|ways to|how (can|do|should|could)|"
+RE_ADVICE = re.compile(r"\b(best practices?|practices|examples?|learn|adopt|improve|ideas|inspiration|ways to|how (can|do|should|could)|"
                        r"what (can|should|could))\b")
+FRACTIONS = [(re.compile(r"\b(halve[sd]?|halving|by half|in half|by a half)\b"), 50.0), (re.compile(r"\b(a|one) third\b"), 33.3),
+             (re.compile(r"\b(a|one) quarter\b"), 25.0), (re.compile(r"\b(a|one) fifth\b"), 20.0),
+             (re.compile(r"\b(a|one) tenth\b"), 10.0)]
+RE_COUNT = re.compile(r"\b(how many|number of|count of|count|which|who|list|share of|proportion|percentage)\b")
+RE_PLEDGE = re.compile(r"\b(netzero|carbon neutral\w*|science based|sbti?)\b")
 RE_SCORE_WORD = re.compile(r"\b(score|scores|scorecard|rating|ratings|rated|index|maturity|grade|grading)\b")
 RE_BY_SECTOR = re.compile(r"\b(by sector|sector wise|sectorwise|per sector|each sector|across sectors|sector by sector|"
                           r"which sectors?|sector split|sector breakdown|by industry)\b")
@@ -61,9 +66,9 @@ RE_PRONOUN = re.compile(r"\b(it|its|it's|they|their|them|this company|that compa
                         r"these companies|those companies|he|she|this one|that one)\b")
 RE_FOLLOW = re.compile(r"^(and|what about|how about|also|now|same for|then|ok and|and for|and in|what of)\b")
 RE_NEG = re.compile(r"\b(without|don't|dont|do not|does not|doesn't|did not|didn't|lack|lacks|lacking|missing|"
-                    r"not|no|haven't|hasn't|never|fail|fails|absent)\b")
-RE_DECR = re.compile(r"\b(reduc\w*|decreas\w*|cut|cuts|lower\w*|fell|fall\w*|declin\w*|drop\w*)\b")
-RE_INCR = re.compile(r"\b(increas\w*|rose|rise|rising|grew|grow\w*|higher|went up|jump\w*)\b")
+                    r"not|no|haven't|hasn't|never|fail|fails|absent|skip|skips|skipping|omit|omits)\b")
+RE_DECR = re.compile(r"\b(reduc\w*|decreas\w*|cut|cuts|lower\w*|fell|fall\w*|declin\w*|drop\w*|improvers?|go(?:es|ing)? down|went down)\b")
+RE_INCR = re.compile(r"\b(increas\w*|rose|rise|rising|grew|grow\w*|higher|went up|go(?:es|ing)? up|jump\w*)\b")
 RE_HIGH = re.compile(r"\b(highest|largest|biggest|most|top|maximum|greatest|heaviest|major)\b")
 RE_LOW = re.compile(r"\b(lowest|least|smallest|minimum|fewest|bottom|lightest)\b")
 RE_BEST = re.compile(r"\b(best|cleanest|greenest|leading|leaders?|strongest|top performers?|top rated|highest scoring|"
@@ -179,6 +184,7 @@ class Parser:
         self.model = IntentModel(ARTIFACTS)
         self.linker = Linker(kb, known_words=self.model.known_words)
         self.name_tokens = {c["id"]: set(tokenize(prep(c["name"]))) for c in kb.companies}
+        self.common_words = set(kb.meta.get("english_name_tokens", []))
         self._load_exemplars()
 
     # ------------------------------------------------------------------ few-shot retrieval
@@ -334,6 +340,11 @@ class Parser:
         p.keywords = re.findall(r'"([^"]{2,60})"', query)
         p.n = next((int(x) for x in nums if 1 <= x <= 50 and float(x).is_integer()), None)
         p.pct = pcts[0] if pcts else None
+        if p.pct is None:
+            for rx, val in FRACTIONS:
+                if rx.search(low):
+                    p.pct = val
+                    break
         p.negated = bool(RE_NEG.search(low))
         p.change = "decreased" if RE_DECR.search(low) else "increased" if RE_INCR.search(low) else None
         p.period = "PY" if RE_PY.search(low) else "CY"
@@ -349,7 +360,7 @@ class Parser:
 
         # unknown words that might be a company the user named
         for u in link.unknown:
-            if u in self.model.known_words or len(u) < 3:
+            if u in self.model.known_words or len(u) < 3 or u in self.common_words:
                 continue
             group = self._group_candidates(u)
             if len(group) == 1 and group[0] not in p.companies:
@@ -406,11 +417,18 @@ class Parser:
 
         # ---- scores and ratings are not offered; generic words like "performance" carry no metric
         wants_score = False
-        if p.metric == "index":
+        if "index" in p.metrics:
             wants_score = bool(RE_SCORE_WORD.search(low))
             rest = [m for m in p.metrics if m != "index"]
             p.metric, p.metrics = (rest[0] if rest else None), rest
             p.rules.append("score/rating wording: no such measure is offered")
+
+        # ---- "how many companies have net zero targets" is a search for that pledge, not a count of any target
+        if p.metric == "targets" and not p.tech and not p.companies and p.intent in ("aggregate", "screen") and RE_COUNT.search(low):
+            m = RE_PLEDGE.search(low)
+            if m:
+                p.tech = ["sbti" if m.group(1).startswith(("science", "sbt")) else "net zero"]
+                p.rules.append("pledge named in a count question: searched in the disclosures")
 
         # ---- apply learned definitions
         pref_m = p.prefs.get("emissions")
@@ -442,7 +460,7 @@ class Parser:
                 return p
             if RE_LENS.search(low) and (p.companies or p.ambiguous):
                 self._set(p, "set_lens", "self-identification phrase")
-            elif wants_score and not has_metric:
+            elif wants_score and (not has_metric or p.intent in ("explain", "ranking", "aggregate", "screen", "report_insights")):
                 self._set(p, "no_scores", "asks for a score or rating")
                 return p
             elif RE_SIM.search(low) and (p.companies or RE_PRONOUN.search(low) or first_person):
@@ -546,10 +564,13 @@ class Parser:
 
             # "our emissions" with no company set: ask which company instead of guessing
             if first_person and not lens and not p.companies and not p.ambiguous and not p.sector and not p.absent \
-                    and (p.intent in COMPANY_INTENTS | {"aggregate", "explain", "greeting", "unknown"}
+                    and (p.intent in COMPANY_INTENTS or bool(RE_PEER_NOUN.search(low))
+                         or (has_metric and p.intent in ("aggregate", "explain", "greeting", "unknown"))
                          or (p.intent == "best_practice" and not RE_ADVICE.search(low))):
                 self._set(p, "need_company", "first-person question with no company set")
 
+            if p.intent == "aggregate" and p.change and p.metric in (None, "scope12", "scope1", "scope2") and RE_COUNT.search(low):
+                self._set(p, "screen", "counts companies by direction of change")
             if p.intent == "ranking" and p.n is None and p.prefs.get("n"):
                 p.n = p.prefs["n"]
                 p.rules.append(f"learned default: top {p.n}")
