@@ -70,7 +70,8 @@ def test_market_questions_stay_market_questions(eng):
 
 
 def test_without_a_company_it_asks_instead_of_guessing(eng):
-    for q in ("what are my emissions", "who are my peers", "how do we compare with our peers", "our targets"):
+    for q in ("what are my emissions", "who are my peers", "how do we compare with our peers", "our targets",
+              "make an infographic of my emissions"):
         a = eng.ask(q)
         assert a["status"] == "clarify" and a["trace"]["final_intent"] == "need_company", q
         assert any(b["type"] == "action" and b["action"] == "set_company" for b in a["blocks"])

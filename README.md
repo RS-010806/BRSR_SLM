@@ -1,78 +1,76 @@
-# Pramana: evidence-grounded BRSR climate intelligence
+# Pramana
 
-Pramana (Sanskrit: *means of valid knowledge, proof*) is a small, purpose-built language system that answers questions about the **E1 theme (GHG emissions and climate risk)** of BRSR filings by **982 listed Indian companies** for FY 2024-25. It works like a notebook-style assistant over the IIMB dataset: plain data, peer comparison, best practices, sector insight and what-if scenarios, each answer built from charts and tables, and **every figure linked to the exact workbook cell, rating, report table or report page it came from**.
+Pramana (Sanskrit for *proof*) answers questions about the GHG emissions and climate disclosures of **982 listed Indian companies**, using what each company filed in its BRSR for FY 2024-25. It is built for a company user: set your company once, then ask about "our emissions", "our peers" or "our targets".
 
-Built for the TCI-IIMB Supply Chain Sustainability Lab, using the E1 workbook, the E1 chapter, and the report *Business Responsibility and Sustainability in India* (IIMB, FY 2024-25).
+**Live:** https://pramana-brsr.onrender.com · **Features (PDF):** [docs/Pramana_Features.pdf](docs/Pramana_Features.pdf)
 
-**Live:** https://pramana-brsr.onrender.com · **Features and design (PDF):** [docs/Pramana_Features.pdf](docs/Pramana_Features.pdf)
+> This README is for the team that maintains the tool. The product itself shows end users only what companies have publicly disclosed. Internal scoring, the internal analysis and how the data is stored never appear in an answer, an export or the interface.
 
-## Why it is built this way
+## What a user can do
 
-The brief called for answers that are accurate, never hallucinated, and **identical every time the same question is asked**. A generative LLM cannot guarantee either property, so Pramana splits the problem:
+| Ask | What comes back |
+|---|---|
+| "What are our GHG emissions?" | Scope 1 and Scope 2 as two separate figures, the combined total, the change from last year, and Scope 3 if disclosed. Two or three sentences and one row of figures. |
+| "Who are our peers?" | The names of the other companies in the sector. Nothing else. |
+| "How do we compare with our peers?" | One table: your figure beside the peer median, whether you are above or below it, and how many peers disclosed each figure. No ranks or percentiles. |
+| "What are our targets?" / "Show our projects" | The disclosure exactly as filed, with the most specific points highlighted. |
+| "Examples of GHG reduction projects from cement companies" | Three detailed disclosures from other companies, in their own words. |
+| "Give me an overview of the power sector" / "Top 10 emitters" | Totals and one chart. Charts appear only for comparisons, rankings and sector views. |
+| "Make an infographic of our emissions" | A one-page, post-style image for a company, a sector or all companies, with a Download button. |
+| "What if we cut Scope 1 by 20%?" | The resulting figure, with a slider to try other cuts. |
+| "What is Scope 3?" | A one-paragraph definition. |
 
-| Stage | What happens | Why |
-|---|---|---|
-| Normalise | Unicode, possessives, "Scope 1/2/3", fiscal years and numbers are canonicalised | Same text in, same tokens out |
-| Link | A token trie resolves 2,664 company aliases, 22 sectors, 38 questions and out-of-scope topics; typo-tolerant fuzzy matching; known-absent companies (ONGC, Tata Motors, Siemens...) are named, never substituted | Entities come from the data, not from a model |
-| Understand | A **transformer trained from scratch** (custom BPE tokenizer, 2 layers, 464K parameters, pure-numpy inference) classifies intent and topic; deterministic rules override it where the text is explicit | Flexible phrasing without generation |
-| Compute | Handlers compute values, ranks, medians, distributions and scenarios directly from the workbook, using the report's own conventions | Numbers are calculated, never recalled |
-| Prove | Answers are assembled from fixed templates; every numeric statement must carry a citation, checked before the answer is returned; the answer carries a SHA-256 fingerprint | Verifiable and repeatable |
+Other things worth knowing:
 
-The model only ever outputs a label; it never writes text. That is what makes hallucination structurally impossible and answers deterministic.
+* **Your company.** Set it from the button under the question box or by saying "my company is ...". It is stored only in the browser. No sign-in.
+* **Sources.** Every figure links to its source: the company, the BRSR disclosure item and the financial year.
+* **Exports.** Any answer downloads as an Excel workbook (real numbers in cells, units in the headers) or as a PDF.
+* **Not available.** If something is not covered (water, energy, financials, forecasts, scores or ratings), the answer says so plainly and offers what is available.
+* **Same question, same answer.** Nothing is generated freely, so answers do not vary between runs.
+* **Chats** are listed in the sidebar by date, can be searched, renamed and deleted, and stay in the browser.
 
-## What's new in v2
+## How it works
 
-* **Database-backed knowledge base.** The pipeline compiles everything into `data/build/pramana.db` (SQLite with FTS5): companies, answers, ratings, 26,576 pre-scored disclosure sentences, per-cell evidence scores and practice themes, a technology-mention index and trigram full-text search. Work that used to run per request now runs once at build time.
-* **Latency.** Market-wide best-practice answers dropped from 1,504 ms to under 3 ms of compute (the slowest of 132 benchmark questions is now 2.6 ms), with no unintended change to answers: 120 of 132 benchmark answers are byte-identical to v1, and the other 12 differ only where wording was corrected or a new data-quality flag applies. Cached answers are served pre-compressed; the browser caches answers per question and context, prefetches follow-ups on hover, and the artificial thinking delay is gone.
-  On the live free-tier server, the net zero examples question took 20.9 s in v1. In v2, first-time answers to heavy questions (best practices, net zero examples, text search, peer benchmarks) take 4 to 55 ms of server time and about 0.3 s end to end, which is mostly network. Server boot fell from 71 s to 6 s after pinning numpy's math library to one thread; on a CPU-quota container the default thread pool had been costing about a second per query.
-* **In-context learning.** The conversation learns peer groups ("my peers are ACC, Ambuja and UltraTech"), definitions ("by emissions I mean Scope 1"), defaults ("always show the top 5") and clarification choices, and applies them to later questions. Preferences are part of the conversation context, so answers stay deterministic; they show as chips above the input and can be removed.
-* **Few-shot memory.** 100 labelled example questions, embedded with the model's own encoder, steady the classifier when it is unsure; the nearest examples appear in the reasoning trace.
-* **App database.** Postgres on Render (SQLite fallback) stores anonymous usage events, answer feedback (thumbs up or down with an optional note) and deterministic short share links (`/s/<code>`). Writes are queued in the background and can never slow down or break an answer.
-* **Contrast-safe charts.** Every fill has a paired text colour chosen by computed WCAG contrast in each theme. `web/scripts/contrast-audit.js` measures every visible text element against what is actually rendered behind it; 51 views across both themes and mobile pass at 4.5:1 or better.
-* **More data-quality checks.** Implausibly low intensities (below 0.1% of the sector median, or from scaled-unit filings) are flagged and kept out of level rankings, and a flagged sector classification is noted wherever that company appears.
-* Company-name autocomplete, CSV export of the company table, lazily loaded explore pages, and live anonymous usage figures on the Method page.
+| Stage | What happens |
+|---|---|
+| Normalise | Scope names, fiscal years, numbers and punctuation are made canonical. |
+| Personalise | With a company set, "we", "our" and "my company" are replaced by that company before anything else runs. |
+| Link | A token trie resolves company names and aliases, sectors and measures, with typo tolerance. Ambiguous names (for example "Adani", "TCI") ask which one is meant. |
+| Understand | A small transformer trained from scratch (custom BPE tokenizer, 2 layers, 464K parameters, numpy inference) classifies the kind of question. Explicit rules take over where the wording is unambiguous. The model only outputs a label; it never writes text. |
+| Compute | Handlers calculate the answer from the disclosed figures in a read-only SQLite knowledge base. |
+| Cite and check | Sentences are assembled from templates. Every numeric statement must carry a citation; this is checked before the answer is returned. |
 
-## Verified against the report
+Because the model never writes text and every number is looked up or calculated, an answer cannot contain an invented figure.
 
-`server/pramana/reconcile.py` recomputes every table in the E1 chapter from the raw workbook: **597 of 597 published figures match exactly** (Tables 1.1 to 3.10). Along the way it reverse-engineered and documented the report's conventions:
+## What changed in v3 (after the review meeting)
 
-* Yes/No counts use the Rating sheet (score 100 = Yes). Two Base Data columns (Q241, Q268) carry headers from other principles, so their answers come from the Rating sheet.
-* Sector emission totals exclude SIS Limited and Patel Engineering's previous-year Scope 2 (implausible billion-tonne values), exactly as the report does.
-* Company-wise direction counts CY = PY as "increased" (Table 3.3). Change bands are `< -10`, `[-10, -5)`, `[-5, +5]`, `(+5, +10]`, `> +10`.
-* The Rating sheet's year-on-year rubric is reproduced for 100% of rated cases; when both years are reported as 0 it assigns 100 (disclosed wherever it matters).
-* AI-scored questions (Tables 1.6, 1.7, 1.8, 2.2) were re-scored in the Rating sheet after the report tables were produced; company answers use the Rating sheet, aggregate answers quote the report and show the recount.
+| Feedback | Change |
+|---|---|
+| Internal material was visible (ratings, question numbers, rankings, the internal analysis, test figures) | Removed from every answer, source, export and screen. Tests scan every generated string for internal terms: 135 questions with no company set and 33 probing questions with three different companies set. Scores and ratings are declined politely. |
+| Answers were too long; basic questions came back with peer charts and tables | A plain question now gets the figure asked for, the previous year and nothing else. Comparisons and charts are offered as follow-up suggestions. |
+| Scope 1 and Scope 2 were added together | They are always shown as two figures, with the combined total alongside. |
+| The lens did not work | It failed on most natural phrasings ("my emissions", "who are my peers", "how am I doing"). All of these now work; it is renamed "Your company"; the separate company search bar is gone. |
+| Peers showed too much | "Who are my peers" is a list of names. |
+| Services showed 31 companies, not 35 | The sector has 35 companies; 31 disclosed Scope 1 and Scope 2. Answers now state the full count and, separately, how many disclosed each figure. |
+| Chat history was hard to reach | The sidebar is laid out like ChatGPT: New chat, Search chats, then a chat list grouped by date that takes the remaining height and scrolls on its own. |
+| Too many things on screen ("E1 intelligence", "597 of 597", Method and sources, both Ask and New question) | Removed. One "New chat" button. |
+| No infographic support | Added for companies, sectors and all companies, downloadable as an image. |
+| Excel and PDF exports leaked internal columns and garbled units | Exports are rebuilt: real `.xlsx` files with numeric cells and units in headers; the PDF contains only the answer and its public sources. |
+| Wording such as "beats X% of peers" | Replaced with neutral wording ("below the peer median"). |
 
-Data-quality safeguards (values are always shown as filed, never corrected):
-
-* **Magnitude check**: 14 companies (for example Tata Steel, 61 tCO2e Scope 1) report Scope 1+2 below 0.1% of their sector median, almost certainly in thousand or million tonnes. They count in sector totals as in the report but are not ranked on level. Year-on-year change still compares, since a ratio is unit-invariant.
-* **Unit check**: per-rupee intensities implying more than 10,000 tCO2e per crore are flagged and kept out of level rankings.
-* Physical-output intensity uses company-specific units, so only its change is compared.
-
-## Features
-
-* **Plain data** for any company and any of the 38 E1 questions, with the Rating-sheet score and where it sits on the rubric.
-* **Peer benchmarking** on seven dimensions with percentile positions, and full sector rankings.
-* **Best practices** quoted verbatim from top-rated disclosures, with the most specific sentences highlighted and the practices that distinguish leaders quantified.
-* **Personal lens**: say "I work at ACC" (no sign-in) and "how do we compare with our peers?" or "what can we learn from the leaders?" become about your company, including a grounded gap analysis.
-* **What-if simulator**: drag a reduction and watch the rating band, sector rank and gap to the median update.
-* **Sector and cross-sector views**, report key insights, disclosure search ("which companies mention green hydrogen?"), screens ("power companies without assurance").
-* **Evidence drawer**: click any citation to see the sheet and cell, the full disclosure text, the rubric, the report table with the row highlighted, or the formula with its inputs; report citations open the PDF at the right page.
-* **Memory**: conversations and follow-ups ("and Scope 3?", "what about Ambuja?") persist in the browser; the server is stateless and stores nothing about users.
-* **Guardrails**: other ESG themes are refused with a pointer to the right report chapter and its executive-summary finding; financial data, forecasts, investment advice, web lookups and prompt-injection attempts are refused; ambiguous names ask for clarification.
-* Share links that reproduce the exact answer, copy with sources, print or save to PDF, CSV export for every chart, light and dark themes, keyboard palette (Cmd/Ctrl+K), mobile layout.
+Also fixed: ONGC was wrongly reported as not covered. It is in the data and now answers normally.
 
 ## Repository layout
 
 ```
-data/raw/            source files (workbook, E1 chapter, published report)
-data/build/          pramana.db: the verified knowledge base (SQLite + FTS5) generated by the pipeline
-pipeline/            build_dataset.py (xlsx/docx/pdf -> verified JSON), build_db.py (JSON -> SQLite with
-                     precomputed evidence), slm/ (grammar, training, evaluation)
-server/pramana/      FastAPI app, knowledge base, analytics, reconciliation
-  nlu/               normaliser, lexicon, aliases, linker, BPE tokenizer, numpy transformer, parser
-  engine/            answer handlers, citations, evidence extraction, formatting
-server/tests/        195 regression tests (reconciliation, determinism, grounding, guardrails, v2 features)
-web/                 React + TypeScript client with hand-built SVG charts
+data/build/          pramana.db: the knowledge base (SQLite + FTS5) generated by the pipeline
+data/raw/            source files used by the pipeline (internal)
+pipeline/            build_dataset.py, build_db.py, slm/ (grammar, training, evaluation)
+server/pramana/      FastAPI app, knowledge base, analytics
+  nlu/               normaliser, lexicon, aliases, linker, tokenizer, transformer, parser
+  engine/            answer handlers, citations, public source labels, formatting
+server/tests/        246 tests
+web/                 React + TypeScript client: hand-built SVG charts, canvas infographics, xlsx writer
 ```
 
 ## Run locally
@@ -86,32 +84,60 @@ uvicorn pramana.app:app --app-dir server --port 8000
 
 Open http://localhost:8000. For frontend development run `npm run dev` in `web/` (proxies `/api` to port 8000).
 
-Rebuild everything from the source files:
+Rebuild from the source files and test:
 
 ```bash
-python -m pipeline.build_dataset       # xlsx + docx + pdf -> data/build/*.json (intermediate, not committed)
+python -m pipeline.build_dataset       # source files -> data/build/*.json (intermediate, not committed)
 python -m pipeline.build_db            # -> data/build/pramana.db
-python -m pipeline.slm.train           # trains tokenizer + model (about 2.5 minutes on a laptop CPU)
 python -m pipeline.slm.evaluate --write
 cd server && python -m pytest tests -q
 ```
 
+Retraining the question model (`python -m pipeline.slm.train`, about 2.5 minutes on a laptop CPU) is only needed if the grammar in `pipeline/slm/` changes.
+
+## Tests
+
+246 tests cover:
+
+* **Public-only content:** no internal term in any generated string, citation or export, for every evaluation question and with different companies set.
+* **Your company:** 21 phrasings resolve to the set company; market questions stay market questions; with no company set the tool asks instead of guessing.
+* **Short answers:** simple questions return no charts and at most three sentences; Scope 1 and Scope 2 are separate figures.
+* **Peers:** names only for "who are my peers"; no rank or percentile wording in comparisons; full sector counts.
+* **Grounding:** every numeric sentence carries a citation and every citation resolves.
+* **Determinism:** the same question gives a byte-identical answer on a fresh engine.
+* **Exports:** headers are plain text with units, cells are numbers.
+* **API:** the browser never receives how a question was routed; internal endpoints return 404 without the admin token.
+* **Data integrity (internal):** totals computed here still match the source analysis for all 597 published figures.
+
+The contrast audit (`web/scripts/contrast-audit.js`) measures every visible text element against what is rendered behind it: 54 views across light and dark pass at 4.5:1 or better.
+
+Question understanding on 110 hand-written questions: route, company, sector and measure all resolve correctly. These were written alongside the grammar, so they measure coverage, not independent generalisation.
+
 ## Deploy on Render
 
-The repository includes `render.yaml` and a multi-stage `Dockerfile`. In Render, choose **New > Blueprint**, connect this repository, and apply. The blueprint creates the web service and a free Postgres database and wires `DATABASE_URL` automatically; `PRAMANA_ADMIN_TOKEN` is generated for the anonymous usage summary at `/api/admin/summary?token=...`. The service runs on the free plan (about 150 MB of memory). Free instances sleep when idle, so the first request after a pause takes longer. Render's free Postgres expires after 30 days unless upgraded; the app then falls back to SQLite on its own and keeps answering.
+The repository includes `render.yaml` and a multi-stage `Dockerfile`. In Render choose **New > Blueprint**, connect the repository and apply. The blueprint creates the web service and a free Postgres database, and generates `PRAMANA_ADMIN_TOKEN`. Pushing to `main` redeploys.
+
+* Free instances sleep when idle, so the first request after a pause takes longer. Once awake, answers come back in under a second.
+* Render's free Postgres expires after 30 days unless upgraded. The app then falls back to SQLite on its own and keeps answering; feedback and share links stored there are lost on redeploy.
+
+## For maintainers only
+
+These need `?token=<PRAMANA_ADMIN_TOKEN>` (see the service's environment in Render). Without it they return 404.
+
+| Endpoint | Shows |
+|---|---|
+| `/api/admin/summary` | Most asked questions, questions that were not fully answered, recent feedback, usage counts |
+| `/api/admin/trace?q=...&lens=<company id>` | How a question was understood and routed |
+| `/api/admin/diagnostics` | Model details, data checks, reconciliation against the source analysis |
 
 ## Privacy
 
-No sign-in, no cookies for tracking. Conversations, the company lens and learned preferences stay in the browser. The server records anonymous question text, how it was routed and how long it took (no IP address, user agent or device identifier), plus feedback users choose to send. Set `PRAMANA_LOG_QUERIES=0` to disable question logging.
-
-## Evaluation
-
-* Synthetic validation: intent 99.3%, topic 98.4%.
-* 110 hand-written queries covering all 16 intents: intent, company, sector and metric resolution all 100%. These were written alongside the grammar, so they measure coverage rather than independent generalisation; 22 further adversarial queries are part of the test suite.
-* numpy runtime matches the PyTorch model to within 2.4e-7.
+No sign-in and no tracking cookies. Chats, your company and anything a chat was asked to remember stay in the browser. The server records the question text, how it was routed and how long it took, with no IP address, user agent or device identifier, plus feedback users choose to send. Set `PRAMANA_LOG_QUERIES=0` to turn question logging off.
 
 ## Limitations
 
-* Covers the E1 theme only. Questions on the other 20 ESG parameters are answered with a pointer to the relevant chapter of the report.
-* The query model understands the phrasings covered by its grammar well; unusual phrasings fall back to clarification rather than a guess.
-* The E1 index is a navigation aid derived from Rating-sheet scores (equal-weighted pillars). It is not an official IIMB score.
+* Covers GHG emissions and climate disclosures only. Other topics are answered with "not available yet".
+* Figures are shown exactly as companies disclosed them. A few appear to be in a different unit (for example Tata Steel's Scope 1 of 61 tCO2e); these are shown with a note and left out of comparisons and totals.
+* Sector classification is taken from the source data as is. A few entries look wrong (for example Hindustan Unilever under Metals & Mining, Hindalco under Services).
+* Company names are shown in the casing used in the source data.
+* Unusual phrasings may be routed to the closest known kind of question; ambiguous company names ask for clarification rather than guessing.

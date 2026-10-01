@@ -312,6 +312,7 @@ export function CompanyPicker({ onClose, onPick, current }: { onClose: () => voi
               <small>{c.id === current ? "Selected" : c.sector_name}</small>
             </div>
           ))}
+          {cos.length === 0 && <div className="pal-item muted">Loading companies…</div>}
           {cos.length > 0 && items.length === 0 && <div className="pal-item muted">No company matches “{q}”.</div>}
         </div>
         {current && (

@@ -7,7 +7,7 @@
 {"q": "How is Hindalco doing on climate?", "intent": "company_profile", "companies": ["hindalco-industries-limited"]}
 {"q": "Give me a quick overview of UltraTech", "intent": "company_profile", "companies": ["ultratech-cement-limited"]}
 {"q": "What are the gaps in Wipro's disclosure?", "intent": "company_profile", "companies": ["wipro-limited"]}
-{"q": "NTPC E1 scorecard", "intent": "company_profile", "companies": ["ntpc-limited"]}
+{"q": "NTPC E1 scorecard", "intent": "no_scores", "companies": ["ntpc-limited"]}
 {"q": "Is Asian Paints a climate leader?", "intent": "company_profile", "companies": ["asian-paints-limited"]}
 {"q": "What are Tata Steel's Scope 1 emissions?", "intent": "company_metric", "companies": ["tata-steel-limited"], "metric": "scope1"}
 {"q": "scope 2 of infosys", "intent": "company_metric", "companies": ["infosys-limited"], "metric": "scope2"}
@@ -34,7 +34,7 @@
 {"q": "How does Tata Steel compare with its peers?", "intent": "peer_benchmark", "companies": ["tata-steel-limited"]}
 {"q": "Where does ACC rank in its sector on emission intensity?", "intent": "peer_benchmark", "companies": ["acc-limited"], "metric": "intensity"}
 {"q": "Benchmark Infosys against IT peers", "intent": "peer_benchmark", "companies": ["infosys-limited"]}
-{"q": "who are UltraTech's competitors", "intent": "peer_benchmark", "companies": ["ultratech-cement-limited"]}
+{"q": "who are UltraTech's competitors", "intent": "peer_list", "companies": ["ultratech-cement-limited"]}
 {"q": "Is Nestle below the sector median on scope 2?", "intent": "peer_benchmark", "companies": ["nestle-india-limited"], "metric": "scope2"}
 {"q": "competitor analysis for Asian Paints", "intent": "peer_benchmark", "companies": ["asian-paints-limited"]}
 {"q": "how does cipla compare with other pharma companies", "intent": "peer_benchmark", "companies": ["cipla-limited"]}
@@ -51,7 +51,7 @@
 {"q": "best performing companies in FMCG", "intent": "ranking", "sector": "S9"}
 {"q": "rank IT companies by scope 2", "intent": "ranking", "sector": "S13", "metric": "scope2"}
 {"q": "which company is the dirtiest in the power sector", "intent": "ranking", "sector": "S17"}
-{"q": "top 5 companies by E1 score", "intent": "ranking", "metric": "index"}
+{"q": "top 5 companies by E1 score", "intent": "no_scores", "metric": null}
 {"q": "What are the best practices for GHG reduction projects in cement?", "intent": "best_practice", "sector": "S5", "metric": "projects"}
 {"q": "Show me good examples of net zero targets", "intent": "best_practice", "metric": "targets"}
 {"q": "What are leading companies doing to reduce emissions?", "intent": "best_practice"}
@@ -63,9 +63,9 @@
 {"q": "total scope 1 emissions of the power sector", "intent": "aggregate", "sector": "S17", "metric": "scope1"}
 {"q": "how many banks have GHG reduction projects", "intent": "aggregate", "sector": "S10", "metric": "projects"}
 {"q": "median emission intensity in chemicals", "intent": "aggregate", "sector": "S3", "metric": "intensity"}
-{"q": "how many companies increased their emissions?", "intent": "aggregate"}
+{"q": "how many companies increased their emissions?", "intent": "screen"}
 {"q": "how many companies are in the dataset", "intent": "aggregate"}
-{"q": "How many companies have science based targets?", "intent": "aggregate", "metric": "targets"}
+{"q": "How many companies have science based targets?", "intent": "text_search", "metric": "targets"}
 {"q": "Which power companies don't have independent assurance?", "intent": "screen", "sector": "S17", "metric": "ghg_assurance"}
 {"q": "list all cement companies", "intent": "screen", "sector": "S5"}
 {"q": "Which IT companies report scope 3?", "intent": "screen", "sector": "S13", "metric": "scope3_reported"}
@@ -77,11 +77,11 @@
 {"q": "find solar rooftop projects in textiles", "intent": "text_search", "sector": "S21"}
 {"q": "how many companies mention internal carbon pricing", "intent": "text_search"}
 {"q": "What is Scope 3?", "intent": "explain", "metric": "scope3"}
-{"q": "How is the scope 1 rating calculated?", "intent": "explain", "metric": "scope1"}
+{"q": "How is the scope 1 rating calculated?", "intent": "no_scores", "metric": "scope1"}
 {"q": "What does BRSR stand for?", "intent": "explain"}
 {"q": "where does your data come from", "intent": "explain"}
-{"q": "how is the E1 index computed?", "intent": "explain"}
-{"q": "What does a score of 75 mean for targets?", "intent": "explain", "metric": "targets"}
+{"q": "how is the E1 index computed?", "intent": "no_scores"}
+{"q": "What does a score of 75 mean for targets?", "intent": "no_scores", "metric": "targets"}
 {"q": "why are some values excluded?", "intent": "explain"}
 {"q": "what is the difference between scope 1 and scope 2", "intent": "explain"}
 {"q": "How do you avoid hallucinations?", "intent": "explain"}

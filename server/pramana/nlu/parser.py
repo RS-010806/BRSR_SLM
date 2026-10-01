@@ -591,6 +591,8 @@ class Parser:
                 elif lens:
                     p.companies = [lens]
                     p.used_context["lens"] = lens
+                elif first_person:
+                    self._set(p, "need_company", "asks for their own infographic with no company set")
 
         # model topic as a fallback when the lexicon found no metric
         if p.metric is None and pred["topic"] not in ("none", "index") and pred["topic_p"] >= 0.75 and \
