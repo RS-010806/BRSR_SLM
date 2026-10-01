@@ -18,17 +18,47 @@ from .normalize import mask, prep, tokenize
 
 ARTIFACTS = Path(__file__).resolve().parent / "artifacts"
 HARD_OFFTOPIC = {"FIN", "PEOPLE", "FUTURE", "WEB", "GENERAL"}
-COMPANY_INTENTS = {"company_profile", "company_metric", "peer_benchmark", "simulate", "set_lens"}
+COMPANY_INTENTS = {"company_profile", "company_metric", "peer_benchmark", "peer_list", "simulate", "set_lens"}
 
-RE_LENS = re.compile(r"\b(i am|i'm|im|i work|i'm working|we are|we're|my company|our company|i represent|representing|"
-                     r"my firm|our firm|my employer|my organi[sz]ation|our organi[sz]ation|set .{1,40} as my|"
-                     r"(?:switch|change|set) (?:my |the )?(?:company|lens|focus) to|view as|answer as if)\b")
+# "my company is X", "I work at X", "answer as X": sets the user's company
+RE_LENS = re.compile(r"\b(i am|i'm|im|i work|i'm working|we are|we're|i represent|representing|"
+                     r"(?:my|our) (?:company|firm|employer|organi[sz]ation|business) is|set .{1,40} as (?:my|our)|"
+                     r"(?:switch|change|set) (?:my |our |the )?(?:company|lens|focus) to|view as|answer as(?: if)?|"
+                     r"use .{1,40} as (?:my|our) company)\b")
+RE_CLEAR_LENS = re.compile(r"\b(clear|remove|reset|forget|unset|stop using)\b.{0,20}\b(my company|our company|company|lens)\b")
+# First-person references that stand for the user's company. The first match is
+# replaced by the company name, later ones by "its".
+RE_MINE = [
+    (re.compile(r"\b(?:my|our)\s+(?:own\s+)?(?:company|firm|organi[sz]ation|business|employer)(?:'s|’s)?(?=\W|$)", re.I), "{N}"),
+    (re.compile(r"\b(how|where|what)\s+am\s+i\b", re.I), r"\1 is {N}"),
+    (re.compile(r"\bam\s+i\b", re.I), "is {N}"),
+    (re.compile(r"\b(do|did|have|should|can|could|would|will)\s+i\b", re.I), r"\1 {N}"),
+    (re.compile(r"\bi\s+(stand|rank|compare|emit|perform|reduce|report|disclose)\b", re.I), r"{N} \1"),
+    (re.compile(r"\b(?:we|ours|ourselves)\b", re.I), "{N}"),
+    (re.compile(r"(?<!tell )(?<!show )(?<!give )(?<!let )(?<!help )(?<!send )\bus\b"), "{N}"),
+    (re.compile(r"\b(?:my|our)\b(?!\s+(?:question|query|opinion|understanding|view|request|name|friend|team))", re.I), "{N}"),
+]
+RE_INFOGRAPHIC = re.compile(r"\b(infographics?|info graphic|poster|one[- ]pager|fact ?sheet|visual summary|summary card|"
+                            r"snapshot card|social(?: media)? post|post[- ]style|shareable (?:image|visual|card))\b")
+RE_PEER_NOUN = re.compile(r"\b(peers?|competitors?|peer group|peer set|peer companies|comparable companies|rivals?)\b")
+RE_PEER_VERB = re.compile(r"\b(compare|compares|compared|comparison|versus|vs|against|benchmark|stand|stands|stack|fare|fares|"
+                          r"perform|performs|performing|position|rank|ranks|better|worse|ahead|behind|lag|lead|"
+                          r"how do|how does|how am|how are|how is|relative to|than)\b")
+RE_DEFINE = re.compile(r"\b(define|definition|meaning of|mean|means|meant|stand for|stands for|difference between|"
+                       r"explain what|what is meant|what exactly (is|are)|in simple terms)\b")
+RE_MARKET = re.compile(r"\b(how many|number of|count of|total|overall|all companies|companies|sector|sectors|sector wise|"
+                       r"industry|industries|market|india|across|average|median|top|highest|lowest|largest|biggest|"
+                       r"smallest|most|least|best|worst|rank|ranking|list|which|who|everyone|each)\b")
+RE_ADVICE = re.compile(r"\b(best practices?|practices|examples?|learn|adopt|improve|ideas|ways to|how (can|do|should|could)|"
+                       r"what (can|should|could))\b")
+RE_SCORE_WORD = re.compile(r"\b(score|scores|scorecard|rating|ratings|rated|index|maturity|grade|grading)\b")
+RE_BY_SECTOR = re.compile(r"\b(by sector|sector wise|sectorwise|per sector|each sector|across sectors|sector by sector|"
+                          r"which sectors?|sector split|sector breakdown|by industry)\b")
 RE_SIM = re.compile(r"\b(what if|what-if|simulate|simulation|scenario|suppose|imagine|assume|"
                     r"if .{1,50}\b(cut|cuts|reduce|reduces|reduced|lower|lowers|lowered|decrease|decreases|increase|increases)\b|"
                     r"need to (cut|reduce|lower)|would need to)")
 RE_PRONOUN = re.compile(r"\b(it|its|it's|they|their|them|this company|that company|the company|same company|"
                         r"these companies|those companies|he|she|this one|that one)\b")
-RE_WE = re.compile(r"\b(we|our|us|ours|my company|my firm)\b")
 RE_FOLLOW = re.compile(r"^(and|what about|how about|also|now|same for|then|ok and|and for|and in|what of)\b")
 RE_NEG = re.compile(r"\b(without|don't|dont|do not|does not|doesn't|did not|didn't|lack|lacks|lacking|missing|"
                     r"not|no|haven't|hasn't|never|fail|fails|absent)\b")
@@ -84,7 +114,7 @@ COMBOS = [
 # ---- in-context learning: statements that teach the conversation something
 RE_FORGET = re.compile(r"\b(forget|reset|clear|remove|drop)\b.{0,20}\b(preferences|preference|peer group|peers|settings|"
                        r"definitions|what i (said|told you))\b")
-RE_PEER_PREF = re.compile(r"\b(my|our)\s+(peers|peer group|peer set|competitors|comparables|comparison set|benchmark set)\s+"
+RE_PEER_PREF = re.compile(r"\b(my|our|its)\s+(peers|peer group|peer set|competitors|comparables|comparison set|benchmark set)\s+"
                           r"(are|is|include|includes|should be|will be)\b|\b(use|treat|consider|set)\b.{1,120}\bas\s+(my|our|the)\s+"
                           r"(peers|peer group|competitors|comparison set)\b|\bset\s+(my|our)\s+(peer group|peers)\s+to\b")
 RE_EMIS_PREF = re.compile(r"\b(by|when i say|whenever i say|if i say|when i ask about|when i mention)\s+(emissions|emission|carbon|ghg|"
@@ -133,6 +163,11 @@ class Plan:
     prefs: dict = field(default_factory=dict)          # preferences learned in this conversation
     learned: dict = field(default_factory=dict)        # what this turn taught
     neighbors: list = field(default_factory=list)      # few-shot exemplars nearest to the query
+    lens: str | None = None                            # the user's own company, if set
+    resolved_query: str | None = None                  # the question with "we/our/my" replaced by that company
+    generic_emissions: bool = False                    # "emissions" without naming a scope
+    by_sector: bool = False                            # asks for a breakdown by sector
+    infographic: bool = False
 
     def to_dict(self):
         return asdict(self)
@@ -211,9 +246,54 @@ class Parser:
         hits = sorted(cid for cid, toks in self.name_tokens.items() if token in toks)
         return hits
 
+    # ------------------------------------------------------------------ the user's own company
+    def _first_person(self, query: str) -> bool:
+        return any(rx.search(query) for rx, _ in RE_MINE)
+
+    def _personalise(self, query: str, lens: str | None) -> tuple[str, bool]:
+        """Replace "we / our / my company" with the user's company so the rest of the pipeline sees a named company."""
+        if not lens:
+            return query, False
+        low = prep(query)
+        if RE_FORGET.search(low) or RE_PEER_PREF.search(low) or RE_EMIS_PREF.search(low) or RE_N_PREF.search(low) \
+                or RE_CLEAR_LENS.search(low):
+            return query, False
+        link = self.linker.link(query)
+        named = link.of("company") + link.of("absent")
+        if named and RE_LENS.search(low):
+            return query, False                      # "my company is X" sets the company instead
+        if named and not RE_COMPARE_WORD.search(low):
+            return query, False                      # the question is about another company
+        name = self.kb.by_id[lens]["name"]
+        state = {"n": 0}
+
+        def sub(tmpl):
+            def f(m):
+                state["n"] += 1
+                return m.expand(tmpl).replace("{N}", name if state["n"] == 1 else "its")
+            return f
+
+        out = query
+        for rx, tmpl in RE_MINE:
+            out = rx.sub(sub(tmpl), out)
+        return (out, True) if state["n"] else (query, False)
+
     # ------------------------------------------------------------------ main
     def parse(self, query: str, context: dict | None = None) -> Plan:
         context = context or {}
+        lens = context.get("lens") if context.get("lens") in self.kb.by_id else None
+        resolved, personal = self._personalise(query, lens)
+        p = self._parse(resolved, context, lens, first_person=self._first_person(query))
+        p.query = query
+        p.lens = lens
+        if personal:
+            p.resolved_query = resolved
+            if lens in p.companies:
+                p.used_context["lens"] = lens
+                p.rules.append("'we / our / my' read as your company")
+        return p
+
+    def _parse(self, query: str, context: dict, lens: str | None, first_person: bool = False) -> Plan:
         p = Plan(query=query)
         low = prep(query)
         link = self.linker.link(query)
@@ -257,6 +337,9 @@ class Parser:
         p.negated = bool(RE_NEG.search(low))
         p.change = "decreased" if RE_DECR.search(low) else "increased" if RE_INCR.search(low) else None
         p.period = "PY" if RE_PY.search(low) else "CY"
+        p.by_sector = bool(RE_BY_SECTOR.search(low))
+        p.infographic = bool(RE_INFOGRAPHIC.search(low))
+        p.generic_emissions = p.metric == "scope12" and not re.search(r"\bscope(12|1|2)\b", low)
         for start in fiscal_starts(query):
             if start not in (2023, 2024):
                 p.fy_out_of_range = f"FY {start}-{str(start + 1)[2:]}"
@@ -274,7 +357,7 @@ class Parser:
                 p.rules.append(f"'{u}' uniquely names one company")
             elif len(group) > 1:
                 p.ambiguous.append({"text": u, "ids": group})
-            else:
+            elif not (p.infographic and RE_INFOGRAPHIC.fullmatch(u)):
                 p.unknown_names.append(u)
 
         # ---- in-context learning: earlier clarification choices
@@ -321,70 +404,95 @@ class Parser:
             p.quality = "worst" if RE_DIRTY.search(low) else "best"
             p.rules.append("cleanest/dirtiest -> emission intensity")
 
+        # ---- scores and ratings are not offered; generic words like "performance" carry no metric
+        wants_score = False
+        if p.metric == "index":
+            wants_score = bool(RE_SCORE_WORD.search(low))
+            rest = [m for m in p.metrics if m != "index"]
+            p.metric, p.metrics = (rest[0] if rest else None), rest
+            p.rules.append("score/rating wording: no such measure is offered")
+
         # ---- apply learned definitions
         pref_m = p.prefs.get("emissions")
-        if pref_m and p.metric == "scope12" and "scope12" not in low.split():
-            generic = [e for e in link.of("metric") if e.value == "scope12" and e.text in GENERIC_EMISSIONS]
-            if generic:
-                p.metric = pref_m
-                p.metrics = [pref_m] + [m for m in p.metrics if m not in ("scope12", pref_m)]
-                p.rules.append(f"learned definition: '{generic[0].text}' means {PREF_METRICS[pref_m]}")
+        if pref_m and p.metric == "scope12" and p.generic_emissions:
+            p.metric = pref_m
+            p.metrics = [pref_m] + [m for m in p.metrics if m not in ("scope12", pref_m)]
+            p.generic_emissions = False
+            p.rules.append(f"learned definition: 'emissions' means {PREF_METRICS[pref_m]}")
 
         # ---- rules
         hard = [o for o in p.offtopic if o in HARD_OFFTOPIC]
         soft = [o for o in p.offtopic if o not in HARD_OFFTOPIC]
-        e1_metric = p.metric is not None and p.metric != "index"
+        has_metric = p.metric is not None
         if hard:
             self._set(p, "out_of_scope", f"hard guardrail: {', '.join(hard)}")
-        elif soft and not e1_metric and not p.tech:
-            self._set(p, "out_of_scope", f"topic outside E1: {', '.join(soft)}")
-        elif p.intent == "out_of_scope" and (e1_metric or p.tech) and p.confidence < 0.9:
+        elif soft and not has_metric and not p.tech:
+            self._set(p, "out_of_scope", f"topic not covered: {', '.join(soft)}")
+        elif p.infographic:
+            self._set(p, "infographic", "asks for an infographic")
+        elif p.intent == "out_of_scope" and (has_metric or p.tech) and p.confidence < 0.9:
             self._set(p, "company_metric" if (p.companies or p.ambiguous) else "aggregate",
-                      "E1 metric present, model refusal overridden")
+                      "covered measure present, model refusal overridden")
 
+        peer_list = bool(RE_PEER_NOUN.search(low)) and not RE_PEER_VERB.search(low) and not has_metric
+        strict_define = bool(RE_DEFINE.search(low)) and (has_metric or not p.companies)
         if p.intent != "out_of_scope":
+            if RE_CLEAR_LENS.search(low) and not p.companies:
+                self._set(p, "clear_lens", "asks to stop answering as a company")
+                return p
             if RE_LENS.search(low) and (p.companies or p.ambiguous):
                 self._set(p, "set_lens", "self-identification phrase")
-            elif RE_SIM.search(low) and (p.companies or RE_PRONOUN.search(low) or RE_WE.search(low)):
+            elif wants_score and not has_metric:
+                self._set(p, "no_scores", "asks for a score or rating")
+                return p
+            elif RE_SIM.search(low) and (p.companies or RE_PRONOUN.search(low) or first_person):
                 self._set(p, "simulate", "what-if phrase")
-            elif len(p.companies) >= 2 and p.intent not in ("best_practice", "set_lens", "text_search"):
+            elif p.infographic:
+                pass
+            elif len(p.companies) >= 2 and p.intent not in ("best_practice", "text_search"):
                 self._set(p, "compare", "two or more companies named")
+            elif peer_list and p.intent not in ("best_practice", "text_search"):
+                self._set(p, "peer_list", "asks who the peers are")
+            elif strict_define and not p.companies:
+                self._set(p, "explain", "asks what a term means")
             elif p.tech and p.intent in ("screen", "aggregate", "ranking", "company_metric", "best_practice") and not p.companies:
                 self._set(p, "text_search", "technology keyword")
             elif p.keywords and not p.companies:
                 self._set(p, "text_search", "quoted keyword")
 
         strong_metric = any(e.text not in WEAK_PHRASES for e in link.of("metric"))
-        if p.intent == "company_profile" and strong_metric and p.metric not in (None, "index") and len(p.companies) == 1:
+        if p.intent == "company_profile" and strong_metric and p.metric is not None and len(p.companies) == 1:
             self._set(p, "company_metric", "explicit metric named for one company")
+        if p.intent == "greeting" and has_metric:
+            self._set(p, "explain", "a measure with no other request")
 
         # ---- context carry-over (follow-ups)
         ctx_companies = [c for c in context.get("companies", []) if c in self.kb.by_id]
-        lens = context.get("lens") if context.get("lens") in self.kb.by_id else None
         short = len(toks) <= 6
         is_follow = bool(RE_FOLLOW.search(low)) or (short and bool(context.get("intent")))
         pronoun = bool(RE_PRONOUN.search(low))
-        we = bool(RE_WE.search(low))
+        market = bool(RE_MARKET.search(low))
 
-        if p.intent != "out_of_scope":
+        if p.intent not in ("out_of_scope", "infographic"):
             only_metric = p.metric and not p.companies and not p.sector and not p.ambiguous
             only_company = p.companies and not p.metric and not p.sector
             only_sector = p.sector and not p.companies and not p.metric
             prev = context.get("intent")
-            if is_follow and prev and not p.absent and not p.unknown_names:
-                if only_metric and prev in ("company_metric", "compare", "peer_benchmark", "company_profile", "simulate"):
+            if is_follow and prev and not p.absent and not p.unknown_names and not first_person and p.intent != "peer_list":
+                if only_metric and prev in ("company_metric", "compare", "peer_benchmark", "company_profile", "simulate",
+                                            "peer_list", "infographic") and not strict_define and not market:
                     if ctx_companies:
                         p.companies = list(ctx_companies)
-                        new = "compare" if len(ctx_companies) > 1 else ("company_metric" if prev == "company_profile" else prev)
-                        self._set(p, new, "follow-up: new metric, previous companies")
+                        new = "compare" if len(ctx_companies) > 1 else ("company_metric" if prev in ("company_profile", "peer_list", "infographic") else prev)
+                        self._set(p, new, "follow-up: new measure, same company")
                         p.used_context["companies"] = ctx_companies
-                elif only_metric and prev in ("ranking", "aggregate", "screen", "best_practice", "sector_overview"):
+                elif only_metric and prev in ("ranking", "aggregate", "screen", "best_practice", "sector_overview") and not strict_define:
                     if context.get("sector"):
                         p.sector = context["sector"]
                         p.used_context["sector"] = p.sector
-                    self._set(p, "ranking" if prev == "sector_overview" else prev, "follow-up: new metric, same view")
-                elif only_company and prev in ("company_metric", "peer_benchmark", "simulate", "company_profile"):
-                    if context.get("metric") and prev != "company_profile":
+                    self._set(p, "ranking" if prev == "sector_overview" else prev, "follow-up: new measure, same view")
+                elif only_company and prev in ("company_metric", "peer_benchmark", "simulate", "company_profile", "peer_list"):
+                    if context.get("metric") and prev not in ("company_profile", "peer_list"):
                         p.metric = context["metric"]
                         p.used_context["metric"] = p.metric
                     self._set(p, prev, "follow-up: same question, new company")
@@ -402,53 +510,74 @@ class Parser:
                     self._set(p, prev, "follow-up: same question, new sector")
                 p.followup = bool(p.used_context) or any(r.startswith("follow-up") for r in p.rules)
 
-            needs_company = p.intent in COMPANY_INTENTS
-            if needs_company and not p.companies and not p.ambiguous:
-                if we and lens:
-                    p.companies = [lens]
-                    p.used_context["lens"] = lens
-                    p.rules.append("'we/our' resolved to your company lens")
-                elif (pronoun or is_follow) and ctx_companies:
-                    p.companies = ctx_companies[:1] if p.intent != "compare" else ctx_companies
+            if p.intent in COMPANY_INTENTS and not p.companies and not p.ambiguous:
+                if (pronoun or is_follow) and ctx_companies and not first_person:
+                    p.companies = ctx_companies[:1]
                     p.used_context["companies"] = p.companies
-                    p.rules.append("pronoun resolved from conversation")
+                    p.rules.append("company taken from the conversation")
                 elif p.absent or p.unknown_names:
                     pass  # handled as not-found by the engine
                 elif p.sector:
                     self._set(p, {"company_profile": "sector_overview", "company_metric": "aggregate",
-                                  "peer_benchmark": "ranking", "simulate": "sector_overview",
+                                  "peer_benchmark": "ranking", "peer_list": "screen", "simulate": "sector_overview",
                                   "set_lens": "sector_overview"}[p.intent], "no company named, sector given")
-                elif lens and p.intent in ("peer_benchmark", "simulate"):
+                elif lens and not (market and p.intent == "company_metric"):
                     p.companies = [lens]
                     p.used_context["lens"] = lens
-                    p.rules.append("defaulted to your company lens")
-                elif ctx_companies and p.intent in ("company_metric", "peer_benchmark", "simulate"):
+                    p.rules.append("no company named: answered for your company")
+                elif ctx_companies and p.intent in ("company_metric", "peer_benchmark", "peer_list", "simulate"):
                     p.companies = ctx_companies[:1]
                     p.used_context["companies"] = p.companies
                     p.rules.append("company carried over from conversation")
-                elif p.metric and p.intent == "company_metric":
-                    self._set(p, "aggregate", "metric without company")
-            if p.intent == "best_practice" and not p.companies and we and lens:
+                elif p.metric and p.intent == "company_metric" and not first_person:
+                    self._set(p, "aggregate", "measure without company")
+
+            # with your company set, a bare measure ("scope 3", "ghg emissions") means your company's figure
+            if lens and not p.companies and not p.ambiguous and not p.absent and not p.unknown_names and not p.sector \
+                    and p.metric and not market and not strict_define and not p.by_sector \
+                    and p.intent in ("aggregate", "explain", "company_metric", "company_profile", "unknown"):
                 p.companies = [lens]
                 p.used_context["lens"] = lens
-                p.rules.append("'we/our' resolved to your company lens")
+                self._set(p, "company_metric", "no company named: answered for your company")
 
-            # "compare us with X": bring in the company lens
-            if we and lens and p.companies and lens not in p.companies and RE_COMPARE_WORD.search(low) and \
-                    p.intent in ("compare", "company_metric", "company_profile", "peer_benchmark"):
-                p.companies = [lens] + p.companies
+            if p.intent == "best_practice" and not p.companies and first_person and lens:
+                p.companies = [lens]
                 p.used_context["lens"] = lens
-                self._set(p, "compare", "'us' plus a named company: comparison with your company lens")
+
+            # "our emissions" with no company set: ask which company instead of guessing
+            if first_person and not lens and not p.companies and not p.ambiguous and not p.sector and not p.absent \
+                    and (p.intent in COMPANY_INTENTS | {"aggregate", "explain", "greeting", "unknown"}
+                         or (p.intent == "best_practice" and not RE_ADVICE.search(low))):
+                self._set(p, "need_company", "first-person question with no company set")
+
             if p.intent == "ranking" and p.n is None and p.prefs.get("n"):
                 p.n = p.prefs["n"]
                 p.rules.append(f"learned default: top {p.n}")
 
+        if p.intent == "infographic":
+            # named company > named sector > the company or sector being discussed > your company > the market
+            whole = re.search(r"\b(all companies|all sectors|overall|whole market|the market|india|everything|all of them)\b", low)
+            if not p.companies and not p.ambiguous and not p.sector and not p.absent and not p.unknown_names and not whole:
+                if first_person and lens:
+                    p.companies = [lens]
+                    p.used_context["lens"] = lens
+                elif ctx_companies:
+                    p.companies = ctx_companies[:1]
+                    p.used_context["companies"] = p.companies
+                elif context.get("sector") in self.kb.sector_by_id:
+                    p.sector = context["sector"]
+                    p.used_context["sector"] = p.sector
+                elif lens:
+                    p.companies = [lens]
+                    p.used_context["lens"] = lens
+
         # model topic as a fallback when the lexicon found no metric
-        if p.metric is None and pred["topic"] != "none" and pred["topic_p"] >= 0.75 and \
+        if p.metric is None and pred["topic"] not in ("none", "index") and pred["topic_p"] >= 0.75 and \
                 p.intent in ("company_metric", "ranking", "aggregate", "screen", "best_practice", "compare",
                              "peer_benchmark", "simulate"):
             p.metric = pred["topic"]
             p.metrics = [p.metric]
+            p.generic_emissions = p.metric == "scope12"
             p.rules.append(f"metric inferred by model topic head ({pred['topic_p']:.2f})")
         return p
 

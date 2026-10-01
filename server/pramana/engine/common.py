@@ -1,9 +1,9 @@
-"""Shared helpers for handlers: peer statistics, ranks and chart blocks."""
+"""Shared helpers for handlers: peer statistics, chart blocks and exports."""
 from __future__ import annotations
 
 from ..analytics import median, quantile
 from . import metrics as M
-from .fmt import CO2, compact, num, ordinal, pct, short_name, tile
+from .fmt import CO2, ascii_unit, compact, num, pct, short_name, tile
 
 
 class Ctx:
@@ -20,13 +20,21 @@ class Ctx:
         return self.kb.sector_by_id[sid]
 
 
+def yes(c: dict, qid: str) -> bool:
+    """Whether the company answered Yes to a yes/no disclosure."""
+    return c["ratings"].get(qid) == 100 if qid in c["ratings"] else c["values"].get(qid) is True
+
+
+def yes_count(companies, qid: str) -> tuple[int, int]:
+    return sum(1 for c in companies if yes(c, qid)), len(companies)
+
+
 def eligible(metric: M.Metric, companies, by: str = "value"):
     """(company, value) pairs that can be compared on this metric."""
     out = []
     for c in companies:
         if by == "yoy":
-            # A ratio is unit-invariant, so scaled-unit filings still compare on change;
-            # only the report's own exclusions are removed.
+            # A ratio does not depend on the unit, so filings in a different unit still compare on change.
             v = metric.yoy(c) if metric.yoy else None
             if v is not None and metric.kind == "abs" and any(
                     f["type"] == "report_exclusion" and set(f["qids"]) & set(metric.qids) for f in c["flags"]):
@@ -40,44 +48,17 @@ def eligible(metric: M.Metric, companies, by: str = "value"):
     return out
 
 
-def rank_of(c, pairs, descending: bool):
-    """1-based rank with ties broken by name, as in analytics.ranked."""
-    ordered = sorted(pairs, key=lambda cv: (-cv[1] if descending else cv[1], cv[0]["name"].lower()))
-    for i, (x, _) in enumerate(ordered, start=1):
-        if x["id"] == c["id"]:
-            return i, len(ordered), ordered
-    return None, len(ordered), ordered
-
-
-def beat_share(value, pairs, c, better: str):
-    """How many peers the company does better than on this metric."""
-    others = [v for x, v in pairs if x["id"] != c["id"]]
-    if not others:
-        return 0, 0
-    if better == "lower":
-        beat = sum(1 for v in others if v > value)
-    else:
-        beat = sum(1 for v in others if v < value)
-    return beat, len(others)
-
-
-def rank_phrase(r: int, n: int, word_high: str = "highest", word_low: str = "lowest") -> str:
-    if r == 1:
-        return f"the {word_high} of {n}"
-    if r == n:
-        return f"the {word_low} of {n}"
-    return f"{ordinal(r)} {word_high} of {n}"
+def ordered(pairs, descending: bool = True):
+    return sorted(pairs, key=lambda cv: (-cv[1] if descending else cv[1], cv[0]["name"].lower()))
 
 
 def fmt_value(metric: M.Metric, v):
     if v is None:
-        return "not reported"
+        return "not disclosed"
     if metric.kind == "abs":
         return f"{num(v)} {CO2}"
     if metric.kind == "intensity":
-        return f"{num(v)} {metric.unit}" if metric.comparable_levels else f"{num(v)} ({metric.unit})"
-    if metric.kind == "score":
-        return f"{num(v)}/100" if metric.id != "index" else f"{v:.1f}/100"
+        return f"{num(v)} {metric.unit}" if metric.comparable_levels else f"{num(v)} (unit as disclosed)"
     return num(v)
 
 
@@ -86,24 +67,30 @@ def fmt_short(metric: M.Metric, v):
         return "n/a"
     if metric.kind == "abs":
         return tile(v)
-    if metric.kind == "score":
-        return f"{v:.0f}" if metric.id != "index" else f"{v:.1f}"
     return num(v)
 
 
-def bars(title, pairs, metric: M.Metric, focus_ids=(), median_v=None, subtitle=None, log=False, limit=None,
-         show_rank=True, value_kind="value"):
+def export(title: str, columns: list[str], rows: list[list], note: str | None = None) -> dict:
+    """Spreadsheet-ready copy of a table or chart: plain headers with units, raw numbers in cells."""
+    return {"title": title, "columns": [ascii_unit(c) for c in columns],
+            "rows": [[ascii_unit(x) if isinstance(x, str) else x for x in r] for r in rows], "note": note}
+
+
+def bars(title, pairs, metric: M.Metric, focus_ids=(), median_v=None, median_label="Median", subtitle=None, log=False,
+         limit=None, show_rank=True, value_kind="value"):
     rows = []
     for i, (c, v) in enumerate(pairs[:limit] if limit else pairs, start=1):
         rows.append({"id": c["id"], "label": short_name(c["name"]), "value": v,
                      "display": pct(v) if value_kind == "yoy" else fmt_short(metric, v),
                      "full": pct(v, digits=2) if value_kind == "yoy" else fmt_value(metric, v),
                      "rank": i if show_rank else None, "highlight": c["id"] in focus_ids})
-    blk = {"type": "bars", "title": title, "subtitle": subtitle, "rows": rows,
-           "unit": "% change" if value_kind == "yoy" else metric.unit, "log": log,
-           "diverging": value_kind == "yoy", "better": metric.better}
+    unit = "% change" if value_kind == "yoy" else metric.unit
+    blk = {"type": "bars", "title": title, "subtitle": subtitle, "rows": rows, "unit": unit, "log": log,
+           "diverging": value_kind == "yoy", "better": metric.better,
+           "export": export(title, ["Company", f"{metric.label} ({unit})"], [[c["name"], v] for c, v in
+                                                                              (pairs[:limit] if limit else pairs)])}
     if median_v is not None:
-        blk["median"] = {"value": median_v, "label": "Sector median", "display": pct(median_v) if value_kind == "yoy"
+        blk["median"] = {"value": median_v, "label": median_label, "display": pct(median_v) if value_kind == "yoy"
                          else fmt_short(metric, median_v)}
     return blk
 
@@ -113,18 +100,15 @@ def strip(title, pairs, metric: M.Metric, focus_ids=(), subtitle=None, value_kin
     pts = [{"id": c["id"], "label": short_name(c["name"]), "value": v,
             "display": pct(v, digits=2) if value_kind == "yoy" else fmt_value(metric, v),
             "highlight": c["id"] in focus_ids} for c, v in pairs]
+    unit = "% change" if value_kind == "yoy" else metric.unit
     return {"type": "strip", "title": title, "subtitle": subtitle, "points": pts,
             "log": value_kind != "yoy" and metric.kind in ("abs", "intensity") and min((v for v in vals if v > 0), default=1) > 0
                    and len(vals) > 3 and max(vals) / max(min((v for v in vals if v > 0), default=1), 1e-12) > 200,
             "median": median(vals), "q1": quantile(vals, 0.25), "q3": quantile(vals, 0.75),
             "median_display": (pct(median(vals)) if value_kind == "yoy" else fmt_short(metric, median(vals))) if vals else None,
-            "unit": "% change" if value_kind == "yoy" else metric.unit, "better": metric.better,
-            "diverging": value_kind == "yoy"}
-
-
-def yes_rate(companies, qid):
-    y = sum(1 for c in companies if c["ratings"].get(qid) == 100)
-    return y, len(companies)
+            "unit": unit, "better": metric.better, "diverging": value_kind == "yoy",
+            "export": export(title, ["Company", f"{metric.label} ({unit})"],
+                             [[c["name"], v] for c, v in ordered(pairs)])}
 
 
 def kpi(label, value, sub=None, delta=None, tone="neutral", cite=None, big=False):
@@ -154,28 +138,41 @@ def compact_value(metric: M.Metric, v):
 
 
 def value_cite(a, c, metric: M.Metric, by: str = "value") -> str:
-    """Citation for a company's value on a metric: the cell itself, or the formula over cited cells."""
-    from .fmt import short_name as _sn
+    """Citation for a company's value on a metric: the filing itself, or the arithmetic over filed values."""
     v = c["values"]
-    name = _sn(c["name"])
-    if by == "yoy" and metric.cy_q and metric.py_q:
-        return a.c_derived(f"{metric.label} change ({name})", f"({num(v.get(metric.cy_q))} - {num(v.get(metric.py_q))}) / "
-                           f"{num(v.get(metric.py_q))}", [a.c_cell(c, metric.cy_q), a.c_cell(c, metric.py_q)])
+    name = short_name(c["name"])
+    if by == "yoy":
+        if metric.id == "scope12":
+            return a.c_calc(f"Change in Scope 1 + Scope 2 emissions ({name})",
+                            f"({num(metric.value(c))} − {num(metric.prev(c))}) ÷ {num(metric.prev(c))} = {pct(metric.yoy(c), digits=2)}",
+                            [a.c_filing(c, q) for q in ("1330", "1332", "1331", "1333")])
+        if metric.cy_q and metric.py_q:
+            return a.c_calc(f"Change in {metric.label[0].lower() + metric.label[1:]} ({name})",
+                            f"({num(v.get(metric.cy_q))} − {num(v.get(metric.py_q))}) ÷ {num(v.get(metric.py_q))} = "
+                            f"{pct(metric.yoy(c), digits=2)}", [a.c_filing(c, metric.cy_q), a.c_filing(c, metric.py_q)])
     if metric.id == "scope12":
-        if by == "yoy":
-            return a.c_derived(f"Scope 1+2 change ({name})", "(FY 2024-25 Scope 1+2 - FY 2023-24 Scope 1+2) / FY 2023-24",
-                               [a.c_cell(c, q) for q in ("1330", "1332", "1331", "1333")])
-        return a.c_derived(f"Scope 1+2, FY 2024-25 ({name})",
-                           f"{num(v.get('1330'))} + {num(v.get('1332'))} = {num(metric.value(c))} {CO2}",
-                           [a.c_cell(c, "1330"), a.c_cell(c, "1332")])
+        return a.c_calc(f"Scope 1 + Scope 2, FY 2024-25 ({name})",
+                        f"{num(v.get('1330'))} + {num(v.get('1332'))} = {num(metric.value(c))} {CO2}",
+                        [a.c_filing(c, "1330"), a.c_filing(c, "1332")])
     if metric.kind == "intensity" and metric.comparable_levels and metric.cy_q:
-        return a.c_derived(f"{metric.label} per crore ({name})",
-                           f"{num(v.get(metric.cy_q))} per rupee x 10,000,000 = {num(metric.value(c))}",
-                           [a.c_cell(c, metric.cy_q)])
-    if metric.id == "index":
-        return a.c_method("E1 index (derived)", metric.note)
-    if metric.kind == "score" and metric.rating_q:
-        return a.c_rating(c, metric.rating_q[0])
+        return a.c_calc(f"{metric.label} per ₹ crore ({name})",
+                        f"{num(v.get(metric.cy_q))} {CO2} per rupee × 1 crore (10,000,000) = {num(metric.value(c))} "
+                        f"{CO2} per ₹ crore", [a.c_filing(c, metric.cy_q)])
     if metric.cy_q:
-        return a.c_cell(c, metric.cy_q)
+        return a.c_filing(c, metric.cy_q)
     return ""
+
+
+def prev_cite(a, c, metric: M.Metric) -> str:
+    """Citation for the previous-year value."""
+    v = c["values"]
+    name = short_name(c["name"])
+    if metric.id == "scope12":
+        return a.c_calc(f"Scope 1 + Scope 2, FY 2023-24 ({name})",
+                        f"{num(v.get('1331'))} + {num(v.get('1333'))} = {num(metric.prev(c))} {CO2}",
+                        [a.c_filing(c, "1331"), a.c_filing(c, "1333")])
+    if metric.kind == "intensity" and metric.comparable_levels and metric.py_q:
+        return a.c_calc(f"{metric.label} per ₹ crore, FY 2023-24 ({name})",
+                        f"{num(v.get(metric.py_q))} {CO2} per rupee × 1 crore (10,000,000) = {num(metric.prev(c))} "
+                        f"{CO2} per ₹ crore", [a.c_filing(c, metric.py_q)])
+    return a.c_filing(c, metric.py_q) if metric.py_q else ""

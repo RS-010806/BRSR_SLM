@@ -1,19 +1,23 @@
-"""Company vs company, and company vs sector peers."""
+"""Company against company, and a company against its peers.
+
+Peer answers describe where a company stands relative to the peer median in
+plain words. They never give a rank position or a percentile.
+"""
 from __future__ import annotations
 
 from ..analytics import median
 from . import metrics as M
-from .common import (bars, beat_share, change_tone, eligible, fmt_short, fmt_value, kpi, rank_of, rank_phrase,
-                     strip)
-from .evidence import highlight, themes_in
-from .fmt import lc, CO2, join, num, pct, short_name
-from .h_company import BOOL_PHRASE
+from .common import change_tone, eligible, export, fmt_short, fmt_value, strip, value_cite, yes, yes_count
+from .fmt import CO2, join, lc, num, pct, short_name, tile
+from .h_company import BOOL_PHRASE, BOOL_TITLE, TEXT_TITLE, kicker, quote_item
 
-PROFILE_ROWS = [
-    ("scope1", "Scope 1 (tCO₂e)"), ("scope2", "Scope 2 (tCO₂e)"), ("scope3", "Scope 3 (tCO₂e)"),
-    ("intensity", "Intensity (tCO₂e per ₹ crore)"),
-]
+SIDE_ROWS = [("scope1", "Scope 1 emissions (tCO₂e)"), ("scope2", "Scope 2 emissions (tCO₂e)"),
+             ("scope3", "Scope 3 emissions (tCO₂e)"), ("intensity", "Emission intensity (tCO₂e per ₹ crore)")]
+SIDE_CHECKS = [("1340", "GHG emissions independently assured"), ("1387", "Scope 3 emissions reported"),
+               ("1341", "Projects to reduce GHG emissions")]
 
+
+# --------------------------------------------------------------------------- company vs company
 
 def compare(ctx, cids, mid):
     a, kb = ctx.a, ctx.kb
@@ -22,298 +26,305 @@ def compare(ctx, cids, mid):
         a.company_ref(c)
     names = [short_name(c["name"]) for c in cos]
     a.kicker = "Comparison"
-    a.title = " vs ".join(names)
+    a.title = " and ".join(names) if len(names) == 2 else join(names)
     if len(cids) > 6:
-        a.note("method", "Comparisons are limited to six companies; the first six named are shown.")
-    sectors = {c["sector"] for c in cos}
-    if len(sectors) > 1:
-        a.note("context", "These companies sit in different sectors, so absolute emissions reflect business models as "
-                          "much as performance. Intensity and year-on-year change are the fairer comparison.")
-    metric = M.get(mid, kb) if mid else None
-    if metric is not None and metric.kind in ("abs", "intensity") and mid in M.NUMERIC:
-        _compare_numeric(ctx, cos, metric)
+        a.note("method", "Comparisons show up to six companies; the first six named are included.")
+    if len({c["sector"] for c in cos}) > 1:
+        a.note("context", "These companies are in different sectors, so total emissions reflect the nature of each "
+                          "business. Emission intensity is the fairer comparison.")
+    if mid == "scope12":
+        _compare_emissions(ctx, cos)
+    elif mid in M.NUMERIC:
+        _compare_numeric(ctx, cos, M.NUMERIC[mid])
     elif mid in M.TEXT_Q:
         _compare_text(ctx, cos, M.TEXT_Q[mid])
     elif mid in M.BOOL_Q:
         _compare_bool(ctx, cos, M.BOOL_Q[mid])
     else:
-        _compare_profile(ctx, cos)
+        _side_by_side(ctx, cos)
+    for c in cos:
+        a.flag_notes(c, M.NUMERIC[mid].qids if mid in M.NUMERIC else ["1330", "1331", "1332", "1333", "1334", "1335"], name=True)
     a.context.update({"companies": [c["id"] for c in cos], "metric": mid})
+
+
+def _compare_emissions(ctx, cos):
+    """Scope 1 and Scope 2 kept as separate figures for every company."""
+    a = ctx.a
+    m1, m2, m12 = M.NUMERIC["scope1"], M.NUMERIC["scope2"], M.NUMERIC["scope12"]
+    parts, groups, rows = [], [], []
+    for c in cos:
+        v1, v2 = m1.value(c), m2.value(c)
+        bits = []
+        if v1 is not None:
+            bits.append(f"Scope 1 emissions of {num(v1)} {CO2} {a.c_filing(c, '1330')}")
+        if v2 is not None:
+            bits.append(f"Scope 2 emissions of {num(v2)} {CO2} {a.c_filing(c, '1332')}")
+        parts.append(f"**{short_name(c['name'])}** reported {join(bits)}" if bits else
+                     f"**{short_name(c['name'])}** has not disclosed these figures {a.c_filing(c, '1330')}")
+        groups.append({"label": short_name(c["name"]), "values": [v1, v2],
+                       "displays": [tile(v1) if v1 is not None else "n/a", tile(v2) if v2 is not None else "n/a"]})
+        rows.append([c["name"], v1, v2, m12.value(c), None if m12.yoy(c) is None else round(m12.yoy(c), 2)])
+    a.p("For FY 2024-25: " + ". ".join(parts) + ".")
+    a.block("grouped", title="Scope 1 and Scope 2 emissions", subtitle=f"FY 2024-25, {CO2}", series=["Scope 1", "Scope 2"],
+            groups=groups, log=True,
+            export=export("Scope 1 and Scope 2 emissions", ["Company", "Scope 1 (tCO2e)", "Scope 2 (tCO2e)",
+                                                           "Scope 1 + Scope 2 (tCO2e)", "Change in Scope 1 + 2 vs FY 2023-24 (%)"], rows))
+    names = join([short_name(c["name"]) for c in cos])
+    a.follow(f"Compare {names} on emission intensity", f"Compare {names} on Scope 3 emissions", f"Compare {names} on targets")
 
 
 def _compare_numeric(ctx, cos, metric):
     a = ctx.a
-    rows, series = [], []
-    vals = []
-    for c in cos:
-        v, pv, y = metric.value(c), metric.prev(c), metric.yoy(c)
-        ok = v is not None and metric.level_ok(c)
-        cite = a.c_cell(c, metric.cy_q) if metric.cy_q else a.c_derived(
-            f"Scope 1+2 ({short_name(c['name'])})", f"{num(c['values'].get('1330'))} + {num(c['values'].get('1332'))} = {num(v)}",
-            [a.c_cell(c, "1330"), a.c_cell(c, "1332")])
-        vals.append((c, v, pv, y, ok, cite))
-    reported = [(c, v, y, cite) for c, v, pv, y, ok, cite in vals if v is not None and ok]
-    missing = [c for c, v, pv, y, ok, cite in vals if v is None]
-    if reported and metric.comparable_levels:
-        hi = max(reported, key=lambda t: (t[1], t[0]["name"]))
-        lo = min(reported, key=lambda t: (t[1], t[0]["name"]))
-        a.p(f"On {lc(metric.label)} in FY 2024-25, **{short_name(hi[0]['name'])}** reported the highest value "
-            f"({fmt_value(metric, hi[1])}) {hi[3]} and **{short_name(lo[0]['name'])}** the lowest "
-            f"({fmt_value(metric, lo[1])}) {lo[3]}.")
-    ys = [(c, y) for c, v, pv, y, ok, cite in vals if y is not None and ok]
-    if ys:
-        best = min(ys, key=lambda t: (t[1], t[0]["name"])) if metric.better == "lower" else max(ys, key=lambda t: (t[1], t[0]["name"]))
-        worst = max(ys, key=lambda t: (t[1], t[0]["name"])) if metric.better == "lower" else min(ys, key=lambda t: (t[1], t[0]["name"]))
-        if best[0]["id"] != worst[0]["id"]:
-            yc = a.c_derived("Year-on-year changes", "; ".join(f"{short_name(c['name'])} {pct(y, digits=2)}" for c, y in ys),
-                             note="(FY 2024-25 minus FY 2023-24) divided by FY 2023-24, from the cited cells.")
-            lo = min(ys, key=lambda t: (t[1], t[0]["name"]))
-            hi = max(ys, key=lambda t: (t[1], t[0]["name"]))
-            a.p(f"Year on year, changes ranged from {pct(lo[1])} ({short_name(lo[0]['name'])}) to {pct(hi[1])} "
-                f"({short_name(hi[0]['name'])}); {'lower' if metric.better == 'lower' else 'higher'} is better for this "
-                f"metric {yc}.")
+    vals = [(c, metric.value(c), metric.prev(c), metric.yoy(c) if metric.yoy else None) for c in cos]
+    shown = [f"**{short_name(c['name'])}** {fmt_value(metric, v)} {value_cite(a, c, metric)}" for c, v, _, _ in vals if v is not None]
+    missing = [short_name(c["name"]) for c, v, _, _ in vals if v is None]
+    if shown:
+        a.p(f"{metric.label} for FY 2024-25: {join(shown)}.")
     if missing:
-        a.p(f"Not reported: {join([short_name(c['name']) + ' ' + a.c_cell(c, metric.cy_q or '1330') for c in missing])}.")
-    for c, v, pv, y, ok, cite in vals:
-        if v is not None and not ok:
-            a.note("data_quality", f"{short_name(c['name'])}: value shown as reported but flagged; see citation.")
-    for c in cos:
-        for f in c["flags"]:
-            if set(f["qids"]) & set(metric.qids):
-                a.note("data_quality", f"{short_name(c['name'])}: {f['text']}")
+        a.p(f"{join(missing)} {'has' if len(missing) == 1 else 'have'} not disclosed this figure.")
     if not metric.comparable_levels and metric.note:
         a.note("method", metric.note)
-    a.block("grouped", title=metric.label, subtitle=f"FY 2023-24 and FY 2024-25, {metric.unit}",
-            series=["FY 2023-24", "FY 2024-25"],
+    unit = metric.unit if metric.comparable_levels else "unit as disclosed"
+    a.block("grouped", title=metric.label, subtitle=f"FY 2023-24 and FY 2024-25, {unit}", series=["FY 2023-24", "FY 2024-25"],
             groups=[{"label": short_name(c["name"]), "values": [pv, v],
-                     "displays": [fmt_short(metric, pv), fmt_short(metric, v)]} for c, v, pv, y, ok, cite in vals],
-            log=metric.kind == "abs")
-    table_rows = []
-    for c, v, pv, y, ok, cite in vals:
-        members = ctx.kb.members(c["sector"])
-        pairs = eligible(metric, members)
-        r, n, _ = rank_of(c, pairs, True) if ok and v is not None else (None, len(pairs), None)
-        rq = metric.rating_q[0] if metric.rating_q else None
-        table_rows.append({"company": short_name(c["name"]), "id": c["id"], "sector": ctx.kb.sector_of(c)["name"],
-                           "cy": fmt_value(metric, v), "py": fmt_value(metric, pv), "yoy": pct(y) if y is not None else "n/a",
-                           "rank": f"{r} of {n}" if r else "n/a",
-                           "rating": str(c["ratings"].get(rq)) if rq and c["ratings"].get(rq) is not None else "n/a",
-                           "cite": cite})
-    a.block("table", title=f"{metric.label}: detail", rows=table_rows,
-            columns=[{"key": "company", "label": "Company"}, {"key": "sector", "label": "Sector"},
-                     {"key": "cy", "label": "FY 2024-25", "align": "right"}, {"key": "py", "label": "FY 2023-24", "align": "right"},
-                     {"key": "yoy", "label": "YoY", "align": "right"}, {"key": "rank", "label": "Rank in sector (1 = highest)", "align": "right"},
-                     {"key": "rating", "label": "Rating", "align": "right"}])
-    a.follow(f"Compare {join([short_name(c['name']) for c in cos])} on Scope 3" if metric.id != "scope3" else
-             f"Compare {join([short_name(c['name']) for c in cos])} on emission intensity",
-             f"Compare {join([short_name(c['name']) for c in cos])} on targets",
-             f"How does {short_name(cos[0]['name'])} compare with its peers?")
+                     "displays": [fmt_short(metric, pv), fmt_short(metric, v)]} for c, v, pv, _ in vals],
+            log=metric.kind == "abs",
+            export=export(metric.label, ["Company", f"FY 2024-25 ({unit})", f"FY 2023-24 ({unit})", "Change (%)"],
+                          [[c["name"], v, pv, None if y is None else round(y, 2)] for c, v, pv, y in vals]))
+    names = join([short_name(c["name"]) for c in cos])
+    a.follow(f"Compare {names} on Scope 3 emissions" if metric.id != "scope3" else f"Compare {names} on emission intensity",
+             f"Compare {names} on targets", f"How does {short_name(cos[0]['name'])} compare with its peers?")
 
 
 def _compare_text(ctx, cos, qid):
-    a, kb = ctx.a, ctx.kb
-    q = kb.q(qid)
-    scored = sorted(cos, key=lambda c: (-(c["ratings"].get(qid) or -1), c["name"].lower()))
-    parts = []
-    for c in scored:
-        s = c["ratings"].get(qid)
-        parts.append(f"{short_name(c['name'])} {s if s is not None else 'n/a'}/100 {a.c_rating(c, qid)}")
-    a.p(f"Rating-sheet scores for {lc(q['label'])}: {join(parts)}.")
-    items = []
-    for c in scored:
-        text = c["values"].get(qid)
-        if not text:
-            continue
-        segs = ctx.index.by_cell.get((c["id"], qid), [])
-        items.append({"company": c["name"], "company_id": c["id"], "short": short_name(c["name"]),
-                      "sector": kb.sector_of(c)["name"], "qid": qid, "question": q["label"], "score": c["ratings"].get(qid),
-                      "text": text, "segments": highlight(segs, k=2), "themes": ctx.kb.themes(c["id"], qid),
-                      "cite": a.c_cell(c, qid), "cell": c["cells"].get(qid)})
-    if items:
-        a.block("quotes", title=f"{q['label']}, side by side", items=items, columns=True)
+    a = ctx.a
+    have = [c for c in cos if c["values"].get(qid)]
     blank = [short_name(c["name"]) for c in cos if not c["values"].get(qid)]
+    topic = lc(TEXT_TITLE.get(qid, "this topic"))
+    if have:
+        a.p(f"These are the disclosures on {topic} from {join([f'**{short_name(c['name'])}**' for c in have])}, "
+            f"shown side by side with the most specific points highlighted.")
+        a.block("quotes", title=TEXT_TITLE.get(qid), items=[quote_item(ctx, c, qid, k=2) for c in have], columns=True)
     if blank:
-        a.p(f"No disclosure text: {join(blank)}.")
-    th = {c["id"]: set(ctx.kb.themes(c["id"], qid)) for c in cos}
-    all_th = sorted(set().union(*th.values()))
-    if all_th:
-        a.block("matrix", title="Practices named in each disclosure", columns=[short_name(c["name"]) for c in cos],
-                rows=[{"label": t, "values": [t in th[c["id"]] for c in cos]} for t in all_th])
+        a.p(f"{join(blank)} {'has' if len(blank) == 1 else 'have'} not disclosed {topic}.")
+    names = join([short_name(c["name"]) for c in cos])
+    a.follow(f"Compare {names} on GHG emissions", f"Compare {names} on emission intensity")
 
 
 def _compare_bool(ctx, cos, qid):
-    a, kb = ctx.a, ctx.kb
-    q = kb.q(qid)
-    yes = [c for c in cos if c["ratings"].get(qid) == 100]
-    no = [c for c in cos if c["ratings"].get(qid) != 100]
-    pos, neg, plural = BOOL_PHRASE.get(qid, ("yes", "no", "report it"))
-    if yes:
-        a.p(f"**{join([short_name(c['name']) + ' ' + a.c_rating(c, qid) for c in yes])}** {plural.replace('report', 'report') if len(yes) > 1 else pos}.")
-    if no:
-        a.p(f"{join([short_name(c['name']) + ' ' + a.c_rating(c, qid) for c in no])} "
-            f"{'do not' if len(no) > 1 else 'does not'} ({lc(q['label'])}).")
-    a.block("checklist", title=q["label"], items=[{"label": short_name(c["name"]), "value": c["ratings"].get(qid) == 100,
-                                                  "cite": a.c_rating(c, qid)} for c in cos])
+    a = ctx.a
+    pos, neg, plural = BOOL_PHRASE[qid]
+    ys = [c for c in cos if yes(c, qid)]
+    ns = [c for c in cos if not yes(c, qid)]
+    if ys:
+        who = join([f"**{short_name(c['name'])}** {a.c_filing(c, qid)}" for c in ys])
+        a.p(f"{who} {pos if len(ys) == 1 else plural}.")
+    if ns:
+        who = join([f"{short_name(c['name'])} {a.c_filing(c, qid)}" for c in ns])
+        a.p(f"{who} {neg if len(ns) == 1 else 'do not ' + plural}.")
+    a.block("checklist", title=BOOL_TITLE.get(qid), items=[{"label": short_name(c["name"]), "value": yes(c, qid),
+                                                            "cite": a.c_filing(c, qid)} for c in cos])
+    names = join([short_name(c["name"]) for c in cos])
+    a.follow(f"Compare {names} on GHG emissions", f"Compare {names} on targets")
 
 
-def _compare_profile(ctx, cos):
+def _side_by_side(ctx, cos):
     a, kb = ctx.a, ctx.kb
-    a.p(f"Side-by-side E1 view of {join([f'**{short_name(c['name'])}**' for c in cos])}, using reported values "
-        f"and Rating-sheet scores.")
-    idx = [(c, c["derived"]["index"]["overall"]) for c in cos if c["derived"]["index"]["overall"] is not None]
-    if idx:
-        lead = max(idx, key=lambda t: (t[1], t[0]["name"]))
-        a.p(f"On the derived E1 index, {short_name(lead[0]['name'])} leads at {lead[1]:.1f}/100 "
-            f"{a.c_method('E1 index (derived)', M.NUMERIC['index'].note)}.")
-    rows = []
-    for mid, label in PROFILE_ROWS:
+    a.p(f"Here is how {join([f'**{short_name(c['name'])}**' for c in cos])} compare on their FY 2024-25 disclosures.")
+    rows, xrows = [], []
+    for mid, label in SIDE_ROWS:
         m = M.NUMERIC[mid]
-        vals = [m.value(c) for c in cos]
-        comparable = [(i, v) for i, (c, v) in enumerate(zip(cos, vals)) if v is not None and m.level_ok(c)]
-        best = min(comparable, key=lambda t: t[1])[0] if comparable else None
-        rows.append({"label": label, "cells": [{"text": fmt_short(m, v) if v is not None else "n/r",
-                                                "full": fmt_value(m, v), "best": i == best,
-                                                "cite": a.c_cell(c, m.cy_q)} for i, (c, v) in enumerate(zip(cos, vals))]})
-        ys = [m.yoy(c) for c in cos]
-        rows.append({"label": f"{label.split(' (')[0]} YoY", "cells": [{"text": pct(y) if y is not None else "n/a",
-                                                                         "tone": change_tone(y)} for y in ys]})
-    for q, label in (("1340", "Independent GHG assurance"), ("1387", "Reports Scope 3"), ("1341", "GHG reduction projects"),
-                     ("268", "Policy covers value chain")):
-        rows.append({"label": label, "cells": [{"text": "Yes" if c["ratings"].get(q) == 100 else "No",
-                                                "tone": "good" if c["ratings"].get(q) == 100 else "bad",
-                                                "cite": a.c_rating(c, q)} for c in cos]})
-    for q, label in (("286", "Targets score"), ("295", "Performance vs targets score"), ("1342", "Project quality score")):
-        rows.append({"label": label, "cells": [{"text": str(c["ratings"].get(q)) if c["ratings"].get(q) is not None else "n/a",
-                                                "score": c["ratings"].get(q), "cite": a.c_rating(c, q)} for c in cos]})
-    rows.append({"label": "E1 index (derived)", "cells": [{"text": f"{c['derived']['index']['overall']:.1f}"
-                                                           if c["derived"]["index"]["overall"] is not None else "n/a",
-                                                           "score": c["derived"]["index"]["overall"]} for c in cos]})
-    a.block("compare", title="Scorecard", columns=[{"label": short_name(c["name"]), "sub": kb.sector_of(c)["name"],
-                                                    "id": c["id"]} for c in cos], rows=rows)
-    groups = []
-    for p_key, p_label in (("governance", "Governance"), ("action", "Action"), ("performance", "Performance")):
-        vals = [c["derived"]["index"]["pillars"][p_key]["score"] for c in cos]
-        groups.append({"label": p_label, "values": vals, "displays": [f"{v:.0f}" if v is not None else "n/a" for v in vals]})
-    a.block("grouped", title="Pillar scores", subtitle="Average Rating-sheet score per pillar, 0 to 100",
-            series=[short_name(c["name"]) for c in cos], groups=groups, max=100)
-    a.follow(f"Compare {join([short_name(c['name']) for c in cos])} on Scope 1",
-             f"Compare {join([short_name(c['name']) for c in cos])} on targets",
-             f"Compare {join([short_name(c['name']) for c in cos])} on GHG reduction projects")
+        cells = []
+        for c in cos:
+            v = m.value(c)
+            ok = v is not None and (m.kind != "intensity" or m.level_ok(c))
+            cells.append({"text": fmt_short(m, v) if ok else ("Not disclosed" if v is None else "See note"),
+                          "full": fmt_value(m, v) if v is not None else None,
+                          "cite": value_cite(a, c, m) if v is not None else None})
+        rows.append({"label": label, "cells": cells})
+        xrows.append([label] + [m.value(c) if (m.kind != "intensity" or m.level_ok(c)) else None for c in cos])
+    m12 = M.NUMERIC["scope12"]
+    rows.append({"label": "Change in Scope 1 + Scope 2 vs FY 2023-24",
+                 "cells": [{"text": pct(m12.yoy(c)) if m12.yoy(c) is not None else "n/a", "tone": change_tone(m12.yoy(c))}
+                           for c in cos]})
+    xrows.append(["Change in Scope 1 + Scope 2 vs FY 2023-24 (%)"] + [None if m12.yoy(c) is None else round(m12.yoy(c), 2) for c in cos])
+    for q, label in SIDE_CHECKS:
+        rows.append({"label": label, "cells": [{"text": "Yes" if yes(c, q) else "No", "tone": "good" if yes(c, q) else "muted",
+                                                "cite": a.c_filing(c, q)} for c in cos]})
+        xrows.append([label] + ["Yes" if yes(c, q) else "No" for c in cos])
+    a.block("compare", title="Side by side", columns=[{"label": short_name(c["name"]), "sub": kb.sector_of(c)["name"],
+                                                       "id": c["id"]} for c in cos], rows=rows,
+            export=export("Side by side", ["Measure"] + [c["name"] for c in cos], xrows))
+    names = join([short_name(c["name"]) for c in cos])
+    a.follow(f"Compare {names} on targets", f"Compare {names} on GHG reduction projects",
+             f"Compare {names} on emission intensity")
 
 
 # --------------------------------------------------------------------------- peers
 
-PEER_DIMENSIONS = [
-    ("index", "value", "E1 index (derived)"),
-    ("scope12", "yoy", "Scope 1+2 change, YoY"),
-    ("intensity", "value", "Scope 1+2 intensity"),
-    ("intensity", "yoy", "Intensity change, YoY"),
-    ("scope12", "value", "Scope 1+2 emissions"),
-    ("targets", "value", "Targets score"),
-    ("projects", "value", "GHG project quality score"),
-]
-
-
-def peer_benchmark(ctx, c, mid, peers=None):
-    a, kb = ctx.a, ctx.kb
-    a.company_ref(c)
-    sec = kb.sector_of(c)
-    sname = sec["name"]
-    members = kb.members(c["sector"])
-    grp, grp_n = sname, sec["n"]
+def _peer_group(ctx, c, peers):
+    """(peer companies excluding c, name of the group, whether it is the user's own list)."""
+    kb = ctx.kb
     custom = [kb.by_id[x] for x in (peers or []) if x in kb.by_id and x != c["id"]]
     if custom:
-        members = [c] + custom
-        grp, grp_n = "your peer group", len(members)
-        for x in custom:
-            a.company_ref(x)
-        a.note("context", f"Using the peer group you set earlier in this conversation: "
-                          f"{join([short_name(x['name']) for x in custom])}. Say \u201cforget my peer group\u201d to "
-                          f"go back to the full {sname} sector.")
-    from .h_company import flag_notes
-    flag_notes(ctx, c, ["1330", "1331", "1332", "1333", "1334", "1335"])
-    a.kicker = f"{c['name']} · Peer benchmark"
-    a.title = f"Against {grp_n - 1} {sname} peers" if not custom else f"Against your {grp_n - 1} chosen peers"
-    if mid and mid not in ("index",) and M.get(mid, kb) is not None:
-        metric = M.get(mid, kb)
-        by = "yoy" if not metric.comparable_levels else "value"
-        pairs = eligible(metric, members, by=by)
-        mine = next((v for x, v in pairs if x["id"] == c["id"]), None)
-        if mine is None:
-            a.status = "partial"
-            a.p(f"{c['name']} has no comparable value for {lc(metric.label)}"
-                f"{' (units vary by company, so only the change is compared)' if by == 'yoy' else ''}.")
-        else:
-            desc = True
-            r, n, ordered = rank_of(c, pairs, desc)
-            beat, others = beat_share(mine, pairs, c, metric.better)
-            med = median(v for _, v in pairs)
-            unit_word = "change" if by == "yoy" else ""
-            shown = pct(mine) if by == "yoy" else fmt_value(metric, mine)
-            a.p(f"On {lc(metric.label)}{' (year-on-year change)' if by == 'yoy' else ''}, {c['name']} "
-                f"({shown}) ranks **{rank_phrase(r, n)}** among {n} {'companies in ' + grp if custom else sname + ' companies'} with comparable data "
-                f"{a.c_derived('Peer ranking', f'{n} companies sorted high to low on ' + lc(metric.label) + (' change' if by == 'yoy' else ''))}. "
-                f"It is {'better' if (mine < med if metric.better == 'lower' else mine > med) else 'worse'} than the sector "
-                f"median ({pct(med) if by == 'yoy' else fmt_value(metric, med)}) and outperforms {beat} of {others} peers.")
-            a.blocks.append(bars(f"{metric.label}{' change' if by == 'yoy' else ''}: {grp}", ordered, metric,
-                                 focus_ids={c["id"]}, median_v=med, subtitle=f"{n} companies, FY 2024-25",
-                                 log=metric.kind == "abs" and by == "value", value_kind=by, limit=25 if n > 25 else None))
-            if n > 25 and r > 25:
-                a.blocks[-1]["rows"].append({"id": c["id"], "label": short_name(c["name"]), "value": mine, "rank": r,
-                                             "display": pct(mine) if by == "yoy" else fmt_short(metric, mine),
-                                             "full": shown, "highlight": True})
-            a.blocks.append(strip(f"Distribution in {grp}", pairs, metric, focus_ids={c["id"]}, value_kind=by))
-        a.context.update({"metric": mid})
-        a.follow(f"How does {short_name(c['name'])} compare with its peers?",
-                 f"Best practices in {sname}", f"What if {short_name(c['name'])} cuts Scope 1 by 10%?")
-        return
+        return custom, "your chosen peers", True
+    return [m for m in kb.members(c["sector"]) if m["id"] != c["id"]], kb.sector_of(c)["name"], False
 
-    # multi-dimension positioning
-    rows, strong, weak = [], [], []
-    for dim_mid, by, label in PEER_DIMENSIONS:
-        metric = M.get(dim_mid, kb)
-        pairs = eligible(metric, members, by=by)
-        mine = next((v for x, v in pairs if x["id"] == c["id"]), None)
-        if mine is None or len(pairs) < 3:
-            rows.append({"label": label, "percentile": None, "n": len(pairs), "display": "n/a", "points": []})
-            continue
-        beat, others = beat_share(mine, pairs, c, metric.better)
-        pctl = round(100 * beat / others) if others else None
-        med = median(v for _, v in pairs)
-        rows.append({"label": label, "percentile": pctl, "n": len(pairs),
-                     "display": pct(mine) if by == "yoy" else fmt_value(metric, mine),
-                     "median_display": pct(med) if by == "yoy" else fmt_value(metric, med),
-                     "points": [{"value": v, "focus": x["id"] == c["id"], "label": short_name(x["name"])} for x, v in pairs],
-                     "better": metric.better, "log": by == "value" and metric.kind == "abs", "yoy": by == "yoy"})
-        if pctl is not None:
-            (strong if pctl >= 67 else weak if pctl <= 33 else []).append((label, pctl))
-    pc = a.c_derived("Peer percentiles", "share of sector peers with a worse value on each dimension",
-                     note="Ties count as not outperformed. Companies without comparable data are excluded per dimension.")
-    a.p(f"{c['name']} benchmarked against the {grp_n} companies in {grp} on seven E1 dimensions. Each row shows "
-        f"the share of peers it outperforms (for emissions, lower is better; for scores, higher is better) {pc}.")
-    if strong:
-        a.p(f"**Relative strengths:** {join([f'{lc(l)} (beats {p}% of peers)' for l, p in strong])} {pc}.")
-    if weak:
-        a.p(f"**Relative weaknesses:** {join([f'{lc(l)} (beats {p}% of peers)' for l, p in weak])} {pc}.")
-    a.block("position", title=f"Position within {grp}", subtitle="Each dot is a company; the highlighted dot is "
-            f"{short_name(c['name'])}", rows=rows, company=short_name(c["name"]))
-    idx_pairs = eligible(M.NUMERIC["index"], members)
-    ordered = sorted(idx_pairs, key=lambda cv: (-cv[1], cv[0]["name"].lower()))
-    table = []
-    for i, (x, v) in enumerate(ordered, 1):
-        table.append({"rank": i, "company": short_name(x["name"]), "id": x["id"], "index": f"{v:.1f}",
-                      "s12": fmt_short(M.NUMERIC["scope12"], M.NUMERIC["scope12"].value(x)) if M.NUMERIC["scope12"].value(x) is not None else "n/r",
-                      "yoy": pct(x["derived"]["scope12_yoy_pct"]) if x["derived"]["scope12_yoy_pct"] is not None else "n/a",
-                      "assured": "Yes" if x["ratings"].get("1340") == 100 else "No",
-                      "scope3": "Yes" if x["ratings"].get("1387") == 100 else "No",
-                      "highlight": x["id"] == c["id"]})
-    a.block("table", title=f"{grp[0].upper() + grp[1:]}: all peers by derived E1 index", rows=table,
-            columns=[{"key": "rank", "label": "#", "align": "right"}, {"key": "company", "label": "Company"},
-                     {"key": "index", "label": "E1 index", "align": "right"},
-                     {"key": "s12", "label": "Scope 1+2 (tCO₂e)", "align": "right"},
-                     {"key": "yoy", "label": "YoY", "align": "right"}, {"key": "assured", "label": "GHG assured"},
-                     {"key": "scope3", "label": "Scope 3 reported"}])
-    near = [x for x, _ in ordered if x["id"] != c["id"]][:2]
-    a.follow(f"Compare {short_name(c['name'])} with {join([short_name(x['name']) for x in near])}" if near else None,
-             f"Where does {short_name(c['name'])} rank on emission intensity?",
-             f"What can {short_name(c['name'])} learn from the best in {sname}?")
+
+def _nearest(c, others):
+    """The peer whose combined Scope 1 and Scope 2 emissions are closest to the company's."""
+    m = M.NUMERIC["scope12"]
+    v = m.value(c)
+    pool = [(abs(x - v), o["name"].lower(), o) for o, x in eligible(m, others)] if v is not None else []
+    return min(pool, key=lambda t: (t[0], t[1]))[2] if pool else (others[0] if others else None)
+
+
+def peer_list(ctx, c, peers=None):
+    """Who the peers are: names only."""
+    a, kb = ctx.a, ctx.kb
+    a.company_ref(c)
+    others, grp, custom = _peer_group(ctx, c, peers)
+    sname = kb.sector_of(c)["name"]
+    short = short_name(c["name"])
+    a.kicker = kicker(ctx, c)
+    a.title = f"Peers of {short}"
+    others = sorted(others, key=lambda x: x["name"].lower())
+    if custom:
+        a.p(f"You set these **{len(others)} companies** as the peer group for {short} earlier in this conversation.")
+    else:
+        n = len(others) + 1
+        a.p(f"**{c['name']}** is classified under **{sname}**, which has {n} companies including it "
+            f"{a.c_note('Peer group', f'The {n} companies classified under {sname} among the companies covered. Peers are the other {n - 1}.')}. "
+            f"Its {n - 1} peers are listed below.")
+    a.block("names", title=f"{len(others)} peers" if not custom else "Your peer group",
+            items=[{"id": x["id"], "name": short_name(x["name"])} for x in others],
+            export=export(f"Peers of {c['name']}", ["Company", "Sector"], [[x["name"], kb.sector_of(x)["name"]] for x in others]))
+    a.context.update({"companies": [c["id"]], "intent": "peer_benchmark"})
+    near = _nearest(c, others)
+    a.follow(f"How does {short} compare with its peers?",
+             f"Compare {short} with {short_name(near['name'])}" if near else None,
+             f"Examples of GHG reduction projects from {sname} companies")
+
+
+def peer_compare(ctx, c, mid, peers=None):
+    a, kb = ctx.a, ctx.kb
+    a.company_ref(c)
+    others, grp, custom = _peer_group(ctx, c, peers)
+    sname = kb.sector_of(c)["name"]
+    short = short_name(c["name"])
+    a.kicker = kicker(ctx, c)
+    a.title = f"{short} and its peers"
+    where = "your chosen peers" if custom else f"the other {len(others)} {sname} companies"
+    if custom:
+        a.note("context", f"Using the peer group you set earlier: {join([short_name(x['name']) for x in others])}. "
+                          f"Say “forget my peer group” to compare with the whole sector again.")
+    if mid in M.BOOL_Q and mid not in M.TEXT_Q:
+        return _peer_bool(ctx, c, M.BOOL_Q[mid], others, where)
+    if mid in M.TEXT_Q:
+        from .h_practice import best_practice
+        return best_practice(ctx, mid, c["sector"], c["id"])
+    if mid == "scope12" or mid not in M.NUMERIC:
+        return _peer_overview(ctx, c, others, where, custom)
+    metric = M.NUMERIC[mid]
+    by = "value" if metric.comparable_levels else "yoy"
+    pairs = eligible(metric, others, by=by)
+    mine = next(iter(eligible(metric, [c], by=by)), None)
+    label = lc(metric.label) + (" (change vs FY 2023-24)" if by == "yoy" else "")
+    if mine is None:
+        a.status = "partial"
+        raw = metric.value(c)
+        a.p(f"{c['name']} {'has not disclosed' if raw is None else 'has no comparable figure for'} {label}, so it cannot "
+            f"be compared with {where}.")
+        a.flag_notes(c, metric.qids)
+        a.follow(f"What are {short}'s GHG emissions?", f"Who are {short}'s peers?")
+        return
+    v = mine[1]
+    shown = pct(v) if by == "yoy" else fmt_value(metric, v)
+    if not pairs:
+        a.status = "partial"
+        a.p(f"{c['name']} reported {label} of {shown} {value_cite(a, c, metric, by)}, but none of {where} disclosed a "
+            f"comparable figure.")
+        return
+    med = median(x for _, x in pairs)
+    med_s = pct(med) if by == "yoy" else fmt_value(metric, med)
+    rel = "the same as" if v == med else ("below" if v < med else "above")
+    mc = a.c_calc(f"Peer median: {label}", f"Median of the {len(pairs)} peers that disclosed this figure = {med_s}",
+                  note=f"{len(pairs)} of {len(others)} peers disclosed a comparable figure.")
+    a.p(f"**{c['name']}** reported {label} of **{shown}** {value_cite(a, c, metric, by)}, which is **{rel}** the "
+        f"peer median of {med_s} {mc}.")
+    a.p(f"{len(pairs)} of its {len(others)} peers disclosed this figure {mc}.")
+    blk = strip(f"{metric.label}: {short} and its peers", pairs + [mine], metric, focus_ids={c["id"]},
+                subtitle="Each dot is a company, FY 2024-25" + (" vs FY 2023-24" if by == "yoy" else ""), value_kind=by)
+    blk["median"], blk["median_display"], blk["median_label"] = med, (pct(med) if by == "yoy" else fmt_short(metric, med)), "Peer median"
+    a.blocks.append(blk)
+    if metric.note:
+        a.note("method", metric.note)
+    a.flag_notes(c, metric.qids)
+    a.context.update({"metric": mid})
+    a.follow(f"How does {short} compare with its peers?", f"Who are {short}'s peers?",
+             f"What if {short} cuts {lc(metric.label)} by 10%?" if metric.comparable_levels else None)
+
+
+def _peer_bool(ctx, c, qid, others, where):
+    a = ctx.a
+    short = short_name(c["name"])
+    pos, neg, plural = BOOL_PHRASE[qid]
+    is_yes = yes(c, qid)
+    y, n = yes_count(others, qid)
+    cc = a.c_calc(f"{BOOL_TITLE.get(qid)} among peers", f"{y} of {n} peers answered Yes")
+    a.p(f"{c['name']} {pos if is_yes else neg} {a.c_filing(c, qid)}. Among {where}, **{y} of {n}** {plural} {cc}.")
+    a.follow(f"Which {ctx.kb.sector_of(c)['name']} companies {plural}?", f"How does {short} compare with its peers?")
+
+
+def _peer_overview(ctx, c, others, where, custom):
+    """One compact table: the company's figure beside the peer median, measure by measure."""
+    a, kb = ctx.a, ctx.kb
+    short = short_name(c["name"])
+    rows, xrows, below, above, level = [], [], [], [], []
+    dims = [("scope1", "value", "Scope 1 emissions"), ("scope2", "value", "Scope 2 emissions"),
+            ("scope3", "value", "Scope 3 emissions"), ("intensity", "value", "Emission intensity"),
+            ("scope12", "yoy", "Change in Scope 1 + Scope 2 vs FY 2023-24")]
+    for mid, by, label in dims:
+        metric = M.NUMERIC[mid]
+        pairs = eligible(metric, others, by=by)
+        mine = next(iter(eligible(metric, [c], by=by)), None)
+        med = median(x for _, x in pairs) if pairs else None
+        unit = "%" if by == "yoy" else metric.unit
+        show = (lambda x: pct(x)) if by == "yoy" else (lambda x: (tile(x) if metric.kind == "abs" else num(x)))
+        if mine is None:
+            raw = metric.value(c) if by == "value" else None
+            pos, mine_s = "n/a", ("Not disclosed" if raw is None else "See note")
+        else:
+            mine_s = show(mine[1])
+            if med is None:
+                pos = "n/a"
+            else:
+                pos = "Same as median" if mine[1] == med else ("Below median" if mine[1] < med else "Above median")
+                (level if mine[1] == med else below if mine[1] < med else above).append(lc(label) if by == "value" else "the change in emissions since FY 2023-24")
+        rows.append({"measure": f"{label} ({unit})" if by == "value" else label, "mine": mine_s,
+                     "median": show(med) if med is not None else "n/a", "position": pos,
+                     "reporting": f"{len(pairs)} of {len(others)}"})
+        xrows.append([f"{label} ({unit})", mine[1] if mine else None, med, pos, len(pairs), len(others)])
+    cite = a.c_calc("Peer medians", "For each measure, the median of the peers that disclosed a comparable figure",
+                    note="The number of peers disclosing each figure is shown in the table. Figures that appear to use a "
+                         "different unit are left out of the medians.")
+    bits = []
+    if below:
+        bits.append(f"below the peer median on {join(below)}")
+    if above:
+        bits.append(f"above it on {join(above)}" if below else f"above the peer median on {join(above)}")
+    if bits:
+        a.p(f"Compared with {where}, **{c['name']}** is {join(bits)} {cite}.")
+    else:
+        a.status = "partial"
+        a.p(f"{c['name']} has not disclosed figures that can be compared with {where} {cite}.")
+    a.block("table", title=f"{short} and the peer median", rows=rows,
+            columns=[{"key": "measure", "label": "Measure"}, {"key": "mine", "label": short, "align": "right"},
+                     {"key": "median", "label": "Peer median", "align": "right"},
+                     {"key": "position", "label": "Position"}, {"key": "reporting", "label": "Peers disclosing", "align": "right"}],
+            export=export(f"{c['name']} and the peer median", ["Measure", c["name"], "Peer median", "Position",
+                                                               "Peers disclosing", "Peers in group"], xrows))
+    a.flag_notes(c, ["1330", "1331", "1332", "1333", "1334", "1335"])
+    sname = kb.sector_of(c)["name"]
+    a.follow(f"Who are {short}'s peers?", f"How does {short} compare with its peers on Scope 1 emissions?",
+             f"Examples of GHG reduction projects from {sname} companies")

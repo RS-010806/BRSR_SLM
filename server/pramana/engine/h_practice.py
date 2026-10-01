@@ -1,207 +1,160 @@
-"""Best practices (verbatim, from top-rated disclosures) and disclosure search."""
+"""Examples of good practice (shown exactly as disclosed) and search across disclosures."""
 from __future__ import annotations
 
-import re
-
-from ..analytics import median
 from . import metrics as M
-from .evidence import THEMES, highlight, specificity, themes_in
-from .fmt import lc, join, pct, share, short_name
+from .common import export, yes
+from .evidence import THEMES
+from .fmt import join, lc, share, short_name
+from .h_company import TEXT_TITLE, quote_item
+from .public import TOPIC, item
 from ..nlu.linker import TECH_TERMS
 
 PRACTICE_QIDS = {"targets": "286", "target_performance": "295", "projects": "1342", "certifications": "277",
                  "ghg_assurance": "1342", "scope12": "1342", "intensity": "1342", "scope1": "1342", "scope2": "1342",
-                 "scope3": "286", "index": "1342"}
+                 "scope3": "286"}
+EXAMPLE_NAME = {"286": "targets", "295": "progress against targets", "1342": "GHG reduction projects",
+                "277": "certifications and standards"}
 TECH_LABEL = {"sbti": "SBTi", "net zero": "net zero", "renewable energy": "renewable energy", "ev": "EVs",
               "electric vehicles": "electric vehicles", "carbon capture": "carbon capture (CCUS)"}
 SEARCH_QIDS = {"286", "295", "1342", "277", "353", "1561"}
 
 
-def _in(scope: str) -> str:
-    """'in Power' for a sector, 'in the dataset' for the whole market."""
-    return "in the dataset" if scope == "all companies" else f"in {scope}"
-
-
-def _evidence_score(ctx, c, qid):
-    """Sum of the three highest sentence specificities (precomputed per cell)."""
+def _detail(ctx, c, qid):
+    """How much concrete detail a disclosure carries (quantities, years, baselines, named measures)."""
     return ctx.kb.evidence_score(c["id"], qid)
+
+
+def _strong(c, qid):
+    return c["ratings"].get(qid) == 100 and bool(c["values"].get(qid))
 
 
 def best_practice(ctx, mid, sid, cid):
     a, kb = ctx.a, ctx.kb
     qid = PRACTICE_QIDS.get(mid or "projects", "1342")
-    q = kb.q(qid)
     me = kb.by_id[cid] if cid else None
     if me and not sid:
         sid = me["sector"]
     pool = kb.members(sid) if sid else kb.companies
-    scope = kb.sector_by_id[sid]["name"] if sid else "all companies"
-    leaders = [c for c in pool if c["ratings"].get(qid) == 100 and c["values"].get(qid) and (not me or c["id"] != me["id"])]
+    scope = kb.sector_by_id[sid]["name"] if sid else None
+    what = EXAMPLE_NAME[qid]
+    others = [c for c in pool if not me or c["id"] != me["id"]]
+    leaders = [c for c in others if _strong(c, qid)]
     widened = False
     if len(leaders) < 3 and sid:
-        extra = [c for c in kb.companies if c["ratings"].get(qid) == 100 and c["values"].get(qid)
-                 and c["sector"] != sid and (not me or c["id"] != me["id"])]
-        extra.sort(key=lambda c: (-_evidence_score(ctx, c, qid), c["name"].lower()))
+        extra = [c for c in kb.companies if _strong(c, qid) and c["sector"] != sid and (not me or c["id"] != me["id"])]
+        extra.sort(key=lambda c: (-_detail(ctx, c, qid), c["name"].lower()))
         leaders = leaders + extra[: 3 - len(leaders)]
         widened = True
-    leaders.sort(key=lambda c: (c["sector"] != sid if sid else False, -_evidence_score(ctx, c, qid),
-                                -(c["derived"]["index"]["overall"] or 0), c["name"].lower()))
-    a.kicker = f"Best practices · {scope}"
-    a.title = q["label"]
-    top_level = (q.get("rubric") or [{}])[-1].get("text", "")
-    n100 = sum(1 for c in pool if c["ratings"].get(qid) == 100)
-    sel = a.c_derived(f"Leaders on Q{qid} in {scope}",
-                      f"{n100} of {len(pool)} companies score 100; ordered by specificity of their three most concrete "
-                      f"sentences, then derived E1 index, then name",
-                      note="Specificity counts quantities with units, years, baselines and named practices. "
-                           "Selection is deterministic.")
-    if n100:
-        a.p(f"{_in(scope)[0].upper() + _in(scope)[1:]}, **{n100} of {len(pool)} companies** score 100 on {lc(q['label'])}, the level described as "
-            f"“{top_level.rstrip('.')}” {sel}. The most specific of these disclosures are reproduced verbatim below, "
-            f"with their most concrete sentences highlighted.")
-    else:
-        a.p(f"No company {_in(scope)} scores 100 on {lc(q['label'])} {sel}.")
-    if widened:
-        a.note("method", f"Fewer than three {scope} companies score 100 here, so the closest examples are drawn from other "
-                         f"sectors and labelled with their sector.")
-    items = []
-    for c in leaders[:3]:
+    leaders.sort(key=lambda c: (c["sector"] != sid if sid else False, -_detail(ctx, c, qid), c["name"].lower()))
+    a.kicker = scope or "All companies"
+    a.title = f"Examples: {what}"
+    how = a.c_note("How examples are chosen",
+                   "Examples are the disclosures with the most concrete detail: quantities, years, baselines and named "
+                   "measures. The text is shown exactly as the company disclosed it.")
+    picks = leaders[:3]
+    if not picks:
+        a.status = "partial"
+        a.p(f"I could not find detailed disclosures on {what} {'in ' + scope if scope else ''} to show as examples.")
+        return
+    for c in picks:
         a.company_ref(c)
-        segs = ctx.index.by_cell.get((c["id"], qid), [])
-        text = c["values"][qid]
-        items.append({"company": c["name"], "company_id": c["id"], "short": short_name(c["name"]),
-                      "sector": kb.sector_of(c)["name"], "qid": qid, "question": q["label"], "score": 100,
-                      "text": text, "segments": highlight(segs, k=3), "themes": ctx.kb.themes(c["id"], qid),
-                      "cite": a.c_cell(c, qid), "rating_cite": a.c_rating(c, qid), "cell": c["cells"].get(qid)})
-    if items:
-        a.p(f"Examples: {join([f'**{i['short']}** ({i['sector']}) {i['cite']}' for i in items])}.")
-        a.block("quotes", title="Top-rated disclosures, verbatim", items=items)
+    src = f"{scope} companies" if scope and not widened else "companies" if not scope else f"{scope} and other companies"
+    a.p(f"Here are {len(picks)} detailed examples of {what} disclosed by {src} for FY 2024-25 {how}. "
+        f"The most specific points are highlighted.")
+    if widened:
+        a.note("context", f"{scope} has fewer than three detailed disclosures on this topic, so examples from other "
+                          f"sectors are included and labelled.")
+    items = [quote_item(ctx, c, qid) for c in picks]
+    a.block("quotes", items=items)
 
-    # practices that distinguish leaders from the rest of the pool
-    all100 = [c for c in pool if c["ratings"].get(qid) == 100 and c["values"].get(qid)]
-    rest = [c for c in pool if c["ratings"].get(qid) != 100 and c["values"].get(qid)]
-    rows = []
-    if len(all100) >= 2:
+    # measures named most often across the detailed disclosures
+    detailed = [c for c in pool if _strong(c, qid)]
+    common = []
+    if len(detailed) >= 3:
         for t in THEMES:
-            l = sum(1 for c in all100 if t in ctx.kb.themes(c["id"], qid))
-            r = sum(1 for c in rest if t in ctx.kb.themes(c["id"], qid))
-            if l:
-                rows.append({"label": t, "values": [100 * l / len(all100), 100 * r / len(rest) if rest else 0],
-                             "displays": [f"{100 * l / len(all100):.0f}%", f"{100 * r / len(rest):.0f}%" if rest else "0%"],
-                             "counts": [l, r]})
-        rows.sort(key=lambda r: (-r["values"][0], r["label"]))
-        rows = rows[:8]
-        if rows:
-            a.block("grouped", title="Practices named in top-rated vs other disclosures",
-                    subtitle=f"Share of companies whose Q{qid} text names each practice ({scope})",
-                    series=[f"Score 100 ({len(all100)})", f"Other disclosures ({len(rest)})"], groups=rows, max=100,
-                    unit="%", horizontal=True)
-            gap = [r for r in rows if r["values"][0] - r["values"][1] >= 15]
-            if gap:
-                a.p(f"Practices named far more often by top-rated companies than by the rest: "
-                    f"{join([f'{lc(r['label'])} ({r['displays'][0]} vs {r['displays'][1]})' for r in gap[:4]])} "
-                    f"{a.c_derived('Practice frequency', 'keyword families matched in disclosure text of each group', note='Keyword families are listed in the method note; matches are exact, case-insensitive.')}.")
-
-    # personalised gap analysis
+            k = sum(1 for c in detailed if t in kb.themes(c["id"], qid))
+            if k:
+                common.append((t, k))
+        common.sort(key=lambda t: (-t[1], t[0]))
+        common = common[:5]
+        if common:
+            cc = a.c_calc("Measures named most often", f"Count across the {len(detailed)} most detailed disclosures "
+                          f"{'in ' + scope if scope else 'among all companies'}",
+                          note="A measure is counted when the disclosure names it. A mention is not a verified result.")
+            a.p(f"Measures named most often in such disclosures: "
+                f"{join([f'{lc(t)} ({k} of {len(detailed)})' for t, k in common])} {cc}.")
     if me:
         a.company_ref(me)
-        s = me["ratings"].get(qid)
-        mine = set(ctx.kb.themes(me["id"], qid))
-        common = [r["label"] for r in rows if r["values"][0] >= 40] if rows else []
-        missing = [t for t in common if t not in mine]
-        my_spec = _evidence_score(ctx, me, qid)
-        lead_spec = median(_evidence_score(ctx, c, qid) for c in all100) if all100 else None
-        txt = (f"**For {short_name(me['name'])}:** its disclosure scores **{s if s is not None else 'n/a'}/100** "
-               f"{a.c_rating(me, qid)}")
+        short = short_name(me["name"])
         if me["values"].get(qid):
-            txt += f" {a.c_cell(me, qid)}"
-            if lead_spec is not None:
-                txt += (f". Its three most concrete sentences have a specificity score of {my_spec:.1f} against a median of "
-                        f"{lead_spec:.1f} for top-rated peers")
+            mine = set(kb.themes(me["id"], qid))
+            missing = [t for t, k in common if t not in mine and k / len(detailed) >= 0.3]
             if missing:
-                txt += f". Practices common among top-rated peers but not named in its text: {join([m.lower() for m in missing])}"
+                a.p(f"**For {short}:** its own disclosure {a.c_filing(me, qid)} does not mention {join([lc(t) for t in missing], 'or')}, "
+                    f"which these companies describe.")
+            else:
+                a.p(f"**For {short}:** its own disclosure {a.c_filing(me, qid)} already covers the measures named most "
+                    f"often by these companies.")
         else:
-            txt += ". The disclosure is blank"
-        a.p(txt + ".")
-        a.block("gap", company=short_name(me["name"]), score=s, peers_score=100, my_themes=sorted(mine),
-                missing=missing, my_specificity=my_spec, leader_specificity=lead_spec, qid=qid, question=q["label"])
-        a.note("method", "The gap view compares what is disclosed, not what is done. It never recommends actions the "
-                         "sources do not describe; every practice listed appears verbatim in a top-rated disclosure.")
+            a.p(f"**For {short}:** it has not disclosed {TOPIC.get(qid, what)} for FY 2024-25 {a.c_filing(me, qid)}.")
     a.context.update({"metric": mid, "sector": sid, "companies": [cid] if cid else []})
-    a.follow(f"Show {items[0]['short']}'s E1 profile" if items else None,
-             f"Best practices on {'targets' if qid != '286' else 'GHG reduction projects'}" + (f" in {scope}" if sid else ""),
-             f"Which companies mention green hydrogen?" if qid == "1342" else "Which companies mention SBTi?")
+    other = "targets" if qid != "286" else "GHG reduction projects"
+    a.follow(f"Tell me about {items[0]['short']}",
+             f"Examples of {other}" + (f" from {scope} companies" if scope else ""),
+             "Which companies mention green hydrogen?" if qid == "1342" else "Which companies mention SBTi?")
 
 
 def _labels(ctx):
     plan = ctx.plan
-    labels = [TECH_LABEL.get(t, t) for t in plan.tech] + [f"\u201c{k}\u201d" for k in plan.keywords]
-    return labels
+    return [TECH_LABEL.get(t, t) for t in plan.tech] + [f"“{k}”" for k in plan.keywords]
 
 
 def text_search(ctx, sid):
     a, kb = ctx.a, ctx.kb
     labels = _labels(ctx)
-    n_variants = sum(len(TECH_TERMS.get(t, [t])) for t in ctx.plan.tech) + len(ctx.plan.keywords)
     pool_ids = set(kb.sector_by_id[sid]["members"]) if sid else None
     pool_n = kb.sector_by_id[sid]["n"] if sid else len(kb.companies)
-    scope = kb.sector_by_id[sid]["name"] if sid else "all companies"
-    a.kicker = f"Disclosure search · {scope}"
-    a.title = f"Mentions of {join(labels, 'or')}" if labels else "Disclosure search"
+    scope = kb.sector_by_id[sid]["name"] if sid else None
+    a.kicker = scope or "All companies"
+    a.title = f"Mentions of {join(labels, 'or')}" if labels else "Search disclosures"
     if not labels:
         a.status = "partial"
-        a.p("Tell me what to look for, for example a technology (green hydrogen, waste heat recovery) or a quoted phrase.")
+        a.p("Tell me what to look for, for example a technology such as green hydrogen or waste heat recovery, or a "
+            "phrase in quotation marks.")
         return
     hits = ctx.index.search(ctx.plan.tech, ctx.plan.keywords, SEARCH_QIDS, pool_ids)
     cids = sorted(hits, key=lambda cid: (-sum(len(sp) for _, sp in hits[cid]), kb.by_id[cid]["name"].lower()))
-    cite = a.c_derived("Disclosure search", f"exact, case-insensitive match of {n_variants} phrase variants across "
-                                            f"Q286, Q295, Q1342, Q277, Q353 and Q1561 for {pool_n} companies",
-                       note="Matches are literal text in the filing. A mention is not a verified project.")
+    cite = a.c_note("How the search works",
+                    "An exact, case-insensitive match in what companies disclosed on targets, progress against targets, "
+                    "projects to reduce GHG emissions and certifications. A mention is not a verified project.")
+    where = f" in {scope}" if scope else ""
     if not cids:
         a.status = "partial"
-        a.p(f"No disclosure {_in(scope)} mentions {join(labels, 'or')} {cite}. The search is literal, so companies may "
-            f"describe the same practice in other words.")
-        a.follow("Which companies mention renewable energy?", "Best practices on GHG reduction projects")
+        a.p(f"No company{where} mentions {join(labels, 'or')} in these disclosures {cite}. The search is literal, so a "
+            f"company may describe the same thing in other words.")
+        a.follow("Which companies mention renewable energy?", "Examples of GHG reduction projects")
         return
-    by_q = {}
-    for cid in cids:
-        for d, _ in hits[cid]:
-            by_q.setdefault(d["qid"], set()).add(cid)
-    where = f" in {scope}" if sid else ""
-    a.p(f"**{len(cids)} of {pool_n} companies ({share(len(cids), pool_n)})**{where} mention {join(labels, 'or')} in "
-        f"their E1 disclosures {cite}: "
-        + join([f"{len(v)} in {lc(kb.q(q)['label'])}" for q, v in sorted(by_q.items(), key=lambda t: (-len(t[1]), t[0]))])
-        + ".")
+    a.p(f"**{len(cids)} of {pool_n} companies ({share(len(cids), pool_n)})**{where} mention {join(labels, 'or')} in their "
+        f"disclosures {cite}.")
     items = []
-    for cid in cids[:6]:
+    for cid in cids[:5]:
         c = kb.by_id[cid]
         a.company_ref(c)
         d, spans = hits[cid][0]
-        text = c["values"][d["qid"]]
-        segs = [{"start": d["start"], "end": d["end"], "highlight": True,
-                 "marks": [[d["start"] + s0, d["start"] + s1] for s0, s1 in spans]}]
-        items.append({"company": c["name"], "company_id": cid, "short": short_name(c["name"]),
-                      "sector": kb.sector_of(c)["name"], "qid": d["qid"], "question": kb.q(d["qid"])["label"],
-                      "score": c["ratings"].get(d["qid"]), "text": text, "segments": segs, "excerpt": True,
-                      "mentions": sum(len(sp) for _, sp in hits[cid]), "cite": a.c_cell(c, d["qid"]),
-                      "cell": c["cells"].get(d["qid"])})
-    a.block("quotes", title="Matching sentences, verbatim", items=items, excerpt=True)
-    if not sid:
-        counts = {}
-        for cid in cids:
-            s = kb.by_id[cid]["sector"]
-            counts[s] = counts.get(s, 0) + 1
-        a.block("bars", title="Companies mentioning it, by sector", unit="companies",
-                rows=[{"id": s, "label": kb.sector_by_id[s]["name"], "value": v, "display": str(v),
-                       "full": f"{v} of {kb.sector_by_id[s]['n']} ({share(v, kb.sector_by_id[s]['n'])})"}
-                      for s, v in sorted(counts.items(), key=lambda t: (-t[1], kb.sector_by_id[t[0]]["name"]))])
-    a.block("table", title=f"All {len(cids)} companies", csv=True,
+        items.append({"key": f"{cid}:{d['qid']}", "company": c["name"], "company_id": cid, "short": short_name(c["name"]),
+                      "sector": kb.sector_of(c)["name"], "topic": item(d["qid"])[0], "text": c["values"][d["qid"]],
+                      "segments": [{"start": d["start"], "end": d["end"], "highlight": True,
+                                    "marks": [[d["start"] + s0, d["start"] + s1] for s0, s1 in spans]}],
+                      "mentions": sum(len(sp) for _, sp in hits[cid]), "cite": a.c_filing(c, d["qid"])})
+    a.block("quotes", title="Where it is mentioned", items=items, excerpt=True)
+    rows = [{"company": short_name(kb.by_id[cid]["name"]), "id": cid, "sector": kb.sector_of(kb.by_id[cid])["name"],
+             "mentions": sum(len(sp) for _, sp in hits[cid])} for cid in cids]
+    a.block("table", title=f"All {len(cids)} companies",
             columns=[{"key": "company", "label": "Company"}, {"key": "sector", "label": "Sector"},
-                     {"key": "mentions", "label": "Mentions", "align": "right"}, {"key": "where", "label": "Where"}],
-            rows=[{"company": short_name(kb.by_id[cid]["name"]), "id": cid, "sector": kb.sector_of(kb.by_id[cid])["short"],
-                   "mentions": sum(len(sp) for _, sp in hits[cid]),
-                   "where": ", ".join(sorted({f"Q{d['qid']}" for d, _ in hits[cid]}))} for cid in cids])
+                     {"key": "mentions", "label": "Mentions", "align": "right"}], rows=rows,
+            export=export(a.title, ["Company", "Sector", "Mentions"],
+                          [[kb.by_id[cid]["name"], kb.sector_of(kb.by_id[cid])["name"], r["mentions"]] for cid, r in zip(cids, rows)]))
     a.context.update({"tech": ctx.plan.tech, "sector": sid})
-    a.follow(f"Show {items[0]['short']}'s GHG reduction projects",
-             f"Best practices on GHG reduction projects" + (f" in {scope}" if sid else ""),
+    a.follow(f"Show {items[0]['short']}'s projects to reduce GHG emissions",
+             "Examples of GHG reduction projects" + (f" from {scope} companies" if scope else ""),
              "Which companies mention waste heat recovery?" if "waste heat recovery" not in labels else "Which companies mention green hydrogen?")

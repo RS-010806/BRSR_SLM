@@ -1,4 +1,7 @@
-"""Runtime metric definitions used for values, rankings and peer statistics."""
+"""Runtime metric definitions used for values, rankings and peer statistics.
+
+Only figures that companies disclose themselves are exposed as metrics.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -53,45 +56,35 @@ NUMERIC: dict[str, Metric] = {
     "scope2": Metric("scope2", "Scope 2 emissions", CO2, "abs", cy_q="1332", py_q="1333", rating_q=["1332"],
                      value=_v("1332"), prev=_v("1333"), yoy=_d("scope2_yoy_pct"), level_ok=_abs_ok(["1332", "1333"]),
                      qids=["1332", "1333"]),
-    "scope12": Metric("scope12", "Scope 1+2 emissions", CO2, "abs", rating_q=["1330", "1332"],
+    "scope12": Metric("scope12", "Scope 1 + Scope 2 emissions", CO2, "abs", rating_q=["1330", "1332"],
                       value=_d("scope12_cy"), prev=_d("scope12_py"), yoy=_d("scope12_yoy_pct"),
                       level_ok=_abs_ok(["1330", "1331", "1332", "1333"]), qids=["1330", "1331", "1332", "1333"]),
     "scope3": Metric("scope3", "Scope 3 emissions", CO2, "abs", cy_q="1388", py_q="1389", rating_q=["1388"],
                      value=_v("1388"), prev=_v("1389"), yoy=_d("scope3_yoy_pct"), level_ok=lambda c: True,
                      qids=["1388", "1389"]),
-    "intensity": Metric("intensity", "Scope 1+2 intensity", f"{CO2} per ₹ crore", "intensity",
+    "intensity": Metric("intensity", "Emission intensity", f"{CO2} per ₹ crore", "intensity",
                         cy_q="1334", py_q="1335", rating_q=["1334", "1335"], value=_d("intensity_cr_cy"),
                         prev=_d("intensity_cr_py"), yoy=_d("intensity_yoy_pct"), level_ok=_d("intensity_level_ok"),
                         qids=["1334", "1335"],
-                        note="Reported per rupee of turnover; shown per ₹ crore (x 10,000,000) as in Report Table 3.5."),
+                        note="Scope 1 and Scope 2 emissions per rupee of turnover, as disclosed, shown here per ₹ crore of turnover."),
     "scope3_intensity": Metric("scope3_intensity", "Scope 3 intensity", f"{CO2} per ₹ crore", "intensity",
                                cy_q="1390", py_q="1391", rating_q=["1390", "1391"], value=_d("scope3_intensity_cr_cy"),
                                prev=_d("scope3_intensity_cr_py"), yoy=_d("scope3_intensity_yoy_pct"),
                                level_ok=_d("scope3_intensity_level_ok"), qids=["1390", "1391"],
-                               note="Reported per rupee of turnover; shown per ₹ crore."),
-    "intensity_phys": Metric("intensity_phys", "Scope 1+2 intensity per unit of physical output",
+                               note="Scope 3 emissions per rupee of turnover, as disclosed, shown here per ₹ crore of turnover."),
+    "intensity_phys": Metric("intensity_phys", "Emission intensity per unit of physical output",
                              "company-specific unit", "intensity", cy_q="1338", py_q="1339", rating_q=["1338", "1339"],
                              value=_v("1338"), prev=_v("1339"), yoy=_d("intensity_phys_yoy_pct"),
                              level_ok=lambda c: False, comparable_levels=False, qids=["1338", "1339"],
                              note="Each company chooses its own physical unit (per tonne, per MWh, per unit and so on), "
                                   "so levels are not comparable across companies. Only the year-on-year change is compared."),
-    "intensity_ppp": Metric("intensity_ppp", "Scope 1+2 intensity (PPP adjusted)", "as reported", "intensity",
+    "intensity_ppp": Metric("intensity_ppp", "Emission intensity (PPP adjusted)", "as reported", "intensity",
                             cy_q="1336", py_q="1337", rating_q=["1336", "1337"], value=_v("1336"), prev=_v("1337"),
                             yoy=_d("intensity_ppp_yoy_pct"), level_ok=lambda c: False, comparable_levels=False,
                             qids=["1336", "1337"],
                             note="PPP-adjusted intensities are reported in inconsistent units across companies, "
                                  "so only the year-on-year change is compared."),
-    "index": Metric("index", "E1 index (derived)", "/100", "score", better="higher",
-                    value=lambda c: c["derived"]["index"]["overall"], level_ok=lambda c: True,
-                    note="Equal-weighted mean of the Governance, Action and Performance pillar averages of "
-                         "Rating-sheet scores. Derived by Pramana for navigation; not an official IIMB score."),
 }
-
-# Narrative / yes-no questions expressed as their Rating-sheet score (0-100).
-SCORE_Q = {"targets": "286", "target_performance": "295", "projects": "1342", "certifications": "277",
-           "ghg_assurance": "1340", "scope3_reported": "1387", "scope3_assurance": "1560", "policy": "232",
-           "board_approval": "241", "policy_link": "250", "procedures": "259", "value_chain": "268",
-           "policy_assessment": "344", "review_level": "308", "review_frequency": "326", "ghg_applicable": "1329"}
 
 BOOL_Q = {"ghg_assurance": "1340", "scope3_reported": "1387", "scope3_assurance": "1560", "policy": "232",
           "board_approval": "241", "policy_link": "250", "procedures": "259", "value_chain": "268",
@@ -104,16 +97,5 @@ TEXT_Q = {"targets": "286", "target_performance": "295", "projects": "1342", "ce
 CATEGORY_Q = {"review_level": ["308", "317"], "review_frequency": ["326", "335"]}
 
 
-def score_metric(mid: str, kb) -> Metric:
-    q = SCORE_Q[mid]
-    qq = kb.q(q)
-    return Metric(mid, f"{qq['label']} (score)", "/100", "score", better="higher",
-                  value=lambda c, q=q: c["ratings"].get(q), level_ok=lambda c: True, rating_q=[q], qids=[q])
-
-
-def get(mid: str, kb) -> Metric | None:
-    if mid in NUMERIC:
-        return NUMERIC[mid]
-    if mid in SCORE_Q:
-        return score_metric(mid, kb)
-    return None
+def get(mid: str | None, kb=None) -> Metric | None:
+    return NUMERIC.get(mid) if mid else None

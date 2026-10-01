@@ -7,6 +7,7 @@ export type AnswerCtxT = {
   activeCite: number | null;
   ask: (q: string) => void;
   prefetch?: (q: string) => void;
+  pickCompany?: () => void;
 };
 export const AnswerCtx = createContext<AnswerCtxT>({ citations: [], openCite: () => {}, activeCite: null, ask: () => {} });
 
@@ -180,4 +181,25 @@ export function toast(msg: string) {
   el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2200);
+}
+
+/* --------------------------------------------------------------- theme */
+export function currentTheme(): "light" | "dark" {
+  const t = document.documentElement.dataset.theme;
+  if (t === "light" || t === "dark") return t;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/* Re-renders when the theme changes, whether from the toggle or the system setting. */
+export function useTheme(): "light" | "dark" {
+  const [t, setT] = useState(currentTheme());
+  useEffect(() => {
+    const f = () => setT(currentTheme());
+    const mo = new MutationObserver(f);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+    mq?.addEventListener?.("change", f);
+    return () => { mo.disconnect(); mq?.removeEventListener?.("change", f); };
+  }, []);
+  return t;
 }

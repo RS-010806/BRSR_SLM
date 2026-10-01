@@ -1,39 +1,29 @@
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createShare, sendFeedback, type Answer, type Citation, type Ctx } from "../api";
+import { downloadAnswer } from "../exporting";
 import { I } from "../icons";
 import { AnswerCtx, Rich, toast, useHoverPrefetch } from "../ui";
 import { BlockView } from "./blocks";
-import { Rubric } from "./blocks/Content";
 
+/* What a source is, in words an end user recognises: a company's own disclosure,
+   or arithmetic over disclosed figures. */
 export function citeWhere(c: Citation): string {
-  switch (c.kind) {
-    case "cell": return `Base Data!${c.cell}`;
-    case "rating": return `Rating!${c.cell}`;
-    case "report_table": return `Table ${c.table} · p.${c.pdf_page}`;
-    case "report_text": return c.pdf_page ? `Report · p.${c.pdf_page}` : "Report";
-    case "derived": return "Computed";
-    default: return "Method note";
-  }
+  if (c.kind === "filing") return `BRSR ${c.fy}`;
+  return c.kind === "computed" ? "Calculated" : "Note";
 }
 export function citeWhat(c: Citation): string {
-  switch (c.kind) {
-    case "cell": return `${c.company}: ${c.question}`;
-    case "rating": return `${c.company}: rating ${c.score ?? "n/a"} on Q${c.qid}`;
-    case "report_table": return `Table ${c.table}: ${c.title}${c.row ? ` (${c.row})` : ""}`;
-    case "report_text": return `“${String(c.text).slice(0, 110)}${String(c.text).length > 110 ? "…" : ""}”`;
-    case "derived": return c.label;
-    default: return c.label;
-  }
+  if (c.kind === "filing") return `${c.company}: ${c.item}`;
+  return c.label;
 }
 
-/* ---------------------------------------------------------------- evidence drawer */
+/* ---------------------------------------------------------------- source drawer */
 export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: Citation[]; onClose: () => void; onCite: (n: number) => void; ask: (q: string) => void }) {
   useEffect(() => {
     const f = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", f);
     return () => window.removeEventListener("keydown", f);
   }, [onClose]);
-  const kindLabel = { cell: "Workbook cell", rating: "Rating score", report_table: "Report table", report_text: "Report text", derived: "Computation", method: "Method note" }[c.kind];
+  const kindLabel = { filing: "Company disclosure", computed: "Calculation", note: "Note" }[c.kind];
   return (
     <>
       <div className="drawer-scrim" onClick={onClose} />
@@ -41,80 +31,32 @@ export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: C
         <div className="drawer-h">
           <div>
             <div className="drawer-k"><span className="cite on" style={{ cursor: "default" }}>{c.id}</span>{kindLabel}</div>
-            <div className="drawer-t">{c.kind === "cell" || c.kind === "rating" ? c.company : c.kind === "report_table" ? `Table ${c.table}` : c.label || "IIMB report"}</div>
+            <div className="drawer-t">{c.kind === "filing" ? c.company : c.label}</div>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Close"><I.x /></button>
         </div>
         <div className="drawer-b">
-          {c.kind === "cell" && (
+          {c.kind === "filing" && (
             <>
-              <div className="addr">
-                <div><div className="addr-k">File</div><div className="addr-v">E1 data.xlsx</div></div>
-                <div><div className="addr-k">Sheet</div><div className="addr-v">{c.sheet}</div></div>
-                <div><div className="addr-k">Cell</div><div className="addr-v">{c.cell}</div></div>
+              <div className="addr two">
+                <div><div className="addr-k">Document</div><div className="addr-v">BRSR filing</div></div>
+                <div><div className="addr-k">Financial year</div><div className="addr-v">{c.fy}</div></div>
               </div>
               <div>
-                <div className="card-s">Q{c.qid} · {c.question}</div>
-                {c.brsr && <div className="card-s mono" style={{ marginTop: 6, fontSize: 11.5 }}>{c.brsr}</div>}
+                <div className="card-t" style={{ fontSize: 14 }}>{c.item}</div>
+                <div className="card-s" style={{ marginTop: 4 }}>{c.where}</div>
               </div>
-              {c.text ? <div className="fulltext">{c.text}</div> : <div className="valuebox"><div className="card-s">Value as filed</div><div className="v tnum">{c.value}</div></div>}
-              <div><button className="btn" onClick={() => { onClose(); ask(`Show ${c.company}'s E1 profile`); }}><I.building />Open company profile</button></div>
+              {c.text ? <div className="fulltext">{c.text}</div> : <div className="valuebox"><div className="card-s">As disclosed by the company</div><div className="v tnum">{c.value}</div></div>}
+              <div><button className="btn" onClick={() => { onClose(); ask(`Tell me about ${c.company}`); }}><I.building />More about this company</button></div>
             </>
           )}
-          {c.kind === "rating" && (
+          {c.kind === "computed" && (
             <>
-              <div className="addr">
-                <div><div className="addr-k">Sheet</div><div className="addr-v">Rating</div></div>
-                <div><div className="addr-k">Cell</div><div className="addr-v">{c.cell || "n/a"}</div></div>
-                <div><div className="addr-k">Question</div><div className="addr-v">Q{c.qid}</div></div>
-              </div>
-              <div className="valuebox"><div className="card-s">{c.question}</div><div className="v">{c.score == null ? "No score" : `${c.score} / 100`}</div></div>
-              {c.rubric?.length > 0 && <Rubric b={{ levels: c.rubric.map((l: any) => ({ score: l.score, text: l.text })), score: c.score, source: c.rule_source }} />}
-            </>
-          )}
-          {c.kind === "report_table" && (
-            <>
-              <div className="card-s">{c.title}</div>
-              {(() => {
-                const clean = (h: string) => h.replace(/\s+/g, " ").trim();
-                const hit = c.row ? c.rows.find((r: string[]) => r[0] === c.row) : null;
-                return hit ? (
-                  <div className="rowcard">
-                    <div className="rowcard-h">Cited row: {clean(hit[0])}</div>
-                    <dl>{c.columns.slice(1).map((h: string, j: number) => <Fragment key={j}><dt>{clean(h) || "Value"}</dt><dd>{hit[j + 1]}</dd></Fragment>)}</dl>
-                  </div>
-                ) : null;
-              })()}
-              <details open={!c.row}>
-              <summary className="card-s" style={{ cursor: "pointer", margin: "4px 0 8px" }}>Full table as published</summary>
-              <div className="tbl-wrap" style={{ maxHeight: 420 }}>
-                <table className="mini-table">
-                  <thead><tr>{c.columns.map((h: string, i: number) => <th key={i}>{h.replace(/\s+/g, " ").trim()}</th>)}</tr></thead>
-                  <tbody>
-                    {c.rows.map((r: string[], i: number) => (
-                      <tr key={i} className={c.row && r[0] === c.row ? "hit" : ""}>{r.map((x, j) => <td key={j} className={j > 0 ? "num" : ""}>{x}</td>)}</tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              </details>
-              {c.note && <div className="card-s">{c.note}</div>}
-              <div><a className="btn" href={`/files/report.pdf#page=${c.pdf_page}`} target="_blank" rel="noreferrer"><I.book />Open report at PDF page {c.pdf_page} (printed {c.printed_page})</a></div>
-            </>
-          )}
-          {c.kind === "report_text" && (
-            <>
-              <blockquote className="rq"><p>{c.text}</p><footer>{c.where}</footer></blockquote>
-              {c.pdf_page && <div><a className="btn" href={`/files/report.pdf#page=${c.pdf_page}`} target="_blank" rel="noreferrer"><I.book />Open report at PDF page {c.pdf_page}</a></div>}
-            </>
-          )}
-          {c.kind === "derived" && (
-            <>
-              <div className="valuebox"><div className="card-s">Formula</div><div className="mono" style={{ fontSize: 13.5, marginTop: 6, overflowWrap: "anywhere" }}>{c.formula}</div></div>
+              <div className="valuebox"><div className="card-s">How it is calculated</div><div style={{ fontSize: 14.5, marginTop: 6, overflowWrap: "anywhere" }} className="tnum">{c.formula}</div></div>
               {c.note && <div className="card-s" style={{ fontSize: 13 }}>{c.note}</div>}
               {c.inputs?.length > 0 && (
                 <div>
-                  <div className="card-s" style={{ marginBottom: 8 }}>Inputs</div>
+                  <div className="card-s" style={{ marginBottom: 8 }}>Figures used</div>
                   {c.inputs.map((ref: string) => {
                     const n = Number(ref.replace(/\D/g, ""));
                     const src = all.find((x) => x.id === n);
@@ -126,66 +68,13 @@ export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: C
                   })}
                 </div>
               )}
-              <div className="card-s">Computed deterministically from the cited cells. No estimation or imputation.</div>
+              <div className="card-s">Calculated from figures the companies disclosed. Nothing is estimated.</div>
             </>
           )}
-          {c.kind === "method" && <div className="fulltext" style={{ borderLeftColor: "var(--accent)" }}>{c.text}</div>}
+          {c.kind === "note" && <div className="fulltext" style={{ borderLeftColor: "var(--accent)" }}>{c.text}</div>}
         </div>
       </aside>
     </>
-  );
-}
-
-/* ---------------------------------------------------------------- trace */
-function Trace({ t }: { t: any }) {
-  const ents = t.entities || {};
-  return (
-    <div className="trace">
-      <h4>How this was understood and answered</h4>
-      <div className="pipeline">
-        <div className="stage"><div className="stage-k">1 Normalise</div><div className="stage-v">{(t.normalized || "").split(" ").map((w: string, i: number) => <span key={i} className={"tok" + (w.startsWith("<") ? " ent" : "")}>{w}</span>)}</div></div>
-        <div className="stage">
-          <div className="stage-k">2 Classify</div>
-          <div className="stage-v">
-            {(t.model?.top3 || []).map(([k, p]: [string, number]) => (
-              <div className="prob" key={k}><span className="mono" style={{ fontSize: 11.5 }}>{k}</span><span className="prob-bar"><i style={{ width: `${p * 100}%` }} /></span><span className="mono tnum" style={{ fontSize: 11.5 }}>{(p * 100).toFixed(1)}%</span></div>
-            ))}
-          </div>
-        </div>
-        <div className="stage">
-          <div className="stage-k">3 Link</div>
-          <div className="stage-v" style={{ fontSize: 12.5 }}>
-            {ents.companies?.map((c: any) => <div key={c.id}>Company: <b>{c.name}</b></div>)}
-            {ents.sector && <div>Sector: <b>{ents.sector}</b></div>}
-            {ents.metric && <div>Metric: <b>{ents.metric}</b></div>}
-            {ents.tech?.length > 0 && <div>Search: <b>{ents.tech.join(", ")}</b></div>}
-            {ents.offtopic?.length > 0 && <div>Out of scope: <b>{ents.offtopic.join(", ")}</b></div>}
-            {ents.absent?.length > 0 && <div>Not in dataset: <b>{ents.absent.join(", ")}</b></div>}
-            {!ents.companies?.length && !ents.sector && !ents.metric && <span className="muted">No entities</span>}
-          </div>
-        </div>
-        <div className="stage">
-          <div className="stage-k">4 Ground</div>
-          <div className="stage-v" style={{ fontSize: 12.5 }}>
-            <div>{t.grounding?.citations} {t.grounding?.citations === 1 ? "citation" : "citations"}</div>
-            <div>{t.grounding?.numeric_paragraphs} numeric {t.grounding?.numeric_paragraphs === 1 ? "statement" : "statements"}, {t.grounding?.uncited?.length ?? 0} uncited</div>
-            <div className="muted">{t.timing_ms?.understand} ms understand + {t.timing_ms?.compose} ms compose</div>
-          </div>
-        </div>
-      </div>
-      <div className="card-s" style={{ marginBottom: 6 }}>Final route: <b className="mono">{t.final_intent}</b>{t.model && <> · model topic <span className="mono">{t.model.topic}</span> ({(t.model.topic_p * 100).toFixed(0)}%)</>}</div>
-      {t.rules?.length > 0 && <div>{t.rules.map((r: string, i: number) => <div className="rule" key={i}>rule: {r}</div>)}</div>}
-      {t.used_context && Object.keys(t.used_context).length > 0 && <div className="rule">memory: used {Object.keys(t.used_context).join(", ")} from earlier in this conversation</div>}
-      {t.learned && Object.keys(t.learned).length > 0 && <div className="rule">learned this turn: {Object.keys(t.learned).join(", ")}</div>}
-      {t.prefs && Object.keys(t.prefs).length > 0 && <div className="rule">active preferences: {Object.keys(t.prefs).join(", ")}</div>}
-      {t.few_shot?.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div className="card-s" style={{ marginBottom: 4 }}>Nearest labelled examples (few-shot memory)</div>
-          {t.few_shot.map((n: any) => <div className="rule" key={n.q}>{n.sim.toFixed(2)} · {n.intent} · {"\u201c"}{n.q}{"\u201d"}</div>)}
-        </div>
-      )}
-      <div className="card-s" style={{ marginTop: 8 }}>BPE pieces: <span className="mono" style={{ fontSize: 11.5 }}>{(t.model?.tokens || []).join(" ")}</span></div>
-    </div>
   );
 }
 
@@ -203,25 +92,27 @@ function Followups({ items, ask }: { items: string[]; ask: (q: string) => void }
   );
 }
 
-export function AnswerView({ a, q, ctx, ask, index, prefetch }: { a: Answer; q: string; ctx?: Ctx; ask: (q: string) => void; index: number; prefetch?: (q: string) => void }) {
+const NOTE_LABEL: Record<string, string> = { data: "Note", scope: "Not covered", method: "Note", context: "Note" };
+
+export function AnswerView({ a, q, ctx, ask, index, prefetch, pickCompany }: {
+  a: Answer; q: string; ctx?: Ctx; ask: (q: string) => void; index: number; prefetch?: (q: string) => void; pickCompany?: () => void;
+}) {
   const [cite, setCite] = useState<number | null>(null);
-  const [trace, setTrace] = useState(false);
   const [vote, setVote] = useState<number>(() => readVote(a.fingerprint));
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
   const rate = (r: 1 | -1) => {
     setVote(r);
     try { localStorage.setItem("pramana.vote." + a.fingerprint, String(r)); } catch { /* storage unavailable */ }
-    if (r === 1) { sendFeedback(a, q, 1).catch(() => {}); toast("Thanks. Recorded anonymously."); setNoteOpen(false); }
+    if (r === 1) { sendFeedback(a, q, 1).catch(() => {}); toast("Thank you for the feedback."); setNoteOpen(false); }
     else setNoteOpen(true);
   };
   const submitNote = () => {
     sendFeedback(a, q, -1, note).catch(() => {});
     setNoteOpen(false);
-    toast("Thanks. This helps improve coverage.");
+    toast("Thank you. Your feedback has been recorded.");
   };
   const c = a.citations.find((x) => x.id === cite) || null;
-  const notes = [...a.notes].sort((x, y) => (x.kind === "data_quality" || x.kind === "scope" ? -1 : 0) - (y.kind === "data_quality" || y.kind === "scope" ? -1 : 0));
 
   const share = async () => {
     const short = await createShare(q, ctx, a.fingerprint);
@@ -230,80 +121,85 @@ export function AnswerView({ a, q, ctx, ask, index, prefetch }: { a: Answer; q: 
       const u = new URL(window.location.origin);
       u.searchParams.set("q", q);
       const c2 = { ...(ctx || {}) };
-      if (c2.companies?.length || c2.intent || c2.prefs) u.searchParams.set("ctx", btoa(unescape(encodeURIComponent(JSON.stringify(c2)))));
+      if (c2.companies?.length || c2.intent || c2.prefs || c2.lens) u.searchParams.set("ctx", btoa(unescape(encodeURIComponent(JSON.stringify(c2)))));
       link = u.toString();
     }
-    navigator.clipboard?.writeText(link).then(() => toast("Link copied. It reproduces this exact answer."));
+    navigator.clipboard?.writeText(link).then(() => toast("Link copied"));
   };
   const copy = () => {
-    const src = a.citations.map((c) => `[${c.id}] ${citeWhat(c)} (${citeWhere(c)})`).join("\n");
-    const txt = `${a.title}\n\n${a.lead.map((p) => p.replace(/\*\*/g, "")).join("\n\n")}\n\nSources\n${src}\n\nAnswer ID ${a.fingerprint}`;
-    navigator.clipboard?.writeText(txt).then(() => toast("Answer copied with its sources"));
+    const pts = a.blocks.filter((b) => b.type === "points").flatMap((b) => b.items.map((t: string) => "• " + t));
+    const clean = (p: string) => p.replace(/\*\*/g, "").replace(/\s*\[\d+\]/g, "");
+    const src = a.citations.filter((x) => x.kind === "filing").map((x) => `${x.company}, BRSR ${x.fy}: ${x.item}`);
+    const txt = `${a.title}\n\n${[...a.lead, ...pts].map(clean).join("\n\n")}${src.length ? `\n\nSources\n${[...new Set(src)].join("\n")}` : ""}`;
+    navigator.clipboard?.writeText(txt).then(() => toast("Answer copied"));
   };
   const print = () => {
     const el = document.getElementById(`ans-${index}`);
     document.body.classList.add("print-one");
     el?.classList.add("print-target");
+    document.querySelectorAll(".print-q").forEach((n) => n.classList.remove("print-q"));
+    el?.previousElementSibling?.classList.add("print-q");
     setTimeout(() => {
       window.print();
       document.body.classList.remove("print-one");
       el?.classList.remove("print-target");
-    }, 50);
+    }, 60);
   };
+  const filings = a.citations.filter((x) => x.kind === "filing").length;
+  const hasData = a.citations.length > 0 || a.blocks.some((b) => b.export);
 
   return (
-    <AnswerCtx.Provider value={{ citations: a.citations, openCite: setCite, activeCite: cite, ask, prefetch }}>
+    <AnswerCtx.Provider value={{ citations: a.citations, openCite: setCite, activeCite: cite, ask, prefetch, pickCompany }}>
       <article className="answer" id={`ans-${index}`}>
-        <div className="ans-kicker"><span className={"status-dot " + a.status} />{a.kicker}</div>
+        {a.kicker && <div className="ans-kicker">{a.kicker}</div>}
         <h2 className="ans-title">{a.title}</h2>
-        {notes.length > 0 && (
+        <div className="lead">{a.lead.map((p, i) => <p key={i}><Rich text={p} /></p>)}</div>
+        {a.blocks.length > 0 && <div className="blocks">{a.blocks.map((b, i) => <BlockView key={i} b={b} i={i} />)}</div>}
+        {a.notes.length > 0 && (
           <div className="notes">
-            {notes.map((n, i) => (
+            {a.notes.map((n, i) => (
               <div key={i} className={"note " + n.kind}>
-                {n.kind === "data_quality" || n.kind === "scope" ? <I.alert /> : <I.info />}
-                <div><span className="note-k">{{ data_quality: "Data quality", scope: "Scope", method: "Method", context: "Context" }[n.kind] || n.kind}</span>{n.text}</div>
+                <I.info />
+                <div><span className="note-k">{NOTE_LABEL[n.kind] || "Note"}</span>{n.text}</div>
               </div>
             ))}
           </div>
         )}
-        <div className="lead">{a.lead.map((p, i) => <p key={i}><Rich text={p} /></p>)}</div>
-        {a.blocks.length > 0 && <div className="blocks">{a.blocks.map((b, i) => <BlockView key={i} b={b} i={i} />)}</div>}
         {a.followups.length > 0 && <Followups items={a.followups} ask={ask} />}
         {a.citations.length > 0 && (
           <details className="sources">
-            <summary><span><b style={{ color: "var(--ink)" }}>{a.citations.length} {a.citations.length === 1 ? "source" : "sources"}</b> · every figure above links to one of these</span><I.down style={{ width: 14, height: 14 }} /></summary>
+            <summary>
+              <span><b style={{ color: "var(--ink)" }}>{a.citations.length} {a.citations.length === 1 ? "source" : "sources"}</b>{filings > 0 ? " · from company BRSR filings" : ""}</span>
+              <I.down style={{ width: 14, height: 14 }} />
+            </summary>
             <div className="src-list">
-              {a.citations.map((c) => (
-                <button key={c.id} className="src" onClick={() => setCite(c.id)}>
-                  <span className="src-n">[{c.id}]</span><span className="src-what">{citeWhat(c)}</span><span className="src-where">{citeWhere(c)}</span>
+              {a.citations.map((x) => (
+                <button key={x.id} className="src" onClick={() => setCite(x.id)}>
+                  <span className="src-n">[{x.id}]</span><span className="src-what">{citeWhat(x)}</span><span className="src-where">{citeWhere(x)}</span>
                 </button>
               ))}
             </div>
           </details>
         )}
         <div className="foot-row">
-          <span className="fingerprint" title="Hash of the answer content and dataset version. Identical questions give identical IDs.">
-            <I.shield style={{ width: 14, height: 14, color: "var(--good-ink)" }} />Answer ID <b>{a.fingerprint}</b> · dataset {a.trace?.dataset}
+          <span className="fb">
+            <button className={"tool icon" + (vote === 1 ? " on-up" : "")} onClick={() => rate(1)} aria-label="Helpful" title="Helpful"><I.thumb /></button>
+            <button className={"tool icon" + (vote === -1 ? " on-down" : "")} onClick={() => rate(-1)} aria-label="Not helpful" title="Not helpful"><I.thumb style={{ transform: "rotate(180deg)" }} /></button>
+            <button className="tool icon" onClick={copy} title="Copy answer" aria-label="Copy answer"><I.copy /></button>
+            <button className="tool icon" onClick={share} title="Copy link to this answer" aria-label="Copy link"><I.link /></button>
           </span>
           <span className="ans-actions">
-            <span className="fb">
-              <button className={"tool" + (vote === 1 ? " on-up" : "")} onClick={() => rate(1)} aria-label="Helpful" title="Helpful"><I.thumb style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
-              <button className={"tool" + (vote === -1 ? " on-down" : "")} onClick={() => rate(-1)} aria-label="Not helpful" title="Not helpful"><I.thumb style={{ width: 13, height: 13, verticalAlign: -2, transform: "rotate(180deg)" }} /></button>
-            </span>
-            <button className={"tool" + (trace ? " on" : "")} onClick={() => setTrace(!trace)}><I.eye style={{ width: 13, height: 13, verticalAlign: -2 }} /> How I understood this</button>
-            <button className="tool" onClick={copy} title="Copy text with sources"><I.copy style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
-            <button className="tool" onClick={share} title="Copy share link"><I.link style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
-            <button className="tool" onClick={print} title="Print or save as PDF"><I.print style={{ width: 13, height: 13, verticalAlign: -2 }} /></button>
+            {hasData && <button className="tool" onClick={() => downloadAnswer(a, q)} title="Download this answer as an Excel workbook"><I.download /> Excel</button>}
+            <button className="tool" onClick={print} title="Save this answer as a PDF"><I.print /> PDF</button>
           </span>
         </div>
         {noteOpen && (
           <div className="fb-note">
-            <input autoFocus placeholder="What did you expect instead? (optional, anonymous)" value={note} maxLength={400}
+            <input autoFocus placeholder="What were you expecting instead? (optional)" value={note} maxLength={400}
                    onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitNote()} />
             <button className="btn" onClick={submitNote}>Send</button>
           </div>
         )}
-        {trace && a.trace && <Trace t={a.trace} />}
       </article>
       {c && <Evidence c={c} all={a.citations} onClose={() => setCite(null)} onCite={setCite} ask={ask} />}
     </AnswerCtx.Provider>

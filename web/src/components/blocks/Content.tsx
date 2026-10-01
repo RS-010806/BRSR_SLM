@@ -1,7 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { I } from "../../icons";
 import { CiteChip, Rich, useAnswer, useCountUp, useHoverPrefetch } from "../../ui";
-import { heat } from "./Charts";
 
 /* =============================================================== KPIs */
 function KpiTile({ k, i }: { k: any; i: number }) {
@@ -25,39 +24,6 @@ export function Kpis({ b }: { b: any }) {
   return <div className="kpis">{b.items.map((k: any, i: number) => <KpiTile k={k} i={i} key={i} />)}</div>;
 }
 
-/* =============================================================== Rubric */
-export function Rubric({ b }: { b: any }) {
-  const dist = b.distribution || null;
-  const total = dist ? Object.entries(dist).reduce((a, [k, v]: any) => (k === "none" ? a : a + v), 0) : 0;
-  return (
-    <div>
-      <div className="rubric">
-        {b.levels.map((l: any) => {
-          const n = dist ? dist[String(l.score)] ?? 0 : null;
-          return (
-            <div key={l.score} className={"rub" + (b.score === l.score ? " on" : "")} title={l.raw || ""}>
-              <span className="rub-s">{l.score}</span>
-              <span>{l.text}</span>
-              {n != null ? (
-                <span style={{ textAlign: "right" }}>
-                  <span className="rub-n">{n} {n === 1 ? "company" : "companies"}</span>
-                  <div className="rub-meter"><i style={{ width: `${total ? (100 * n) / total : 0}%` }} /></div>
-                </span>
-              ) : <span />}
-            </div>
-          );
-        })}
-      </div>
-      <div className="legend">
-        {b.score != null && <span><i style={{ background: "var(--focus)" }} />Score {b.score}</span>}
-        {b.distribution_label && <span className="muted">Counts: {b.distribution_label}{dist?.none ? `, ${dist.none} without a score` : ""}</span>}
-        {b.source && <span className="muted">Scale: {b.source}</span>}
-        {b.zero_note && <span className="muted">{b.zero_note}</span>}
-      </div>
-    </div>
-  );
-}
-
 /* =============================================================== Checklist */
 export function Checklist({ b }: { b: any }) {
   return (
@@ -76,7 +42,37 @@ export function Checklist({ b }: { b: any }) {
   );
 }
 
-/* =============================================================== Quotes */
+/* =============================================================== Points */
+export function Points({ b }: { b: any }) {
+  return (
+    <ul className="points">
+      {b.items.map((t: string, i: number) => <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}><Rich text={t} /></li>)}
+    </ul>
+  );
+}
+
+/* =============================================================== Names (a plain list of companies) */
+export function Names({ b }: { b: any }) {
+  const { ask } = useAnswer();
+  const hover = useHoverPrefetch();
+  return (
+    <div className="names">
+      {b.items.map((it: any) => {
+        const q = `Tell me about ${it.name}`;
+        return <button key={it.id} className="name" onClick={() => ask(q)} {...hover(q)}>{it.name}</button>;
+      })}
+    </div>
+  );
+}
+
+/* =============================================================== Action */
+export function Action({ b }: { b: any }) {
+  const { pickCompany } = useAnswer();
+  if (b.action !== "set_company") return null;
+  return <div><button className="btn primary" onClick={() => pickCompany?.()}><I.building />{b.label}</button></div>;
+}
+
+/* =============================================================== Quotes (text exactly as the company disclosed it) */
 function Highlighted({ text, segments, excerpt }: { text: string; segments: any[]; excerpt?: boolean }) {
   const parts: ReactNode[] = [];
   const segs = [...(segments || [])].sort((a, b) => a.start - b.start);
@@ -114,23 +110,22 @@ function Highlighted({ text, segments, excerpt }: { text: string; segments: any[
 function QuoteCard({ it, excerpt, i }: { it: any; excerpt?: boolean; i: number }) {
   const [open, setOpen] = useState(false);
   const { ask } = useAnswer();
-  const long = (it.text || "").length > 700;
+  const long = (it.text || "").length > 520;
   const showExcerpt = excerpt && !open;
   return (
     <article className="quote" style={{ animation: `rise .5s ${i * 80}ms both` }}>
       <div className="quote-h">
         <div>
-          <div className="quote-co"><button className="linkish" style={{ color: "var(--ink)" }} onClick={() => ask(`Show ${it.short}'s E1 profile`)}>{it.short || it.company}</button></div>
-          <div className="quote-meta">{it.sector} · Q{it.qid} {it.question}{it.mentions ? ` · ${it.mentions} mention${it.mentions > 1 ? "s" : ""}` : ""}</div>
+          <div className="quote-co"><button className="linkish" style={{ color: "var(--ink)" }} onClick={() => ask(`Tell me about ${it.short}`)}>{it.short || it.company}</button></div>
+          <div className="quote-meta">{it.sector} · {it.topic}{it.mentions ? ` · ${it.mentions} mention${it.mentions > 1 ? "s" : ""}` : ""}</div>
         </div>
-        {it.score != null && <span className={"score-badge s" + it.score}>{it.score}/100</span>}
       </div>
       <div className={"qtext" + (!showExcerpt && long && !open ? " clamped" : "")}>
         <Highlighted text={it.text} segments={it.segments} excerpt={showExcerpt} />
       </div>
       {it.themes?.length > 0 && <div className="themes">{it.themes.map((t: string) => <span className="theme" key={t}>{t}</span>)}</div>}
       <div className="quote-foot">
-        <span>Base Data · {it.cell} <CiteChip refText={it.cite} /> {it.rating_cite && <CiteChip refText={it.rating_cite} />}</span>
+        <span>As disclosed, FY 2024-25 <CiteChip refText={it.cite} /></span>
         {(long || excerpt) && <button className="linkish" onClick={() => setOpen(!open)}>{open ? "Show less" : excerpt ? "Show full disclosure" : "Show full text"}</button>}
       </div>
     </article>
@@ -140,57 +135,17 @@ function QuoteCard({ it, excerpt, i }: { it: any; excerpt?: boolean; i: number }
 export function Quotes({ b }: { b: any }) {
   return (
     <div className={"quotes" + (b.columns ? " cols" : "")}>
-      {b.items.map((it: any, i: number) => <QuoteCard key={it.company_id + it.qid} it={it} excerpt={b.excerpt} i={i} />)}
-    </div>
-  );
-}
-
-export function ReportQuotes({ b }: { b: any }) {
-  return (
-    <div className="rqs">
-      {b.items.map((it: any, i: number) => (
-        <blockquote className="rq" key={i} style={{ animation: `rise .5s ${i * 70}ms both` }}>
-          <p>{it.text}</p>
-          <footer>
-            <span>{it.where}</span>
-            {it.pdf_page && <a href={`/files/report.pdf#page=${it.pdf_page}`} target="_blank" rel="noreferrer">PDF page {it.pdf_page} <I.ext style={{ width: 11, height: 11, verticalAlign: -1 }} /></a>}
-            <CiteChip refText={it.cite} />
-          </footer>
-        </blockquote>
-      ))}
-    </div>
-  );
-}
-
-/* =============================================================== Insights */
-function signalTone(s: string) {
-  if (/strong|improving/i.test(s)) return "good";
-  if (/critical|weak|concerning/i.test(s)) return "bad";
-  return "warn";
-}
-export function Insights({ b }: { b: any }) {
-  return (
-    <div className="insights">
-      {b.items.map((it: any, i: number) => {
-        const t = signalTone(it.signal);
-        return (
-          <div className="ins" key={i} style={{ animation: `rise .45s ${i * 50}ms both` }}>
-            <div><span className={"signal " + t}>{t === "good" ? <I.check /> : t === "bad" ? <I.alert /> : <I.info />}{it.signal}</span></div>
-            <div>
-              <div className="ins-a">{it.area}</div>
-              <div className="ins-o">{it.observation} <CiteChip refText={it.cite} /></div>
-            </div>
-          </div>
-        );
-      })}
+      {b.items.map((it: any, i: number) => <QuoteCard key={it.key || it.company_id + i} it={it} excerpt={b.excerpt} i={i} />)}
     </div>
   );
 }
 
 /* =============================================================== Table */
+const PAGE = 60;
 export function Table({ b }: { b: any }) {
   const { ask } = useAnswer();
   const [sort, setSort] = useState<{ k: string; d: 1 | -1 } | null>(null);
+  const [limit, setLimit] = useState(PAGE);
   const rows = useMemo(() => {
     if (!sort) return b.rows;
     const parse = (v: any) => {
@@ -207,41 +162,43 @@ export function Table({ b }: { b: any }) {
     });
   }, [b.rows, sort]);
   return (
-    <div className="tbl-wrap">
-      <table className="tbl">
-        <thead>
-          <tr>
-            {b.columns.map((c: any) => (
-              <th key={c.key} className={c.align === "right" ? "r" : ""} onClick={() => setSort(sort && sort.k === c.key ? { k: c.key, d: (sort.d * -1) as 1 | -1 } : { k: c.key, d: 1 })}>
-                {c.label}{sort && sort.k === c.key ? (sort.d === 1 ? " ↑" : " ↓") : ""}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r: any, i: number) => (
-            <tr key={i} className={r.highlight ? "hi" : ""}>
-              {b.columns.map((c: any) => {
-                const v = r[c.key];
-                const cls = (c.align === "right" ? "r " : "") + (c.key === "company" ? "co" : "");
-                if (c.key === "company" && r.id) return <td key={c.key} className={cls}><button className="colink" onClick={() => ask(`Show ${v}'s E1 profile`)}>{v}</button>{r.cite && <> <CiteChip refText={r.cite} /></>}</td>;
-                const yn = v === "Yes" ? "yes" : v === "No" || v === "No / NA" ? "no" : "";
-                return <td key={c.key} className={cls + " " + yn}>{v}</td>;
-              })}
+    <>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead>
+            <tr>
+              {b.columns.map((c: any) => (
+                <th key={c.key} className={c.align === "right" ? "r" : ""} onClick={() => setSort(sort && sort.k === c.key ? { k: c.key, d: (sort.d * -1) as 1 | -1 } : { k: c.key, d: 1 })}>
+                  {c.label}{sort && sort.k === c.key ? (sort.d === 1 ? " ↑" : " ↓") : ""}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.slice(0, limit).map((r: any, i: number) => (
+              <tr key={i} className={r.highlight ? "hi" : ""}>
+                {b.columns.map((c: any) => {
+                  const v = r[c.key];
+                  const cls = (c.align === "right" ? "r " : "") + (c.key === "company" ? "co" : "");
+                  if (c.key === "company" && r.id) return <td key={c.key} className={cls}><button className="colink" onClick={() => ask(`Tell me about ${v}`)}>{v}</button>{r.cite && <> <CiteChip refText={r.cite} /></>}</td>;
+                  const yn = v === "Yes" ? "yes" : v === "No" ? "no" : "";
+                  return <td key={c.key} className={cls + " " + yn}>{v}</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > limit && (
+        <div style={{ textAlign: "center", marginTop: 10 }}>
+          <button className="btn" onClick={() => setLimit(limit + 200)}>Show more ({rows.length - limit} more)</button>
+        </div>
+      )}
+    </>
   );
 }
 
-export function tableCsv(b: any): string {
-  const esc = (s: any) => `"${String(s ?? "").replace(/"/g, '""')}"`;
-  return [b.columns.map((c: any) => esc(c.label)).join(","), ...b.rows.map((r: any) => b.columns.map((c: any) => esc(r[c.key])).join(","))].join("\n");
-}
-
-/* =============================================================== Compare scorecard */
+/* =============================================================== Side by side */
 export function Compare({ b }: { b: any }) {
   const { ask } = useAnswer();
   return (
@@ -250,7 +207,7 @@ export function Compare({ b }: { b: any }) {
         <thead>
           <tr>
             <th />
-            {b.columns.map((c: any) => <th key={c.id}><button className="colink" style={{ fontWeight: 600 }} onClick={() => ask(`Show ${c.label}'s E1 profile`)}>{c.label}</button><small>{c.sub}</small></th>)}
+            {b.columns.map((c: any) => <th key={c.id}><button className="colink" style={{ fontWeight: 600 }} onClick={() => ask(`Tell me about ${c.label}`)}>{c.label}</button><small>{c.sub}</small></th>)}
           </tr>
         </thead>
         <tbody>
@@ -258,8 +215,8 @@ export function Compare({ b }: { b: any }) {
             <tr key={i}>
               <td>{r.label}</td>
               {r.cells.map((c: any, j: number) => (
-                <td key={j} className={(c.best ? "best " : "") + (c.tone || "")} title={c.full || ""}>
-                  {c.score !== undefined && c.score !== null ? <span className="heat" style={heat(c.score)}>{c.text}</span> : c.text}
+                <td key={j} className={c.tone || ""} title={c.full || ""}>
+                  {c.text}
                   {c.cite && <> <CiteChip refText={c.cite} /></>}
                 </td>
               ))}
@@ -267,38 +224,6 @@ export function Compare({ b }: { b: any }) {
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-export function Matrix({ b }: { b: any }) {
-  return (
-    <div className="tbl-wrap" style={{ maxHeight: "none" }}>
-      <table className="tbl matrix">
-        <thead><tr><th>Practice</th>{b.columns.map((c: string) => <th key={c} style={{ textAlign: "center" }}>{c}</th>)}</tr></thead>
-        <tbody>
-          {b.rows.map((r: any) => (
-            <tr key={r.label}><td>{r.label}</td>{r.values.map((v: boolean, i: number) => <td key={i} className={v ? "y" : "n"}>{v ? "●" : "·"}</td>)}</tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function Gap({ b }: { b: any }) {
-  return (
-    <div className="gap">
-      <div className="gap-col">
-        <h5>Named in {b.company}'s disclosure</h5>
-        {b.my_themes.length ? <div className="themes" style={{ marginTop: 0 }}>{b.my_themes.map((t: string) => <span className="theme" key={t}>{t}</span>)}</div> : <span className="muted" style={{ fontSize: 13 }}>No recognised practice families.</span>}
-        <div className="card-s" style={{ marginTop: 12 }}>Score {b.score ?? "n/a"}/100 · specificity {b.my_specificity?.toFixed?.(1) ?? "n/a"}</div>
-      </div>
-      <div className="gap-col" style={{ borderColor: "color-mix(in oklab, var(--focus) 40%, var(--line))" }}>
-        <h5>Common among top-rated peers, not named</h5>
-        {b.missing.length ? <div className="themes" style={{ marginTop: 0 }}>{b.missing.map((t: string) => <span className="theme" key={t} style={{ borderColor: "var(--focus)", color: "var(--ink)" }}>{t}</span>)}</div> : <span className="muted" style={{ fontSize: 13 }}>None of the common practice families are missing.</span>}
-        <div className="card-s" style={{ marginTop: 12 }}>Leaders' median specificity {b.leader_specificity?.toFixed?.(1) ?? "n/a"}</div>
-      </div>
     </div>
   );
 }

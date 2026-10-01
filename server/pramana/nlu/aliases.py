@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from .lexicon import CURATED_ALIASES, STOP
+from .lexicon import CURATED_ALIASES, CURATED_GROUPS, STOP
 from .normalize import norm_name
 
 LEGAL = {"limited", "ltd", "the", "company", "corporation", "corp", "co", "of", "pvt", "private", "inc", "and"}
@@ -71,5 +71,11 @@ def build_aliases(companies: list[dict], english_words: set[str]) -> dict[str, l
             raise ValueError(f"Curated alias target not in dataset: {name}")
         key = " ".join(norm_name(alias))
         by_alias[key] = {name_to_id[name]}  # curated wins over generated collisions
+
+    for alias, group in CURATED_GROUPS.items():
+        missing = [n for n in group if n not in name_to_id]
+        if missing:
+            raise ValueError(f"Curated group target not in dataset: {missing}")
+        by_alias[" ".join(norm_name(alias))] = {name_to_id[n] for n in group}
 
     return {a: sorted(ids) for a, ids in sorted(by_alias.items())}

@@ -1,9 +1,8 @@
 """Domain vocabulary for entity linking and guardrails.
 
-Every metric maps to question numbers that exist in the E1 workbook. Every
-out-of-scope topic maps to the chapter of the published IIMB report that
-covers it, so the assistant can say where the information lives instead of
-guessing.
+Every metric maps to disclosure items that exist in the data. Topics that are
+not covered yet are listed too, so the assistant can say plainly that they
+are not available instead of guessing.
 """
 from __future__ import annotations
 
@@ -354,12 +353,20 @@ CURATED_ALIASES: dict[str, str] = {
     "adani total gas": "ADANI TOTAL GAS LIMITED",
     "adani energy": "ADANI ENERGY SOLUTIONS LIMITED",
     "mahindra and mahindra": None,  # validated below: resolved only if present
+    "ongc": "Oil & Natural Gas Corporation Limited",
+    "oil and natural gas corporation": "Oil & Natural Gas Corporation Limited",
+    "tci express": "TCI Express Limited",
+    "transport corporation": "Transport Corporation of India Limited",
+}
+
+# Short names that could mean more than one company: the assistant asks which one.
+CURATED_GROUPS: dict[str, list[str]] = {
+    "tci": ["TCI Express Limited", "Transport Corporation of India Limited"],
 }
 
 # Well-known companies that are NOT among the 982 filings, so the assistant can
 # say so plainly instead of fuzzy-matching them to something else.
 KNOWN_ABSENT = {
-    "ongc": "Oil and Natural Gas Corporation", "oil and natural gas": "Oil and Natural Gas Corporation",
     "tata motors": "Tata Motors", "siemens": "Siemens", "abb": "ABB India", "zomato": "Zomato (Eternal)",
     "eternal": "Eternal (Zomato)", "swiggy": "Swiggy", "m and m": "Mahindra & Mahindra",
     "mahindra and mahindra": "Mahindra & Mahindra", "adani green": "Adani Green Energy", "tata sons": "Tata Sons",
