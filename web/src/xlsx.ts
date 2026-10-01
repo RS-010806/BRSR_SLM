@@ -24,7 +24,7 @@ function cellXml(ref: string, v: Cell, style?: number): string {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "number" && isFinite(v)) {
     const st = style ?? (Number.isInteger(v) ? S.int : Math.abs(v) < 1 ? S.small : S.dec);
-    return `<c r="${ref}" s="${st}"><v>${v}</v></c>`;
+    return `<c r="${ref}" s="${st}"><v>${Number(v.toPrecision(12))}</v></c>`;   // no floating-point noise
   }
   const text = typeof v === "boolean" ? (v ? "Yes" : "No") : String(v);
   return `<c r="${ref}" s="${style ?? S.text}" t="inlineStr"><is><t xml:space="preserve">${esc(text)}</t></is></c>`;
@@ -49,8 +49,15 @@ function sheetXml(sh: Sheet): string {
   const headRow = r;
   rows.push(`<row r="${r}" ht="20" customHeight="1">${sh.columns.map((c, i) => cellXml(`${colName(i)}${r}`, c, S.header)).join("")}</row>`);
   r++;
+  // one number format per column, so a column of figures lines up
+  const fmt = sh.columns.map((_, i) => {
+    const nums = sh.rows.map((x) => x[i]).filter((v): v is number => typeof v === "number" && isFinite(v));
+    if (!nums.length) return undefined;
+    if (nums.every((v) => Number.isInteger(v))) return S.int;
+    return nums.every((v) => Math.abs(v) < 1) ? S.small : S.dec;
+  });
   for (const row of sh.rows) {
-    rows.push(`<row r="${r}">${row.slice(0, ncol).map((v, i) => cellXml(`${colName(i)}${r}`, v)).join("")}</row>`);
+    rows.push(`<row r="${r}">${row.slice(0, ncol).map((v, i) => cellXml(`${colName(i)}${r}`, v, typeof v === "number" ? fmt[i] : undefined)).join("")}</row>`);
     r++;
   }
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -89,6 +96,7 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
 <xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
 </cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
 
 /* ---------------------------------------------------------------- zip (stored, no compression) */

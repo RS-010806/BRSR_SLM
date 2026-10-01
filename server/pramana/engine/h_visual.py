@@ -10,7 +10,7 @@ from ..analytics import sector_sum
 from . import metrics as M
 from .common import change_tone, eligible, ordered, value_cite, yes, yes_count
 from .evidence import highlight
-from .fmt import CO2, compact, join, num, pct, share, short_name, tile
+from .fmt import CO2, compact, join, num, pct, short_name, tile
 from .h_company import kicker
 
 SOURCE = "Source: company BRSR disclosures, FY 2024-25"
@@ -90,12 +90,12 @@ def _company(ctx, c):
                       "delta": _delta(mi.yoy(c))})
         value_cite(a, c, mi)
     quote = _key_sentence(ctx, c, "286")
-    qlabel = "A target, in the company's words"
+    qlabel = "On targets, in the company's words"
     if quote:
         a.c_filing(c, "286")
     else:
         quote = _key_sentence(ctx, c, "1342")
-        qlabel = "A project, in the company's words"
+        qlabel = "On reducing emissions, in the company's words"
         if quote:
             a.c_filing(c, "1342")
     a.block("infographic", kind="company", eyebrow="GHG emissions snapshot", period="FY 2024-25", title=short,

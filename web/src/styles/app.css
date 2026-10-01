@@ -94,6 +94,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .shell.rail-closed .rail-toggle { display: inline-grid; }
 .scroll { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
 .col { width: 100%; max-width: 860px; margin: 0 auto; padding: 0 28px; }
+.col.wide { max-width: 1180px; }
 
 /* ------------------------------------------------------------------ home */
 .home { padding: 14vh 0 32px; text-align: center; }
@@ -329,17 +330,21 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 
 /* ------------------------------------------------------------------ print (one answer, saved as a PDF) */
+/* applied just before printing: the answer takes the width of an A4 page so charts re-measure for paper */
+body.print-one .col { max-width: 688px; padding: 0; }
+body.print-one .conv > *:not(.print-target):not(.print-q) { display: none !important; }
 @media print {
   @page { margin: 16mm 14mm; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body, #root { height: auto !important; }
   body { background: #fff !important; }
-  .rail, .topbar, .composer-wrap, .followups, .foot-row, .fb-note, .drawer, .drawer-scrim, .card-tools, .info-actions, .toast, .pal-scrim, .cite { display: none !important; }
+  .rail, .topbar, .composer-wrap, .followups, .foot-row, .fb-note, .drawer, .drawer-scrim, .card-tools, .info-actions, .toast, .pal-scrim { display: none !important; }
   .shell { display: block !important; }
   .main { height: auto !important; overflow: visible !important; display: block !important; }
   .scroll { overflow: visible !important; }
   .col { max-width: none; padding: 0; }
   .conv { display: block; padding: 0; }
-  body.print-one .conv > *:not(.print-target):not(.print-q) { display: none !important; }
+  .cite { border-color: #999; color: #333; background: none; }
   .msg-user.print-q { justify-content: flex-start; margin-bottom: 14px; }
   .msg-user.print-q .bubble { max-width: 100%; background: none; padding: 0; border-radius: 0; font-size: 13px; color: #555; }
   .msg-user.print-q .bubble::before { content: "Question: "; font-weight: 600; }
@@ -351,7 +356,8 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   .sources > summary { padding: 0 0 6px; font-weight: 600; }
   .sources > summary svg { display: none; }
   .sources .src-list { max-height: none; overflow: visible; border-top: 1px solid #ccc; }
-  .src { padding: 5px 0; }
+  .src { padding: 5px 0; grid-template-columns: 30px 1fr auto; }
+  .src-what { white-space: normal; }
   .answer::after { content: "Source: company BRSR disclosures, FY 2024-25. Figures are as disclosed."; display: block; margin-top: 18px; padding-top: 8px; border-top: 1px solid #ccc; font-size: 11px; color: #666; }
 }
 

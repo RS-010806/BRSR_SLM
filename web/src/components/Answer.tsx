@@ -135,15 +135,23 @@ export function AnswerView({ a, q, ctx, ask, index, prefetch, pickCompany }: {
   };
   const print = () => {
     const el = document.getElementById(`ans-${index}`);
+    if (!el) return;
+    // Lay the answer out at page width first, so charts are measured for paper and not for the screen.
     document.body.classList.add("print-one");
-    el?.classList.add("print-target");
+    el.classList.add("print-target");
     document.querySelectorAll(".print-q").forEach((n) => n.classList.remove("print-q"));
-    el?.previousElementSibling?.classList.add("print-q");
-    setTimeout(() => {
-      window.print();
+    el.previousElementSibling?.classList.add("print-q");
+    const src = el.querySelector("details.sources") as HTMLDetailsElement | null;
+    const wasOpen = src?.open ?? false;
+    if (src) src.open = true;
+    const done = () => {
       document.body.classList.remove("print-one");
-      el?.classList.remove("print-target");
-    }, 60);
+      el.classList.remove("print-target");
+      if (src) src.open = wasOpen;
+      window.removeEventListener("afterprint", done);
+    };
+    window.addEventListener("afterprint", done);
+    setTimeout(() => window.print(), 320);
   };
   const filings = a.citations.filter((x) => x.kind === "filing").length;
   const hasData = a.citations.length > 0 || a.blocks.some((b) => b.export);

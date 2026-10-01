@@ -11,7 +11,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from .lexicon import METRICS, OFFTOPIC, WEAK_PHRASES
+from .lexicon import WEAK_PHRASES
 from .linker import Linker
 from .model import IntentModel
 from .normalize import mask, prep, tokenize

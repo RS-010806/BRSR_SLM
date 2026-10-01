@@ -120,8 +120,8 @@ export function SectorsPage({ onAsk }: { onAsk: (q: string) => void }) {
             <div className="sc-top"><span className="sc-name">{s.name}</span><span className="sc-code">{s.n} companies</span></div>
             <div className="spark" title={`${s.share.toFixed(1)}% of disclosed Scope 1 and Scope 2 emissions`}><i style={{ width: `${(100 * s.share) / max}%` }} /></div>
             <div className="sc-stats">
-              <div className="sc-stat"><b>{compact(s.s1)}</b><span>Scope 1, tCO₂e</span></div>
-              <div className="sc-stat"><b>{compact(s.s2)}</b><span>Scope 2, tCO₂e</span></div>
+              <div className="sc-stat"><b>{compact(s.s1)}</b><span>Scope 1 (tCO₂e)</span></div>
+              <div className="sc-stat"><b>{compact(s.s2)}</b><span>Scope 2 (tCO₂e)</span></div>
               <div className="sc-stat"><b>{s.share.toFixed(1)}%</b><span>of all sectors</span></div>
             </div>
             <div className="sc-stats">

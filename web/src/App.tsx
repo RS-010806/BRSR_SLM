@@ -178,7 +178,7 @@ export default function App() {
           </div>
         </div>
         <div className="scroll" ref={scrollRef} onScroll={(e) => setScrolled((e.target as HTMLElement).scrollTop > 8)}>
-          <div className="col">
+          <div className={"col" + (view === "chat" ? "" : " wide")}>
             <Suspense fallback={<div className="page"><div className="skeleton" style={{ width: "40%", height: 28 }} /></div>}>
               {view === "companies" && <CompaniesPage onAsk={(q) => send(q, true)} meta={meta} />}
               {view === "sectors" && <SectorsPage onAsk={(q) => send(q, true)} />}

@@ -1,13 +1,11 @@
 """Examples of good practice (shown exactly as disclosed) and search across disclosures."""
 from __future__ import annotations
 
-from . import metrics as M
-from .common import export, yes
+from .common import export
 from .evidence import THEMES
 from .fmt import join, lc, share, short_name
-from .h_company import TEXT_TITLE, quote_item
+from .h_company import quote_item
 from .public import TOPIC, item
-from ..nlu.linker import TECH_TERMS
 
 PRACTICE_QIDS = {"targets": "286", "target_performance": "295", "projects": "1342", "certifications": "277",
                  "ghg_assurance": "1342", "scope12": "1342", "intensity": "1342", "scope1": "1342", "scope2": "1342",

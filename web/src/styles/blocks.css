@@ -9,6 +9,7 @@
 .delta.good { background: var(--good-bg); color: var(--good-ink); }
 .delta.bad { background: var(--bad-bg); color: var(--bad-ink); }
 .delta svg { width: 11px; height: 11px; }
+.delta { white-space: nowrap; }
 .kpi.tone-good .kpi-v { color: var(--good-ink); }
 .kpi.tone-bad .kpi-v { color: var(--bad-ink); }
 
@@ -143,6 +144,8 @@ input[type="range"].rng { width: 100%; accent-color: var(--accent); height: 28px
 .callout.missing { border-color: color-mix(in oklab, var(--warn) 55%, var(--line)); background: var(--warn-bg); }
 
 @media (max-width: 640px) {
+  .kpi { padding: 12px 12px 11px; }
+  .delta { font-size: 11px; padding: 2px 6px; }
   .sim { grid-template-columns: 1fr; }
   .sim-row { grid-template-columns: 1fr auto; }
   .sim-row .sim-track { grid-column: 1 / -1; grid-row: 2; }

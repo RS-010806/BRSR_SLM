@@ -141,3 +141,64 @@
   --shadow-2: 0 12px 30px -12px rgba(0, 0, 0, 0.6);
   --shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
 }
+
+/* Paper is always light: printing from dark mode uses the light palette. */
+@media print {
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+    color-scheme: light;
+    --page: #f6f5f1;
+    --rail: #efede7;
+    --surface: #fcfcfb;
+    --surface-2: #f3f2ed;
+    --surface-3: #e9e7e0;
+    --ink: #121212;
+    --ink-2: #4f4e49;
+    --ink-3: #6a6862;
+    --line: #e2e0d8;
+    --line-2: #d3d0c6;
+    --ring: rgba(28, 92, 171, 0.35);
+    --accent: #1c5cab;
+    --accent-ink: #ffffff;
+    --accent-soft: #e6eef9;
+    --brand: #14213d;
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #eda100;
+    --s5: #e87ba4;
+    --s6: #008300;
+    --s7: #4a3aa7;
+    --s8: #e34948;
+    --focus: #2a78d6;
+    --peer: #c4c1b6;
+    --peer-strong: #9d9a90;
+    --div-neg: #2a78d6;   /* decrease (good for emissions) */
+    --div-pos: #e34948;   /* increase */
+    --div-mid: #f0efec;
+    --seq-1: #cde2fb;
+    --seq-3: #86b6ef;
+    --seq-5: #3987e5;
+    --seq-7: #1c5cab;
+    --seq-9: #0d366b;
+    --on-seq-1: #121212; --on-seq-3: #121212; --on-seq-5: #121212; --on-seq-7: #ffffff; --on-seq-9: #ffffff;
+    --pos-fill: #1c5cab; --on-pos: #ffffff;
+    --warn-ink: #8a5a00;
+    --good: #0ca30c;
+    --good-ink: #006300;
+    --warn: #fab219;
+    --serious: #ec835a;
+    --bad: #d03b3b;
+    --bad-ink: #b3261e;
+    --warn-bg: #fdf5e1;
+    --warn-line: #f0d9a0;
+    --bad-bg: #fbeceb;
+    --good-bg: #e9f5e9;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --shadow-1: 0 1px 2px rgba(18, 18, 18, 0.04), 0 1px 1px rgba(18, 18, 18, 0.03);
+    --shadow-2: 0 10px 30px -12px rgba(18, 18, 18, 0.18), 0 2px 6px rgba(18, 18, 18, 0.05);
+    --shadow-3: 0 24px 60px -20px rgba(18, 18, 18, 0.35);
+    --page: #ffffff;
+    --surface: #ffffff;
+  }
+}
