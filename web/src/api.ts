@@ -13,7 +13,7 @@ export type Ctx = {
 
 export type Citation = {
   id: number;
-  kind: "cell" | "rating" | "report_table" | "report_text" | "derived" | "method";
+  kind: "filing" | "computed" | "note";
   [k: string]: any;
 };
 
@@ -31,27 +31,20 @@ export type Answer = {
   entities: { id: string; name: string; short: string; sector: string; sector_id: string }[];
   fingerprint: string;
   context: Ctx;
-  trace: any;
 };
 
 export type Company = { id: string; name: string; short: string; sector: string; sector_name: string };
 
 export type Meta = {
   name: string;
-  dataset: any;
-  sectors: { id: string; name: string; short: string; nse_code: string; n: number }[];
-  questions: any[];
-  reconciliation: { total: number; matched: number; by_table: Record<string, { checks: number; matched: number }>; ai_scored_divergence: any };
-  model: any;
-  eval: any;
-  few_shot_exemplars?: number;
-  flags: { report_exclusions: number; unit_checks: number; magnitude_checks: number; classification?: number };
-  database?: { knowledge_base: string; app: string };
+  companies: number;
+  period: string;
+  sectors: { id: string; name: string; short: string; n: number }[];
 };
 
 /* ---------------------------------------------------------------- answer cache
    Answers are a pure function of (question, context), so a cache can never be
-   stale for a given dataset. Prefetched answers land here too. */
+   stale. Prefetched answers land here too. */
 const cache = new Map<string, Promise<Answer>>();
 const keyOf = (q: string, ctx?: Ctx) => JSON.stringify([q.trim(), cleanCtx(ctx)]);
 
@@ -103,7 +96,7 @@ export async function sendFeedback(a: Answer, q: string, rating: 1 | -1, note?: 
   await fetch("/api/feedback", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fingerprint: a.fingerprint, q, intent: a.trace?.final_intent, rating, note: note || null }),
+    body: JSON.stringify({ fingerprint: a.fingerprint, q, rating, note: note || null }),
   });
 }
 
@@ -141,9 +134,4 @@ let _meta: Promise<Meta> | null = null;
 export function meta(): Promise<Meta> {
   if (!_meta) _meta = fetch("/api/meta").then((r) => r.json());
   return _meta;
-}
-
-export async function stats(): Promise<any> {
-  const r = await fetch("/api/stats");
-  return r.ok ? r.json() : null;
 }

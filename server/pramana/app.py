@@ -4,12 +4,15 @@ Answering is stateless: conversation context (including what the conversation
 has learned) travels with each request, so any instance can answer any turn.
 The app database only records anonymous usage events, explicit feedback and
 share links (see store.py).
+
+What the browser receives is only what an end user should see: the answer,
+its public sources and the context for the next turn. How a question was
+understood, model details and data checks stay on the server and are
+available only through the token-protected admin endpoints.
 """
 from __future__ import annotations
 
-import csv
 import gzip
-import io
 import json
 import os
 import threading
@@ -20,11 +23,12 @@ from pathlib import Path
 import orjson
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .engine.core import Engine
+from .engine.common import yes, yes_count
 from .engine.fmt import short_name
 from .kb import get_kb
 from .nlu.parser import ARTIFACTS
@@ -33,18 +37,16 @@ from .store import Store
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = Path(os.environ.get("PRAMANA_WEB", ROOT / "web" / "dist"))
-PDF = ROOT / "data" / "raw" / "IIMB_BRSR_Report_FY2024-25.pdf"
 ADMIN_TOKEN = os.environ.get("PRAMANA_ADMIN_TOKEN", "")
 
 t_boot = time.perf_counter()
 kb = get_kb()
 engine = Engine(kb)
-RECON = reconcile(kb)
 store = Store()
 MODEL_CFG = {k: v for k, v in json.loads((ARTIFACTS / "config.json").read_text()).items() if k != "known_words"}
 EVAL = json.loads((ARTIFACTS / "eval_report.json").read_text()) if (ARTIFACTS / "eval_report.json").exists() else None
 
-app = FastAPI(title="Pramana API", version="2.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="Pramana API", version="3.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 
@@ -134,23 +136,26 @@ def _clean_ctx(ctx: Ctx | None) -> dict:
 
 
 def _answer(q: str, ctx: dict):
-    """(answer dict, raw json bytes, gzipped bytes), computed once per distinct question + context."""
+    """(full answer, public json bytes, gzipped bytes), computed once per distinct question + context."""
     key = orjson.dumps([q.strip(), ctx], option=orjson.OPT_SORT_KEYS)
     hit = cache.get2(key)
     if hit is None:
         t = time.perf_counter()
         a = engine.ask(q, ctx)
         a["trace"]["timing_ms"]["total"] = round((time.perf_counter() - t) * 1000, 2)
-        raw = orjson.dumps(a)
+        raw = orjson.dumps({k: v for k, v in a.items() if k != "trace"})   # the trace never leaves the server
         hit = (a, raw, gzip.compress(raw, 6))
         cache.put(key, hit)
+        intents.put(a["fingerprint"], a["trace"]["final_intent"])
     return hit
 
 
-WARM = ["What are Tata Steel's Scope 1 and Scope 2 emissions?", "How does ACC compare with its peers?",
-        "Best practices for GHG reduction projects in cement", "Give me an overview of the power sector",
+intents = LRU(4096)   # answer id -> how it was routed, for feedback records
+
+WARM = ["What are NTPC's GHG emissions?", "How does ACC compare with its peers?",
+        "Examples of GHG reduction projects from cement companies", "Give me an overview of the power sector",
         "What if NTPC cuts Scope 1 by 10%?", "Which companies mention green hydrogen?", "What can you do?",
-        "What are the key findings of the E1 report?", "Top 10 emitters", "Which sector emits the most?"]
+        "Top 10 emitters", "Which sector emits the most?", "Make an infographic for UltraTech"]
 for _q in WARM:
     _answer(_q, {})
 BOOT_MS = round((time.perf_counter() - t_boot) * 1000)
@@ -163,7 +168,7 @@ async def cache_headers(request: Request, call_next):
     path = request.url.path
     if path.startswith("/assets/"):
         resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-    elif not path.startswith("/api/") and not path.startswith("/files/"):
+    elif not path.startswith("/api/"):
         resp.headers.setdefault("Cache-Control", "no-cache")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     return resp
@@ -172,28 +177,16 @@ async def cache_headers(request: Request, call_next):
 # ------------------------------------------------------------------ routes
 @app.get("/api/health")
 def health():
-    return J({"ok": True, "dataset": kb.meta["dataset_id"], "store": store.kind, "boot_ms": BOOT_MS})
+    return J({"ok": True, "store": store.kind, "boot_ms": BOOT_MS})
 
 
 @app.get("/api/meta")
 def meta():
     return J({
         "name": "Pramana",
-        "dataset": kb.meta,
-        "sectors": [{k: s[k] for k in ("id", "name", "short", "nse_code", "n")} for s in kb.sectors],
-        "questions": [{k: q.get(k) for k in ("qid", "label", "section", "type", "unit", "ask", "report_tables",
-                                             "ai_rated", "no_data", "rating_only")} for q in kb.questions.values()],
-        "reconciliation": {k: RECON[k] for k in ("total", "matched", "by_table", "ai_scored_divergence")},
-        "model": MODEL_CFG,
-        "eval": {k: v for k, v in (EVAL or {}).items() if k != "failures"},
-        "few_shot_exemplars": len(engine.parser.exemplars),
-        "flags": {
-            "report_exclusions": sum(1 for c in kb.companies if any(f["type"] == "report_exclusion" for f in c["flags"])),
-            "unit_checks": sum(1 for c in kb.companies if any(f["type"] == "unit_check" for f in c["flags"])),
-            "magnitude_checks": sum(1 for c in kb.companies if any(f["type"] == "magnitude_check" for f in c["flags"])),
-            "classification": sum(1 for c in kb.companies if any(f["type"] == "classification" for f in c["flags"])),
-        },
-        "database": {"knowledge_base": "SQLite (read-only, FTS5)", "app": store.kind},
+        "companies": len(kb.companies),
+        "period": "FY 2024-25",
+        "sectors": [{k: s[k] for k in ("id", "name", "short", "n")} for s in kb.sectors],
     })
 
 
@@ -204,37 +197,36 @@ def companies():
 
 
 def _directory():
+    """One row per company with the figures it disclosed. Nothing derived from internal scoring."""
     rows = []
     for c in kb.companies:
-        d = c["derived"]
-        abs_ok = d.get("abs_level_ok", True) and not any(f["type"] == "report_exclusion" for f in c["flags"])
+        d, v = c["derived"], c["values"]
+        differs = any(f["type"] in ("magnitude_check", "report_exclusion") for f in c["flags"])
         rows.append({
             "id": c["id"], "name": c["name"], "short": short_name(c["name"]), "sector": c["sector"],
             "sector_name": c["sector_name"],
-            "s12": d["scope12_cy"], "s12_yoy": d["scope12_yoy_pct"], "abs_ok": abs_ok,
-            "intensity": d["intensity_cr_cy"] if d["intensity_level_ok"] else None,
-            "s3": c["values"].get("1388"), "assured": c["ratings"].get("1340") == 100,
-            "scope3": c["ratings"].get("1387") == 100, "projects": c["ratings"].get("1341") == 100,
-            "targets": c["ratings"].get("286"), "index": d["index"]["overall"],
-            "flags": [f["type"] for f in c["flags"]],
+            "s1": v.get("1330"), "s2": v.get("1332"), "s12": d["scope12_cy"], "s12_yoy": d["scope12_yoy_pct"],
+            "s3": v.get("1388"), "intensity": d["intensity_cr_cy"] if d["intensity_level_ok"] else None,
+            "assured": yes(c, "1340"), "scope3": yes(c, "1387"), "projects": yes(c, "1341"),
+            "unit_note": differs,
         })
     return rows
 
 
 def _sectors():
-    from .analytics import median, sector_sum, yes_count
+    from .analytics import median, sector_sum
     out = []
     grand = sector_sum(kb.companies, "1330") + sector_sum(kb.companies, "1332")
     for s in kb.sectors:
         m = kb.members(s["id"])
-        cy = sector_sum(m, "1330") + sector_sum(m, "1332")
+        s1, s2 = sector_sum(m, "1330"), sector_sum(m, "1332")
         py = sector_sum(m, "1331") + sector_sum(m, "1333")
         out.append({
-            "id": s["id"], "name": s["name"], "short": s["short"], "nse_code": s["nse_code"], "n": s["n"],
-            "s12": cy, "share": cy / grand * 100, "yoy": (cy - py) / py * 100 if py else None,
-            "median_intensity": median(c["derived"]["intensity_cr_cy"] for c in m),
+            "id": s["id"], "name": s["name"], "short": s["short"], "n": s["n"],
+            "s1": s1, "s2": s2, "s12": s1 + s2, "share": (s1 + s2) / grand * 100,
+            "yoy": (s1 + s2 - py) / py * 100 if py else None,
+            "median_intensity": median(c["derived"]["intensity_cr_cy"] for c in m if c["derived"]["intensity_level_ok"]),
             "assured": yes_count(m, "1340")[0], "scope3": yes_count(m, "1387")[0], "projects": yes_count(m, "1341")[0],
-            "median_index": median(c["derived"]["index"]["overall"] for c in m),
         })
     return out
 
@@ -272,7 +264,7 @@ def ask(body: AskBody, request: Request):
 @app.post("/api/feedback")
 def feedback(body: FeedbackBody, request: Request):
     _limit(request)
-    store.add_feedback(body.fingerprint, body.q, body.intent, body.rating, body.note)
+    store.add_feedback(body.fingerprint, body.q, intents.get2(body.fingerprint) or body.intent, body.rating, body.note)
     return J({"ok": True})
 
 
@@ -291,41 +283,40 @@ def share_get(code: str):
     return J(s)
 
 
-@app.get("/api/stats")
-def stats():
-    return J({**store.public_stats(), "cache_entries": len(cache)})
+def _admin(token: str):
+    if not ADMIN_TOKEN or token != ADMIN_TOKEN:
+        raise HTTPException(404)
 
 
 @app.get("/api/admin/summary")
 def admin_summary(token: str = ""):
-    if not ADMIN_TOKEN or token != ADMIN_TOKEN:
-        raise HTTPException(404)
-    return J(store.admin_summary())
+    _admin(token)
+    return J({**store.admin_summary(), "usage": {**store.public_stats(), "cache_entries": len(cache)}})
 
 
-@app.get("/api/export/companies.csv")
-def export_csv():
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["company", "sector", "scope1_fy25_tco2e", "scope2_fy25_tco2e", "scope12_fy25_tco2e", "scope12_yoy_pct",
-                "intensity_fy25_tco2e_per_crore", "scope3_fy25_tco2e", "ghg_assured", "reports_scope3",
-                "ghg_projects", "targets_score", "e1_index_derived", "flags"])
-    for c in kb.companies:
-        d, v, r = c["derived"], c["values"], c["ratings"]
-        w.writerow([c["name"], c["sector_name"], v.get("1330"), v.get("1332"), d["scope12_cy"],
-                    None if d["scope12_yoy_pct"] is None else round(d["scope12_yoy_pct"], 4),
-                    None if d["intensity_cr_cy"] is None else round(d["intensity_cr_cy"], 6), v.get("1388"), r.get("1340") == 100, r.get("1387") == 100,
-                    r.get("1341") == 100, r.get("286"), d["index"]["overall"],
-                    ";".join(sorted({f["type"] for f in c["flags"]}))])
-    return PlainTextResponse(buf.getvalue(), media_type="text/csv",
-                             headers={"Content-Disposition": "attachment; filename=pramana_e1_companies.csv"})
+@app.get("/api/admin/diagnostics")
+def admin_diagnostics(token: str = ""):
+    """Model, data checks and reconciliation. Internal: never shown in the product."""
+    _admin(token)
+    recon = reconcile(kb)
+    return J({
+        "dataset": kb.meta,
+        "reconciliation": {k: recon[k] for k in ("total", "matched", "by_table")},
+        "model": MODEL_CFG,
+        "eval": {k: v for k, v in (EVAL or {}).items() if k != "failures"},
+        "few_shot_exemplars": len(engine.parser.exemplars),
+        "flags": {t: sum(1 for c in kb.companies if any(f["type"] == t for f in c["flags"]))
+                  for t in ("report_exclusion", "unit_check", "magnitude_check", "classification")},
+        "store": store.kind, "boot_ms": BOOT_MS,
+    })
 
 
-@app.get("/files/report.pdf")
-def report_pdf():
-    if not PDF.exists():
-        raise HTTPException(404)
-    return FileResponse(PDF, media_type="application/pdf", headers={"Cache-Control": "public, max-age=86400"})
+@app.get("/api/admin/trace")
+def admin_trace(q: str, token: str = "", lens: str = ""):
+    """How a question was understood and routed. Internal."""
+    _admin(token)
+    a, _, _ = _answer(q, {"lens": lens} if lens else {})
+    return J(a["trace"])
 
 
 if WEB.exists():
@@ -333,6 +324,8 @@ if WEB.exists():
 
     @app.get("/{path:path}")
     def spa(path: str):
+        if path.startswith(("api/", "files/")):
+            raise HTTPException(404)
         f = WEB / path
         if path and f.is_file():
             return FileResponse(f)

@@ -1,32 +1,32 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ask as apiAsk, companies as fetchCompanies, meta as fetchMeta, prefetch as apiPrefetch, resolveShare, type Ctx, type Meta, type Prefs } from "./api";
 import { AnswerView } from "./components/Answer";
-import { Composer, EmptyState, Learned, Palette, Sidebar, Thinking, type View } from "./components/Shell";
+import { CompanyPicker, Composer, EmptyState, Learned, Sidebar, Thinking, type View } from "./components/Shell";
 import { I } from "./icons";
 import { getLens, getTheme, loadThreads, newId, saveThreads, setLens as storeLens, setTheme as storeTheme, type Msg, type Thread } from "./store";
-import { toast } from "./ui";
+import { currentTheme, toast } from "./ui";
 
 const CompaniesPage = lazy(() => import("./pages/Pages").then((m) => ({ default: m.CompaniesPage })));
 const SectorsPage = lazy(() => import("./pages/Pages").then((m) => ({ default: m.SectorsPage })));
-const MethodPage = lazy(() => import("./pages/Pages").then((m) => ({ default: m.MethodPage })));
 
 function viewFromHash(): View {
   const h = window.location.hash.replace("#/", "");
-  return h === "companies" || h === "sectors" || h === "method" ? h : "chat";
+  return h === "companies" || h === "sectors" ? h : "chat";
 }
+const RAIL = "pramana.rail";
+const railPref = () => { try { return localStorage.getItem(RAIL) !== "closed"; } catch { return true; } };
 
 export default function App() {
   const [threads, setThreads] = useState<Thread[]>(() => loadThreads());
   const [active, setActive] = useState<string | null>(null);
   const [view, setView] = useState<View>(viewFromHash());
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [sectorsTotal, setSectorsTotal] = useState<number | null>(null);
   const [lens, setLensState] = useState<string | null>(() => getLens());
-  const [lensName, setLensName] = useState<string | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [theme, setThemeState] = useState(getTheme());
-  const [palette, setPalette] = useState<null | "search" | "lens">(null);
-  const [railOpen, setRailOpen] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [railOpen, setRailOpen] = useState(false);           // drawer on small screens
+  const [railShown, setRailShown] = useState(railPref);       // column on large screens
   const [busy, setBusy] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -34,22 +34,14 @@ export default function App() {
 
   useEffect(() => {
     fetchMeta().then(setMeta).catch(() => {});
-    fetch("/api/sectors").then((r) => r.json()).then((s) => setSectorsTotal(s.reduce((a: number, x: any) => a + x.s12, 0))).catch(() => {});
     fetchCompanies().then((cs) => setNames(Object.fromEntries(cs.map((c) => [c.id, c.short])))).catch(() => {});
   }, []);
-  useEffect(() => { setLensName(lens ? names[lens] || null : null); }, [lens, names]);
+  const lensName = lens ? names[lens] || null : null;
   useEffect(() => { saveThreads(threads); }, [threads]);
   useEffect(() => {
     const f = () => setView(viewFromHash());
     window.addEventListener("hashchange", f);
     return () => window.removeEventListener("hashchange", f);
-  }, []);
-  useEffect(() => {
-    const f = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((p) => (p ? null : "search")); }
-    };
-    window.addEventListener("keydown", f);
-    return () => window.removeEventListener("keydown", f);
   }, []);
 
   const thread = threads.find((t) => t.id === active) || null;
@@ -62,6 +54,13 @@ export default function App() {
     window.history.pushState(null, "", v === "chat" ? "/" : `/#/${v}`);
     setRailOpen(false);
   };
+  const toggleRail = () => {
+    if (window.matchMedia("(max-width: 980px)").matches) { setRailOpen((x) => !x); return; }
+    setRailShown((x) => {
+      try { localStorage.setItem(RAIL, x ? "closed" : "open"); } catch { /* not persisted */ }
+      return !x;
+    });
+  };
 
   const scrollToEnd = () => requestAnimationFrame(() => {
     const el = scrollRef.current;
@@ -70,6 +69,11 @@ export default function App() {
     const last = answers[answers.length - 1] as HTMLElement | undefined;
     if (last) el.scrollTo({ top: last.offsetTop - 70, behavior: "smooth" });
   });
+
+  const applyLens = (id: string | null) => {
+    storeLens(id);
+    setLensState(id);
+  };
 
   const send = useCallback(async (q: string, forceNew = false, ctxOverride?: Ctx) => {
     if (busy) return;
@@ -82,7 +86,7 @@ export default function App() {
       id = newId();
       base = { id, title: q.slice(0, 70), createdAt: Date.now(), updatedAt: Date.now(), messages: [], context: {} };
     }
-    const ctx: Ctx = ctxOverride ? { ...ctxOverride, lens: lens || null } : ctxFor(base);
+    const ctx: Ctx = ctxOverride ? { ...ctxOverride, lens: ctxOverride.lens ?? lens ?? null } : ctxFor(base);
     const pendingMsg: Msg = { role: "assistant", q, at: Date.now(), pending: true };
     const next: Thread = { ...base, updatedAt: Date.now(), messages: [...base.messages, { role: "user", text: q, at: Date.now() }, pendingMsg] };
     setThreads((ts) => [next, ...ts.filter((t) => t.id !== next.id)]);
@@ -91,11 +95,9 @@ export default function App() {
     scrollToEnd();
     try {
       const a = await apiAsk(q, ctx);
-      if (a.context?.lens && a.context.lens !== lens) {
-        storeLens(a.context.lens);
-        setLensState(a.context.lens);
-        toast("Company lens set. Answers will be framed around it.");
-      }
+      // the answer can set or clear your company ("my company is ...", "clear my company")
+      if (a.context?.lens === "") applyLens(null);
+      else if (a.context?.lens && a.context.lens !== lens) applyLens(a.context.lens);
       setThreads((ts) => ts.map((t) => t.id !== next.id ? t : {
         ...t, updatedAt: Date.now(), context: { ...a.context, lens: undefined },
         messages: t.messages.map((m) => (m.role === "assistant" && m.pending ? { role: "assistant", q, answer: a, at: Date.now(), ctxUsed: ctx } as any : m)),
@@ -122,7 +124,7 @@ export default function App() {
       resolveShare(m[1]).then((s) => {
         window.history.replaceState(null, "", "/");
         if (s) send(s.q, true, s.ctx);
-        else toast("That share link is not available.");
+        else toast("That link is no longer available.");
       });
       return;
     }
@@ -137,18 +139,16 @@ export default function App() {
   }, [send]);
 
   const newChat = () => { setActive(null); goView("chat"); };
-  const setLensTo = (id: string | null, name?: string) => {
-    storeLens(id);
-    setLensState(id);
-    toast(id ? `Lens set to ${name}. Try "how do we compare with our peers?"` : "Lens cleared. Answers are general.");
+  const pickCompany = (id: string | null, name?: string) => {
+    applyLens(id);
+    toast(id ? `Answering as ${name}. Try “What are our GHG emissions?”` : "No longer answering as a company.");
   };
   const toggleTheme = () => {
-    const cur = theme === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
-    const nxt = cur === "dark" ? "light" : "dark";
+    const nxt = currentTheme() === "dark" ? "light" : "dark";
     storeTheme(nxt);
     setThemeState(nxt);
   };
-  // In-context learning is client-held: removing a learned preference just edits the thread context.
+  // What a chat has been told to remember is held in the browser: removing it just edits the chat's context.
   const forget = (key: keyof Prefs) => {
     if (!thread) return;
     setThreads((ts) => ts.map((t) => {
@@ -157,40 +157,40 @@ export default function App() {
       delete prefs[key];
       return { ...t, context: { ...t.context, prefs } };
     }));
-    toast("Forgotten for this conversation.");
+    toast("Forgotten for this chat.");
   };
+  const shownTheme = theme === "system" ? currentTheme() : theme;
+  const title = view === "chat" ? (thread ? thread.title : "") : view === "companies" ? "Companies" : "Sectors";
 
   return (
-    <div className={"shell" + (railOpen ? " rail-open" : "")}>
-      <Sidebar threads={threads} active={active} view={view} lensName={lensName} theme={theme === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme} meta={meta}
-               onNew={newChat} onOpen={(id) => { setActive(id); goView("chat"); }} onDelete={(id) => { setThreads((ts) => ts.filter((t) => t.id !== id)); if (active === id) setActive(null); }}
-               onView={goView} onLens={() => setPalette("lens")} onTheme={toggleTheme} onPalette={() => setPalette("search")} onClose={() => setRailOpen(false)} />
+    <div className={"shell" + (railOpen ? " rail-open" : "") + (railShown ? "" : " rail-closed")}>
+      <Sidebar threads={threads} active={active} view={view} lensName={lensName} theme={shownTheme}
+               onNew={newChat} onOpen={(id) => { setActive(id); goView("chat"); }}
+               onDelete={(id) => { setThreads((ts) => ts.filter((t) => t.id !== id)); if (active === id) setActive(null); }}
+               onRename={(id, t) => setThreads((ts) => ts.map((x) => (x.id === id ? { ...x, title: t } : x)))}
+               onView={goView} onCompany={() => { setPicker(true); setRailOpen(false); }} onTheme={toggleTheme} onClose={toggleRail} />
       <main className="main">
         <div className={"topbar" + (scrolled ? " scrolled" : "")}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", minWidth: 0 }}>
-            <button className="icon-btn menu-btn" onClick={() => setRailOpen(true)} aria-label="Open sidebar"><I.menu /></button>
-            <span className="topbar-title">{view === "chat" ? (thread ? thread.title : "New question") : view === "companies" ? "Companies" : view === "sectors" ? "Sectors" : "Method and sources"}</span>
-          </div>
-          <div className="top-actions">
-            <button className="pill hide-sm" onClick={() => setPalette("search")}><I.search />Find a company <span className="kbd">⌘K</span></button>
-            <button className="pill" onClick={() => setPalette("lens")}><I.target />{lensName ? lensName : "Set lens"}</button>
+          <div className="topbar-l">
+            <button className="icon-btn rail-toggle" onClick={toggleRail} aria-label="Open sidebar" title="Open sidebar"><I.sidebar /></button>
+            <button className="icon-btn rail-toggle" onClick={newChat} aria-label="New chat" title="New chat"><I.edit /></button>
+            <span className="topbar-title">{title}</span>
           </div>
         </div>
         <div className="scroll" ref={scrollRef} onScroll={(e) => setScrolled((e.target as HTMLElement).scrollTop > 8)}>
-          <div className="col">
+          <div className={"col" + (view === "chat" ? "" : " wide")}>
             <Suspense fallback={<div className="page"><div className="skeleton" style={{ width: "40%", height: 28 }} /></div>}>
               {view === "companies" && <CompaniesPage onAsk={(q) => send(q, true)} meta={meta} />}
               {view === "sectors" && <SectorsPage onAsk={(q) => send(q, true)} />}
-              {view === "method" && <MethodPage meta={meta} onAsk={(q) => send(q, true)} />}
             </Suspense>
-            {view === "chat" && !thread && <EmptyState onAsk={(q) => send(q, true)} onHover={prefetchFresh} meta={meta} sectorsTotal={sectorsTotal} />}
+            {view === "chat" && !thread && <EmptyState onAsk={(q) => send(q, true)} onHover={prefetchFresh} lensName={lensName} onCompany={() => setPicker(true)} count={meta?.companies ?? null} />}
             {view === "chat" && thread && (
               <div className="conv">
                 {thread.messages.map((m, i) => m.role === "user"
                   ? <div className="msg-user" key={i}><div className="bubble">{m.text}</div></div>
                   : m.pending ? <Thinking key={i} />
                   : m.error ? <div key={i} className="note scope"><I.alert /><div>{m.error}. <button className="linkish" onClick={() => send(m.q)}>Try again</button></div></div>
-                  : <AnswerView key={i} index={i} a={m.answer!} q={m.q} ctx={(m as any).ctxUsed} ask={(q) => send(q)} prefetch={prefetchInThread} />)}
+                  : <AnswerView key={i} index={i} a={m.answer!} q={m.q} ctx={(m as any).ctxUsed} ask={(q) => send(q)} prefetch={prefetchInThread} pickCompany={() => setPicker(true)} />)}
               </div>
             )}
           </div>
@@ -199,14 +199,14 @@ export default function App() {
           <div className="composer-wrap">
             <div className="col">
               {thread?.context?.prefs && <Learned prefs={thread.context.prefs} names={names} onForget={forget} />}
-              <Composer onSend={(q) => send(q)} busy={busy} lensName={lensName} autoFocus={!thread} />
-              <div className="disclaimer">Answers come only from the IIMB E1 dataset and report. Figures are as filed by companies for FY 2024-25.</div>
+              <Composer onSend={(q) => send(q)} busy={busy} lensName={lensName} onCompany={() => setPicker(true)} autoFocus={!thread} />
+              <div className="disclaimer">Figures are as disclosed by companies in their BRSR filings for FY 2024-25.</div>
             </div>
           </div>
         )}
       </main>
-      {railOpen && <div className="drawer-scrim" style={{ zIndex: 45 }} onClick={() => setRailOpen(false)} />}
-      {palette && <Palette mode={palette} onClose={() => setPalette(null)} onAsk={(q) => send(q, true)} onLens={setLensTo} threads={threads} onOpenThread={(id) => { setActive(id); goView("chat"); }} />}
+      {railOpen && <div className="drawer-scrim rail-scrim" onClick={() => setRailOpen(false)} />}
+      {picker && <CompanyPicker onClose={() => setPicker(false)} onPick={pickCompany} current={lens} />}
     </div>
   );
 }

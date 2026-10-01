@@ -35,6 +35,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 from pramana.nlu.aliases import build_aliases  # noqa: E402
+from pramana.nlu.normalize import norm_name  # noqa: E402
 from pipeline.registry import (CLASSIFICATION_NOTES, MAGNITUDE_RATIO, AI_RUBRICS, INTENSITY_PER_RUPEE_PLAUSIBLE_MAX, PILLARS, QUESTIONS,
                                REPORT_EXCLUSIONS, SECTIONS, SECTOR_NSE_CODE, SECTOR_SHORT)
 
@@ -622,6 +623,8 @@ def main():
             "rating_only_rows": extra_rating_rows,
             "exclusions": REPORT_EXCLUSIONS,
             "intensity_plausible_max_per_rupee": INTENSITY_PER_RUPEE_PLAUSIBLE_MAX,
+            # words in company names that are ordinary English words: on their own they never name a company
+            "english_name_tokens": sorted({t for c in companies for t in norm_name(c["name"]) if t in english}),
         },
         "sections": SECTIONS,
         "questions": questions,

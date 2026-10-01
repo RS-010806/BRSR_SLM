@@ -9,7 +9,7 @@ export type Msg =
 
 export type Thread = { id: string; title: string; createdAt: number; updatedAt: number; messages: Msg[]; context: Ctx };
 
-const KEY = "pramana.threads.v1";
+const KEY = "pramana.threads.v3";
 const LENS = "pramana.lens";
 const THEME = "pramana.theme";
 
@@ -41,14 +41,14 @@ export function loadThreads(): Thread[] {
 }
 
 export function saveThreads(ts: Thread[]) {
-  // keep the most recent 60 conversations; trim traces to stay within quota
+  // keep the most recent 80 conversations to stay within the storage quota
   const slim = ts
-    .slice(0, 60)
+    .slice(0, 80)
     .map((t) => ({
       ...t,
       messages: t.messages
         .filter((m) => !(m.role === "assistant" && m.pending))
-        .map((m) => (m.role === "assistant" && m.answer ? { ...m, answer: { ...m.answer, trace: m.answer.trace } } : m)),
+        .map((m) => m),
     }));
   let payload = JSON.stringify(slim);
   if (payload.length > 4_000_000) {

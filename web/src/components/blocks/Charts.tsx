@@ -25,7 +25,7 @@ function ticksFor(scale: ScaleContinuousNumeric<number, number>, log: boolean, n
 function onEntity(ask: (q: string) => void, id: string | undefined, label: string) {
   if (!id) return undefined;
   if (/^S\d+$/.test(id)) return () => ask(`Give me an overview of the ${label} sector`);
-  return () => ask(`Show ${label}'s E1 profile`);
+  return () => ask(`Tell me about ${label}`);
 }
 
 /* =============================================================== Bars */
@@ -87,7 +87,7 @@ export function Bars({ b }: { b: any }) {
           const inside = diverging && ((r.value < 0 && endX < 40) || (r.value >= 0 && endX > plotW - 40));
           return (
             <g key={i} className="bar-row" style={{ cursor: click ? "pointer" : "default" }} onClick={click}
-               onMouseMove={(e) => show(e, r.label, [r.full || r.display, ...(r.rank ? [`Rank ${r.rank}`] : [])])} onMouseLeave={hide}>
+               onMouseMove={(e) => show(e, r.label, [r.full || r.display])} onMouseLeave={hide}>
               <rect x={0} y={y} width={w} height={rowH} fill="transparent" />
               {ranks && <text className="rank" x={labelW + rankW - 8} y={y + rowH / 2 + 4} textAnchor="end">{r.rank ?? ""}</text>}
               <text className={"lab" + (r.highlight ? " hi" : "")} x={labelW - 8} y={y + rowH / 2 + 4} textAnchor="end">
@@ -186,8 +186,8 @@ export function Strip({ b }: { b: any }) {
       </svg>
       <div className="legend">
         {focus && <span><i style={{ background: "var(--focus)", borderRadius: 99 }} />{focus.label}</span>}
-        <span><i style={{ background: "var(--peer-strong)", borderRadius: 99 }} />Peers ({pts.length - (focus ? 1 : 0)})</span>
-        {b.median_display && <span><i className="line" style={{ background: "var(--ink-2)" }} />Median {b.median_display}</span>}
+        <span><i style={{ background: "var(--peer-strong)", borderRadius: 99 }} />{focus ? "Peers" : "Companies"} ({pts.length - (focus ? 1 : 0)})</span>
+        {b.median_display && <span><i className="line" style={{ background: "var(--ink-2)" }} />{b.median_label || "Median"} {b.median_display}</span>}
         <span><i style={{ background: "var(--surface-3)" }} />Middle 50%</span>
         {log && <span className="muted">Log scale</span>}
         {diverging && <span className="muted">Extreme changes pinned at the edges</span>}
@@ -318,60 +318,11 @@ export function Stack({ b }: { b: any }) {
         {legend.map(({ s, i }) => (
           <span key={i + s.label}>
             <i style={{ ...(s.tone === "pos" ? { background: "var(--pos-fill)" } : s.tone === "neg" ? { background: "var(--peer)" } : s.tone === "muted" ? { background: "var(--surface-3)" } : {}), ...segStyle(s, i, b) }} />
-            {b.ordinal ? `Score ${s.score}` : s.label}
+            {s.label}
           </span>
         ))}
       </div>
       {tip}
-    </div>
-  );
-}
-
-/* =============================================================== Radar */
-export function Radar({ b }: { b: any }) {
-  const axes: string[] = b.axes;
-  const series: any[] = b.series;
-  const [ref, w] = useWidth<HTMLDivElement>();
-  const size = Math.min(w, 360);
-  const cx = size / 2, cy = size / 2 + 4, R = size / 2 - 46;
-  const ang = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / axes.length;
-  const pt = (i: number, v: number) => [cx + Math.cos(ang(i)) * (R * v) / 100, cy + Math.sin(ang(i)) * (R * v) / 100];
-  return (
-    <div ref={ref} style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center" }}>
-      <svg className="chart" width={size} height={size + 8} role="img" aria-label={b.title}>
-        {[25, 50, 75, 100].map((r) => (
-          <polygon key={r} points={axes.map((_, i) => pt(i, r).join(",")).join(" ")} fill="none" stroke="var(--grid)" />
-        ))}
-        {axes.map((a, i) => {
-          const [x, y] = pt(i, 116);
-          const [x2, y2] = pt(i, 100);
-          return (
-            <g key={a}>
-              <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="var(--grid)" />
-              <text className="lab" x={x} y={y + 4} textAnchor="middle">{a}</text>
-            </g>
-          );
-        })}
-        {series.map((s, si) => {
-          const pts = s.values.map((v: number | null, i: number) => pt(i, v ?? 0).join(",")).join(" ");
-          const col = `var(--s${si + 1})`;
-          return (
-            <g key={si} style={{ animation: `fade .6s ${si * 150}ms both` }}>
-              <polygon points={pts} fill={col} fillOpacity={0.1} stroke={col} strokeWidth={2} strokeLinejoin="round" />
-              {s.values.map((v: number | null, i: number) => {
-                const [x, y] = pt(i, v ?? 0);
-                return <circle key={i} cx={x} cy={y} r={4} fill={col} stroke="var(--surface)" strokeWidth={2} />;
-              })}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="legend" style={{ flexDirection: "column", gap: 8 }}>
-        {series.map((s, si) => (
-          <span key={si}><i style={{ background: `var(--s${si + 1})` }} />{s.name}: {s.values.map((v: number | null) => (v == null ? "n/a" : v.toFixed(0))).join(" / ")}</span>
-        ))}
-        <span className="muted">Governance / Action / Performance, 0 to 100</span>
-      </div>
     </div>
   );
 }
@@ -420,160 +371,43 @@ export function Treemap({ b }: { b: any }) {
   );
 }
 
-/* =============================================================== Position (peer percentiles) */
-export function Position({ b }: { b: any }) {
-  const [ref, w] = useWidth<HTMLDivElement>();
-  const { tip, show, hide } = useTip();
-  const chartW = w < 640 ? w - 20 : Math.max(160, w - 210 - 76 - 28);
-  return (
-    <div ref={ref}>
-      <div className="pos">
-        <div className="pos-row" style={{ marginBottom: -6 }}>
-          <div />
-          <div className="axis-t" style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-3)" }}>
-            <span>worse than peers</span><span>better than peers</span>
-          </div>
-          <div className="axis-t" style={{ textAlign: "right", fontSize: 11, color: "var(--ink-3)" }}>beats</div>
-        </div>
-        {b.rows.map((r: any, i: number) => {
-          const pts: any[] = r.points || [];
-          let scale: ScaleContinuousNumeric<number, number> | null = null;
-          if (pts.length) {
-            const vals = pts.map((p) => p.value);
-            const lower = r.better === "lower";
-            let lo = Math.min(...vals), hi = Math.max(...vals);
-            if (r.yoy) {
-              const s = [...vals].sort((a, c) => a - c);
-              lo = Math.min(s[Math.floor(s.length * 0.05)], -5);
-              hi = Math.max(s[Math.ceil(s.length * 0.95) - 1], 5);
-            }
-            const range = lower ? [chartW - 8, 8] : [8, chartW - 8];
-            scale = r.log && lo > 0 ? scaleLog().domain([lo, hi]).range(range).clamp(true) : scaleLinear().domain([lo, hi === lo ? lo + 1 : hi]).range(range).clamp(true);
-          }
-          return (
-            <div className="pos-row" key={i} style={{ animation: `rise .5s ${i * 60}ms both` }}>
-              <div className="pos-l">{r.label}<small>{r.display}{r.median_display ? ` · median ${r.median_display}` : ""}</small></div>
-              <div className="pos-chart">
-                {scale ? (
-                  <svg className="chart" width={chartW} height={30}>
-                    <line className="base" x1={4} x2={chartW - 4} y1={15} y2={15} />
-                    {pts.filter((p) => !p.focus).map((p, j) => {
-                      const x = scale!(r.log ? Math.max(p.value, (scale!.domain() as number[])[0]) : p.value);
-                      return <circle key={j} className="dot" cx={x} cy={15 + ((((j * 7919) % 13) / 13) - 0.5) * 12} r={3} onMouseMove={(e) => show(e, p.label, [String(p.value.toLocaleString("en-US", { maximumFractionDigits: 2 }))])} onMouseLeave={hide} />;
-                    })}
-                    {pts.filter((p) => p.focus).map((p, j) => (
-                      <circle key={"f" + j} className="dot hi" cx={scale!(r.log ? Math.max(p.value, (scale!.domain() as number[])[0]) : p.value)} cy={15} r={6.5} />
-                    ))}
-                  </svg>
-                ) : <span className="muted" style={{ fontSize: 12.5 }}>No comparable data ({r.n} peers reporting)</span>}
-              </div>
-              <div className="pos-p">
-                <b>{r.percentile == null ? "n/a" : `${r.percentile}%`}</b>
-                <span>of {Math.max(0, (r.n || 1) - 1)} peers</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="legend"><span><i style={{ background: "var(--focus)", borderRadius: 99 }} />{b.company}</span><span><i style={{ background: "var(--peer-strong)", borderRadius: 99 }} />Sector peers</span><span className="muted">Each scale is oriented so that better is to the right</span></div>
-      {tip}
-    </div>
-  );
-}
-
-/* =============================================================== Score grid */
-function heat(score: number | null | undefined): React.CSSProperties {
-  if (score == null) return { background: "var(--surface-2)", color: "var(--ink-2)" };
-  const k = Math.max(0, Math.min(4, Math.round(score / 25)));
-  return { background: ORD[k], color: ON_ORD[k] };
-}
-export { heat };
-
-export function ScoreGrid({ b }: { b: any }) {
-  let last = "";
-  return (
-    <div className="sgrid">
-      <div className="sg-head"><span>Question</span><span style={{ textAlign: "center" }}>{b.company?.slice(0, 10)}</span><span style={{ textAlign: "center" }}>Median</span><span className="t">0 to 100</span></div>
-      {b.rows.map((r: any, i: number) => {
-        const head = r.section !== last ? (last = r.section) : null;
-        return (
-          <div key={r.qid}>
-            {head && <div className="sg-sec">{head}</div>}
-            <div className="sg-row" style={{ animation: `fade .4s ${i * 18}ms both` }}>
-              <span className="l" title={`Q${r.qid}: ${r.label}`}>{r.label}</span>
-              <span className="sg-cell" style={heat(r.score)}>{r.score ?? "n/a"}</span>
-              <span className="sg-cell" style={heat(r.median)}>{r.median == null ? "n/a" : Math.round(r.median)}</span>
-              <span className="sg-track">
-                {r.median != null && <i className="md" style={{ left: `calc(${r.median}% - 1.5px)` }} />}
-                {r.score != null && <i className="me" style={{ left: `calc(${r.score}% - 1.5px)` }} />}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-      <div className="legend"><span><i style={{ background: "var(--focus)" }} />{b.company}</span><span><i style={{ background: "var(--ink-3)" }} />Sector median</span><span className="muted">Scores from the Rating sheet</span></div>
-    </div>
-  );
-}
-
-/* =============================================================== Simulator */
-function rateRatio(r: number) {
-  if (r > 1.05) return 0;
-  if (r > 1) return 25;
-  if (r === 1) return 50;
-  if (r >= 0.95) return 75;
-  return 100;
-}
-
+/* =============================================================== What-if */
 export function Simulator({ b }: { b: any }) {
   const [p, setP] = useState<number>(b.pct ?? 10);
-  const [ref, w] = useWidth<HTMLDivElement>();
-  const peers: any[] = b.peers;
   const nv = b.cy * (1 - p / 100);
-  const ratio = b.py ? nv / b.py : null;
-  const score = ratio != null && b.rating_q ? rateRatio(ratio) : null;
-  const rankOf = (val: number) => 1 + peers.filter((x) => x.id !== b.company_id && (x.value > val || (x.value === val && x.label.toLowerCase() < b.company.toLowerCase()))).length;
-  const r0 = rankOf(b.cy), r1 = rankOf(nv);
-  const vals = peers.map((x) => x.value).filter((v) => v > 0);
-  const log = b.kind === "abs" && vals.length > 2 && Math.max(...vals) / Math.min(...vals) > 200;
-  const cw = Math.max(240, w < 640 ? w : w / 2 - 12);
-  const scale: ScaleContinuousNumeric<number, number> = log
-    ? scaleLog().domain([Math.min(...vals), Math.max(...vals)]).range([10, cw - 10]).clamp(true)
-    : scaleLinear().domain([0, Math.max(...peers.map((x) => x.value), b.cy)]).range([10, cw - 10]).nice();
-  const fmt = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: v < 10 ? 3 : 0 });
+  const change = b.py ? ((nv - b.py) / b.py) * 100 : null;
+  const max = Math.max(b.cy, b.py || 0, 1e-12);
+  const fmt = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: Math.abs(v) < 100 ? 2 : 0 });
+  const sign = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}%`;
+  const rows = [
+    ...(b.py != null ? [{ k: "FY 2023-24, as disclosed", v: b.py as number, cls: "prev" }] : []),
+    { k: "FY 2024-25, as disclosed", v: b.cy as number, cls: "cur" },
+    { k: `FY 2024-25 with a ${p}% cut`, v: nv, cls: "new" },
+  ];
   return (
-    <div ref={ref} className="sim">
+    <div className="sim">
       <div className="sim-ctrl">
         <div>
-          <div className="card-s">Cut to FY 2024-25 {b.metric.toLowerCase()}</div>
+          <div className="card-s">Cut to {b.company}'s {String(b.metric).toLowerCase()}</div>
           <div className="sim-pct tnum">{p}%<small>lower</small></div>
         </div>
         <input className="rng" type="range" min={0} max={60} step={1} value={p} onChange={(e) => setP(Number(e.target.value))} aria-label="Reduction percentage" />
         <div className="presets">
           {[5, 10, 20, 30, 50].map((x) => <button key={x} className={"tool" + (p === x ? " on" : "")} onClick={() => setP(x)}>{x}%</button>)}
-          {b.need_pct > 0 && b.need_pct < 100 && <button className={"tool" + (Math.abs(p - Math.ceil(b.need_pct)) < 0.5 ? " on" : "")} onClick={() => setP(Math.min(60, Math.ceil(b.need_pct)))}>To median ({b.need_pct.toFixed(1)}%)</button>}
-        </div>
-        <div className="sim-out">
-          <div><div className="k">New value</div><div className="v tnum">{fmt(nv)}<small>{b.unit}</small></div></div>
-          <div><div className="k">Year-on-year ratio</div><div className="v tnum">{ratio == null ? "n/a" : ratio.toFixed(3)}</div></div>
-          <div><div className="k">Rating Q{b.rating_q ?? "n/a"}</div><div className="v tnum">{score ?? "n/a"}<small>was {b.current_score ?? "n/a"}</small></div></div>
-          <div><div className="k">Rank in {b.sector}</div><div className="v tnum">{r1}<small>of {peers.length}, was {r0}</small></div></div>
         </div>
       </div>
-      <div>
-        <div className="card-s" style={{ marginBottom: 8 }}>Position among {peers.length} {b.sector} companies{log ? " (log scale)" : ""}</div>
-        <svg className="chart" width={cw} height={150}>
-          <line className="base" x1={10} x2={cw - 10} y1={80} y2={80} />
-          {b.median != null && <><line className="med" x1={scale(b.median)} x2={scale(b.median)} y1={54} y2={106} /><text className="med-t" x={scale(b.median)} y={122} textAnchor="middle">median</text></>}
-          {peers.filter((x) => x.id !== b.company_id).map((x, i) => (
-            <circle key={i} className="dot" cx={scale(Math.max(x.value, (scale.domain() as number[])[0]))} cy={80 + ((((i * 2654435761) % 1000) / 1000) - 0.5) * 34} r={3.5} />
-          ))}
-          <circle cx={scale(b.cy)} cy={80} r={7} fill="none" stroke="var(--ink-3)" strokeWidth={1.5} strokeDasharray="0" />
-          <line x1={scale(b.cy)} x2={scale(Math.max(nv, (scale.domain() as number[])[0]))} y1={80} y2={80} stroke="var(--focus)" strokeWidth={2} />
-          <circle className="dot hi" cx={scale(Math.max(nv, (scale.domain() as number[])[0]))} cy={80} r={7} style={{ transition: "cx .25s var(--ease)" }} />
-          <text className="val hi" x={Math.min(Math.max(scale(Math.max(nv, (scale.domain() as number[])[0])), 50), cw - 50)} y={40} textAnchor="middle">{b.company}</text>
-        </svg>
-        <div className="legend"><span><i style={{ background: "transparent", border: "1.5px solid var(--ink-3)", borderRadius: 99 }} />Reported</span><span><i style={{ background: "var(--focus)", borderRadius: 99 }} />Scenario</span></div>
+      <div className="sim-view">
+        {rows.map((r) => (
+          <div className="sim-row" key={r.k}>
+            <div className="sim-k">{r.k}</div>
+            <div className="sim-track"><i className={r.cls} style={{ width: `${Math.max(1, (100 * r.v) / max)}%` }} /></div>
+            <div className="sim-v tnum">{fmt(r.v)}</div>
+          </div>
+        ))}
+        <div className="sim-out">
+          <div><div className="k">Reduction</div><div className="v tnum">{fmt(b.cy - nv)}<small>{b.unit}</small></div></div>
+          <div><div className="k">Change vs FY 2023-24</div><div className="v tnum">{change == null ? "n/a" : sign(change)}</div></div>
+        </div>
       </div>
     </div>
   );

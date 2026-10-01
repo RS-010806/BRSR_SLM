@@ -1,17 +1,22 @@
 """Answer container with citation bookkeeping.
 
 Prose may only contain numbers that come with a citation marker [n]. The
-marker indexes into `citations`, each of which points at an exact source:
-a workbook cell, a Rating-sheet score, a report table row with its PDF page,
-a verbatim report sentence, or a derived formula whose inputs are themselves
-cited.
+marker indexes into `citations`. A citation is one of:
+
+  filing    a value or passage a company disclosed in its BRSR filing
+  computed  arithmetic over disclosed values, whose inputs are themselves cited
+  note      a short explanation of how something is shown
+
+Citations name only what is public: the company, the disclosure item and the
+financial year. How the data is stored is never part of an answer.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 
-from .fmt import num, short_name
+from .fmt import exact, short_name
+from .public import FLAG_NOTE, item
 
 
 class Answer:
@@ -55,52 +60,33 @@ class Answer:
         self._keys[key] = payload["id"]
         return payload["id"]
 
-    def c_cell(self, c: dict, qid: str, display: str | None = None) -> str:
-        q = self.kb.q(qid)
-        cell = c["cells"].get(qid)
-        if cell is None or not q.get("raw_reliable", True) or q.get("rating_only"):
-            return self.c_rating(c, qid)
+    def c_filing(self, c: dict, qid: str, display: str | None = None) -> str:
+        """A value or passage from the company's own BRSR filing."""
+        label, fy, where = item(qid)
         raw = c["values"].get(qid)
-        payload = {
-            "kind": "cell", "sheet": "Base Data", "cell": cell, "company": c["name"], "company_id": c["id"],
-            "qid": qid, "question": q["label"], "brsr": q.get("brsr_element"),
-            "value": display if display is not None else (num(raw) if isinstance(raw, float) else
-                                                           ("blank" if raw is None else str(raw) if not isinstance(raw, bool)
-                                                            else ("true" if raw else "false"))),
-        }
-        if q["type"] in ("text", "url") and isinstance(raw, str):
+        if display is not None:
+            value = display
+        elif isinstance(raw, bool):
+            value = "Yes" if raw else "No"
+        elif isinstance(raw, (int, float)):
+            value = exact(float(raw))
+        elif raw is None:
+            value = "Not disclosed"
+        else:
+            value = str(raw)
+        payload = {"kind": "filing", "company": c["name"], "company_id": c["id"], "item": label, "fy": fy,
+                   "where": where, "value": value}
+        if isinstance(raw, str) and len(raw) > 80:
             payload["text"] = raw
-        return f"[{self._cite('cell:' + c['id'] + ':' + qid, payload)}]"
+            payload["value"] = None
+        return f"[{self._cite('f:' + c['id'] + ':' + qid, payload)}]"
 
-    def c_rating(self, c: dict, qid: str) -> str:
-        q = self.kb.q(qid)
-        score = c["ratings"].get(qid)
-        rub = q.get("rubric") or []
-        level = next((l["text"] for l in rub if l["score"] == score), None)
-        payload = {"kind": "rating", "sheet": "Rating", "cell": c["rating_cells"].get(qid), "company": c["name"],
-                   "company_id": c["id"], "qid": qid, "question": q["label"], "score": score, "level": level,
-                   "rubric": rub, "rule_source": q.get("rating_rule_source")}
-        return f"[{self._cite('rating:' + c['id'] + ':' + qid, payload)}]"
+    def c_calc(self, label: str, formula: str, inputs: list[str] | None = None, note: str | None = None) -> str:
+        payload = {"kind": "computed", "label": label, "formula": formula, "inputs": inputs or [], "note": note}
+        return f"[{self._cite('c:' + label + formula, payload)}]"
 
-    def c_table(self, tid: str, row: str | None = None, note: str | None = None) -> str:
-        t = self.kb.tables[tid]
-        payload = {"kind": "report_table", "table": tid, "title": t["title"], "pdf_page": t["pdf_page"],
-                   "printed_page": t["printed_page"], "row": row, "note": note,
-                   "columns": t["rows"][0], "rows": t["rows"][1:]}
-        return f"[{self._cite('table:' + tid + ':' + str(row), payload)}]"
-
-    def c_report_text(self, text: str, pdf_page: int | None, where: str) -> str:
-        payload = {"kind": "report_text", "text": text, "pdf_page": pdf_page,
-                   "printed_page": pdf_page - 6 if pdf_page else None, "where": where}
-        key = "rt:" + hashlib.md5(text.encode()).hexdigest()[:10]
-        return f"[{self._cite(key, payload)}]"
-
-    def c_derived(self, label: str, formula: str, inputs: list[str] | None = None, note: str | None = None) -> str:
-        payload = {"kind": "derived", "label": label, "formula": formula, "inputs": inputs or [], "note": note}
-        return f"[{self._cite('d:' + label + formula, payload)}]"
-
-    def c_method(self, label: str, text: str) -> str:
-        return f"[{self._cite('m:' + label, {'kind': 'method', 'label': label, 'text': text})}]"
+    def c_note(self, label: str, text: str) -> str:
+        return f"[{self._cite('n:' + label, {'kind': 'note', 'label': label, 'text': text})}]"
 
     # ------------------------------------------------------------------ entities
     def company_ref(self, c: dict) -> dict:
@@ -108,10 +94,14 @@ class Answer:
         ref = {"id": c["id"], "name": c["name"], "short": short_name(c["name"]), "sector": s["name"], "sector_id": s["id"]}
         if not any(e["id"] == c["id"] for e in self.entities):
             self.entities.append(ref)
-            for f in c.get("flags", []):
-                if f["type"] == "classification":
-                    self.note("data_quality", f["text"])
         return ref
+
+    def flag_notes(self, c: dict, qids, name: bool = False):
+        """Plain-language note when a disclosed value looks like it uses a different unit."""
+        for f in c.get("flags", []):
+            text = FLAG_NOTE.get(f["type"])
+            if text and set(f["qids"]) & set(qids):
+                self.note("data", f"{short_name(c['name'])}: {text[0].lower() + text[1:]}" if name else text)
 
     # ------------------------------------------------------------------ output
     def payload(self) -> dict:

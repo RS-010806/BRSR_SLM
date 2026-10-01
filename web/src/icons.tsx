@@ -32,6 +32,10 @@ export const I = {
   ext: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>),
   thumb: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><path d="M7 11v9H4v-9zM7 11l4-8a2.5 2.5 0 0 1 2.5 2.5V9h5.2a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.5 20H7" /></svg>),
   download: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>),
+  sidebar: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M9.5 4v16" /></svg>),
+  edit: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><path d="M12 5H7a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3v-5" /><path d="M17.5 3.5l3 3L12 15l-4 1 1-4z" /></svg>),
+  pencil: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><path d="M16.5 4.5l3 3L8 19l-4 1 1-4z" /></svg>),
+  trash: (p: P) => (<svg viewBox="0 0 24 24" {...base} {...p}><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6" /></svg>),
 };
 
 export function Mark({ size = 30 }: { size?: number }) {

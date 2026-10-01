@@ -8,7 +8,13 @@ CO2 = "tCO₂e"
 LEGAL_TAIL = re.compile(r"(\s+(limited|ltd\.?|company limited|corporation limited))+\s*$", re.I)
 
 
+# Names people actually use, where dropping the legal suffix alone reads oddly.
+SHORT_OVERRIDE = {"Oil & Natural Gas Corporation Limited": "ONGC"}
+
+
 def short_name(name: str) -> str:
+    if name in SHORT_OVERRIDE:
+        return SHORT_OVERRIDE[name]
     s = LEGAL_TAIL.sub("", name).strip()
     return s or name
 
@@ -96,7 +102,7 @@ def join(items: list[str], conj: str = "and") -> str:
     return ", ".join(items[:-1]) + f" {conj} " + items[-1]
 
 
-_KEEP_CASE = {"Scope", "GHG", "E1", "NGRBC", "BRSR", "SBTi", "Board", "PPP", "ISO"}
+_KEEP_CASE = {"Scope", "GHG", "NGRBC", "BRSR", "SBTi", "Board", "PPP", "ISO", "Principle"}
 
 
 def lc(label: str) -> str:
@@ -107,3 +113,29 @@ def lc(label: str) -> str:
     if first in _KEEP_CASE or first.isupper():
         return label
     return label[0].lower() + label[1:]
+
+
+def change_words(y: float | None, digits: int = 1) -> str:
+    """'3.9% lower than', '4.2% higher than' or 'unchanged from' (for 'X in FY 2023-24')."""
+    if y is None:
+        return ""
+    if round(y, digits) == 0:
+        return "unchanged from"
+    return f"{abs(y):.{digits}f}% {'higher' if y > 0 else 'lower'} than"
+
+
+def ascii_unit(unit: str) -> str:
+    """Unit text that survives any spreadsheet or plain-text export."""
+    return unit.replace("tCO₂e", "tCO2e").replace("₹", "INR").replace("−", "-")
+
+
+def exact(v: float | None) -> str:
+    """A disclosed number with nothing rounded away (thousands separators, no exponent)."""
+    if v is None:
+        return "Not disclosed"
+    if v == 0:
+        return "0"
+    if abs(v) >= 1:
+        return f"{v:,.4f}".rstrip("0").rstrip(".").replace("-", MINUS)
+    from decimal import Decimal
+    return format(Decimal(repr(float(v))), "f").replace("-", MINUS)

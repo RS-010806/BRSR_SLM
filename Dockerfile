@@ -15,7 +15,6 @@ COPY server/requirements.txt server/requirements.txt
 RUN pip install --no-cache-dir -r server/requirements.txt
 COPY server/ server/
 COPY data/build/pramana.db data/build/pramana.db
-COPY data/raw/IIMB_BRSR_Report_FY2024-25.pdf data/raw/IIMB_BRSR_Report_FY2024-25.pdf
 COPY --from=web /web/dist web/dist
 RUN useradd -m pramana && chown -R pramana /app
 USER pramana
