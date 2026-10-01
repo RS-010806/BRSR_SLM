@@ -110,10 +110,13 @@ def test_scope1_and_scope2_are_separate_figures(eng):
 def test_simple_questions_get_no_charts(eng):
     charts = {"bars", "strip", "grouped", "stack", "treemap"}
     for q in ("What are NTPC's Scope 1 emissions?", "does infosys have assurance", "What are Infosys's targets?",
-              "tell me about ACC", "How many companies report Scope 3 emissions?", "what is NTPC's emission intensity"):
+              "what is NTPC's emission intensity", "What are NTPC's GHG emissions?"):
         a = eng.ask(q)
         assert not charts & {b["type"] for b in a["blocks"]}, q
         assert len(a["lead"]) <= 3, q
+    # a profile and a count show the answer itself as one share bar, and nothing about other companies
+    assert [b["type"] for b in eng.ask("tell me about ACC")["blocks"]] == ["kpis", "stack", "checklist"]
+    assert [b["type"] for b in eng.ask("How many companies report Scope 3 emissions?")["blocks"]] == ["stack"]
 
 
 def test_definitions(eng):
@@ -134,16 +137,45 @@ def test_who_are_my_peers_is_a_list_of_names(eng):
     assert set(a["blocks"][0]["items"][0]) == {"id", "name"}       # names only, no figures
 
 
-def test_peer_comparison_has_no_ranks(eng):
+def test_peer_comparison_is_visual_and_has_no_ranks(eng):
     a = eng.ask("how do we compare with our peers", TCI)
-    assert [b["type"] for b in a["blocks"]] == ["table"]
-    row = a["blocks"][0]["rows"][0]
-    assert row["position"] in ("Below median", "Above median", "Same as median")
-    assert row["reporting"] == "30 of 34"                           # how many peers disclosed the figure
+    assert [b["type"] for b in a["blocks"]] == ["position", "bars"]
+    pos = a["blocks"][0]
+    assert [r["label"] for r in pos["rows"]][:3] == ["Scope 1 emissions", "Scope 2 emissions", "Scope 3 emissions"]
+    row = pos["rows"][0]
+    assert row["relation"] in ("Below median", "Above median", "Same as median")
+    assert (row["n"], row["of"]) == (30, 34)                        # how many peers disclosed the figure
+    assert sum(1 for p in row["points"] if p.get("focus")) == 1 and len(row["points"]) == 31
+    assert all("rank" not in r for r in a["blocks"][1]["rows"])     # the named chart carries no rank numbers
+    assert any(r["highlight"] for r in a["blocks"][1]["rows"])
     text = json.dumps(public(a)).lower()
     assert not re.search(r"\brank|percentile|\d+(st|nd|rd|th) (highest|lowest|of)\b|beats|outperform", text)
     b = eng.ask("how do we compare with peers on scope 1", TCI)
-    assert "peer median" in b["lead"][0] and [x["type"] for x in b["blocks"]] == ["strip"]
+    assert "peer median" in b["lead"][0] and [x["type"] for x in b["blocks"]] == ["strip", "bars"]
+
+
+@pytest.mark.parametrize("q", [
+    "how well does ntpc do with respect to peers", "how is ntpc doing against its competitors", "is NTPC better than its peers",
+    "NTPC vs peers", "where does NTPC stand among its peers", "ntpc relative to peers", "how does ntpc stack up",
+    "ntpc versus the industry", "competitor analysis for NTPC"])
+def test_asking_how_a_company_does_against_peers_is_a_comparison(eng, q):
+    a = eng.ask(q)
+    assert a["trace"]["final_intent"] == "peer_benchmark", (q, a["trace"]["rules"])
+    assert a["blocks"][0]["type"] == "position"
+
+
+@pytest.mark.parametrize("q", ["who are NTPC's peers", "peers of NTPC", "NTPC peers", "list competitors of NTPC",
+                               "how many peers does NTPC have"])
+def test_asking_who_the_peers_are_is_a_list(eng, q):
+    a = eng.ask(q)
+    assert a["trace"]["final_intent"] == "peer_list", (q, a["trace"]["rules"])
+    assert len(a["blocks"][0]["items"]) == 19
+
+
+def test_comparative_answers_carry_visuals(eng):
+    assert [b["type"] for b in eng.ask("Compare ACC and Ambuja")["blocks"]] == ["grouped", "compare"]
+    assert [b["type"] for b in eng.ask("Give me an overview of the power sector")["blocks"]] == ["kpis", "bars", "stack"]
+    assert [b["type"] for b in eng.ask("What are the key highlights?")["blocks"]] == ["kpis", "points", "treemap"]
 
 
 def test_sector_count_is_the_full_sector(eng):
@@ -223,6 +255,7 @@ def test_infographic_for_company_sector_and_market(eng):
 
 def test_exports_are_spreadsheet_ready(eng):
     qs = ["what is my company ghg emissions", "how do we compare with our peers", "who are my peers", "Top 10 emitters",
+          "tell me about my company", "What are the key highlights?", "how many cement companies have assurance",
           "Give me an overview of the power sector", "Which sector emits the most?", "Compare ACC and Ambuja",
           "compare infosys and tcs on emissions", "Which companies mention green hydrogen?", "list all services companies"]
     for q in qs:

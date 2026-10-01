@@ -79,6 +79,10 @@ def _tile(metric: M.Metric, c, label: str, cite: str | None = None):
                tone=change_tone(y, metric.better), cite=cite)
 
 
+def _share(p: float) -> str:
+    return "<0.1%" if 0 < p < 0.1 else f"{p:.1f}%" if p < 10 else f"{p:.0f}%"
+
+
 def quote_item(ctx, c, qid, k: int = 3) -> dict:
     """A passage exactly as the company disclosed it, with its most specific sentences marked."""
     a = ctx.a
@@ -343,6 +347,14 @@ def company_profile(ctx, c):
     ci = value_cite(a, c, mi) if mi.value(c) is not None else None
     a.block("kpis", items=[_tile(m1, c, "Scope 1", c1), _tile(m2, c, "Scope 2", c2), _tile(m3, c, "Scope 3", c3),
                            _tile(mi, c, "Emission intensity", ci)], export=_profile_export(c))
+    scopes = [(lab, m.value(c)) for lab, m in (("Scope 1", m1), ("Scope 2", m2), ("Scope 3", m3)) if (m.value(c) or 0) > 0]
+    if len(scopes) >= 2:
+        total = sum(v for _, v in scopes)
+        a.block("stack", title="Emissions by scope", subtitle="Share of disclosed emissions, FY 2024-25", categorical=True,
+                rows=[{"label": short, "segments": [{"label": f"{lab} {_share(100 * v / total)}", "value": v,
+                                                      "display": f"{num(v)} {CO2}"} for lab, v in scopes]}],
+                export=export(f"{c['name']}: emissions by scope", ["Scope", "Emissions (tCO2e)", "Share (%)"],
+                              [[lab, v, round(100 * v / total, 2)] for lab, v in scopes]))
     checks = []
     for q, label in CHECKS:
         val = bool(c["values"].get(q)) if q == "286" else yes(c, q)

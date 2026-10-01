@@ -80,10 +80,13 @@ def bars(title, pairs, metric: M.Metric, focus_ids=(), median_v=None, median_lab
          limit=None, show_rank=True, value_kind="value"):
     rows = []
     for i, (c, v) in enumerate(pairs[:limit] if limit else pairs, start=1):
-        rows.append({"id": c["id"], "label": short_name(c["name"]), "value": v,
-                     "display": pct(v) if value_kind == "yoy" else fmt_short(metric, v),
-                     "full": pct(v, digits=2) if value_kind == "yoy" else fmt_value(metric, v),
-                     "rank": i if show_rank else None, "highlight": c["id"] in focus_ids})
+        row = {"id": c["id"], "label": short_name(c["name"]), "value": v,
+               "display": pct(v) if value_kind == "yoy" else fmt_short(metric, v),
+               "full": pct(v, digits=2) if value_kind == "yoy" else fmt_value(metric, v),
+               "highlight": c["id"] in focus_ids}
+        if show_rank:
+            row["rank"] = i                     # numbered only when the question asked for a ranking
+        rows.append(row)
     unit = "% change" if value_kind == "yoy" else metric.unit
     blk = {"type": "bars", "title": title, "subtitle": subtitle, "rows": rows, "unit": unit, "log": log,
            "diverging": value_kind == "yoy", "better": metric.better,

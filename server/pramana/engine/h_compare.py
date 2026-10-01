@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from ..analytics import median
 from . import metrics as M
-from .common import change_tone, eligible, export, fmt_short, fmt_value, strip, value_cite, yes, yes_count
+from .common import bars, change_tone, eligible, export, fmt_short, fmt_value, ordered, strip, value_cite, yes, yes_count
 from .fmt import CO2, join, lc, num, pct, short_name, tile
 from .h_company import BOOL_PHRASE, BOOL_TITLE, TEXT_TITLE, kicker, quote_item
 
@@ -152,6 +152,15 @@ def _side_by_side(ctx, cos):
         rows.append({"label": label, "cells": [{"text": "Yes" if yes(c, q) else "No", "tone": "good" if yes(c, q) else "muted",
                                                 "cite": a.c_filing(c, q)} for c in cos]})
         xrows.append([label] + ["Yes" if yes(c, q) else "No" for c in cos])
+    m1, m2, m3 = M.NUMERIC["scope1"], M.NUMERIC["scope2"], M.NUMERIC["scope3"]
+    if any(m.value(c) for c in cos for m in (m1, m2, m3)):
+        series = ["Scope 1", "Scope 2"] + (["Scope 3"] if any(m3.value(c) for c in cos) else [])
+        ms = (m1, m2, m3)[:len(series)]
+        a.block("grouped", title="Emissions by scope", subtitle=f"FY 2024-25, {CO2}", series=series, log=True,
+                groups=[{"label": short_name(c["name"]), "values": [m.value(c) for m in ms],
+                         "displays": [tile(m.value(c)) if m.value(c) is not None else "n/a" for m in ms]} for c in cos],
+                export=export("Emissions by scope", ["Company"] + [f"{x} (tCO2e)" for x in series],
+                              [[c["name"]] + [m.value(c) for m in ms] for c in cos]))
     a.block("compare", title="Side by side", columns=[{"label": short_name(c["name"]), "sub": kb.sector_of(c)["name"],
                                                        "id": c["id"]} for c in cos], rows=rows,
             export=export("Side by side", ["Measure"] + [c["name"] for c in cos], xrows))
@@ -197,7 +206,7 @@ def peer_list(ctx, c, peers=None):
             f"{a.c_note('Peer group', f'The {n} companies classified under {sname} among the companies covered. Peers are the other {n - 1}.')}. "
             f"Its {n - 1} peers are listed below.")
     a.block("names", title=f"{len(others)} peers" if not custom else "Your peer group",
-            items=[{"id": x["id"], "name": short_name(x["name"])} for x in others],
+            items=[{"id": x["id"], "name": short_name(x["name"])} for x in others], sector=None if custom else sname,
             export=export(f"Peers of {c['name']}", ["Company", "Sector"], [[x["name"], kb.sector_of(x)["name"]] for x in others]))
     a.context.update({"companies": [c["id"]], "intent": "peer_benchmark"})
     near = _nearest(c, others)
@@ -257,6 +266,19 @@ def peer_compare(ctx, c, mid, peers=None):
                 subtitle="Each dot is a company, FY 2024-25" + (" vs FY 2023-24" if by == "yoy" else ""), value_kind=by)
     blk["median"], blk["median_display"], blk["median_label"] = med, (pct(med) if by == "yoy" else fmt_short(metric, med)), "Peer median"
     a.blocks.append(blk)
+    if by == "value":
+        # the same figures by name: the largest in the group, with the company picked out
+        ranked = ordered(pairs + [mine])
+        top = ranked[:10]
+        if c["id"] not in [x["id"] for x, _ in top]:
+            top = top[:9] + [mine]
+        grp = "your chosen peers" if custom else f"{sname} companies"
+        blk2 = bars(f"{metric.label}: {short} among {grp}", top, metric, focus_ids={c["id"]}, median_v=med,
+                    median_label="Peer median", log=metric.kind in ("abs", "intensity"), show_rank=False,
+                    subtitle="FY 2024-25" + ("" if len(ranked) <= 10 else f", the ten highest of {len(ranked)}"
+                                             + ("" if c["id"] in [x["id"] for x, _ in ranked[:10]] else f" and {short}")))
+        blk2["focus_label"] = short
+        a.blocks.append(blk2)
     if metric.note:
         a.note("method", metric.note)
     a.flag_notes(c, metric.qids)
@@ -277,10 +299,10 @@ def _peer_bool(ctx, c, qid, others, where):
 
 
 def _peer_overview(ctx, c, others, where, custom):
-    """One compact table: the company's figure beside the peer median, measure by measure."""
+    """Where the company sits among its peers, measure by measure: one dot per company, the peer median marked."""
     a, kb = ctx.a, ctx.kb
     short = short_name(c["name"])
-    rows, xrows, below, above, level = [], [], [], [], []
+    rows, xrows, below, above = [], [], [], []
     dims = [("scope1", "value", "Scope 1 emissions"), ("scope2", "value", "Scope 2 emissions"),
             ("scope3", "value", "Scope 3 emissions"), ("intensity", "value", "Emission intensity"),
             ("scope12", "yoy", "Change in Scope 1 + Scope 2 vs FY 2023-24")]
@@ -293,21 +315,28 @@ def _peer_overview(ctx, c, others, where, custom):
         show = (lambda x: pct(x)) if by == "yoy" else (lambda x: (tile(x) if metric.kind == "abs" else num(x)))
         if mine is None:
             raw = metric.value(c) if by == "value" else None
-            pos, mine_s = "n/a", ("Not disclosed" if raw is None else "See note")
+            pos, mine_s = None, ("Not disclosed" if raw is None else "See note")
         else:
             mine_s = show(mine[1])
             if med is None:
-                pos = "n/a"
+                pos = None
             else:
                 pos = "Same as median" if mine[1] == med else ("Below median" if mine[1] < med else "Above median")
-                (level if mine[1] == med else below if mine[1] < med else above).append(lc(label) if by == "value" else "the change in emissions since FY 2023-24")
-        rows.append({"measure": f"{label} ({unit})" if by == "value" else label, "mine": mine_s,
-                     "median": show(med) if med is not None else "n/a", "position": pos,
-                     "reporting": f"{len(pairs)} of {len(others)}"})
-        xrows.append([f"{label} ({unit})", mine[1] if mine else None, med, pos, len(pairs), len(others)])
+                if mine[1] != med:
+                    (below if mine[1] < med else above).append(lc(label) if by == "value" else "the change in emissions since FY 2023-24")
+        vals = [x for _, x in pairs] + ([mine[1]] if mine else [])
+        positive = [x for x in vals if x > 0]
+        rows.append({"label": label if by == "yoy" else label, "unit": unit, "mine": mine_s,
+                     "median": show(med) if med is not None else None, "relation": pos,
+                     "n": len(pairs), "of": len(others), "yoy": by == "yoy",
+                     "log": by == "value" and len(positive) > 2 and max(positive) / min(positive) > 200,
+                     "median_value": med,
+                     "points": [{"value": x, "label": short_name(o["name"]), "display": show(x)} for o, x in pairs]
+                               + ([{"value": mine[1], "label": short, "display": mine_s, "focus": True}] if mine else [])})
+        xrows.append([f"{label} ({unit})" if by == "value" else f"{label} (%)", mine[1] if mine else None, med, pos or "n/a",
+                      len(pairs), len(others)])
     cite = a.c_calc("Peer medians", "For each measure, the median of the peers that disclosed a comparable figure",
-                    note="The number of peers disclosing each figure is shown in the table. Figures that appear to use a "
-                         "different unit are left out of the medians.")
+                    note="Figures that appear to use a different unit are left out of the medians.")
     bits = []
     if below:
         bits.append(f"below the peer median on {join(below)}")
@@ -318,12 +347,26 @@ def _peer_overview(ctx, c, others, where, custom):
     else:
         a.status = "partial"
         a.p(f"{c['name']} has not disclosed figures that can be compared with {where} {cite}.")
-    a.block("table", title=f"{short} and the peer median", rows=rows,
-            columns=[{"key": "measure", "label": "Measure"}, {"key": "mine", "label": short, "align": "right"},
-                     {"key": "median", "label": "Peer median", "align": "right"},
-                     {"key": "position", "label": "Position"}, {"key": "reporting", "label": "Peers disclosing", "align": "right"}],
+    a.block("position", title=f"{short} and its peers", company=short, rows=rows,
+            subtitle="Each dot is a company and the vertical line marks the peer median. Further left means a lower figure.",
             export=export(f"{c['name']} and the peer median", ["Measure", c["name"], "Peer median", "Position",
                                                                "Peers disclosing", "Peers in group"], xrows))
+    # the peer group on combined emissions, with the company picked out
+    m12 = M.NUMERIC["scope12"]
+    mine12 = next(iter(eligible(m12, [c])), None)
+    pairs12 = eligible(m12, others)
+    if mine12 and pairs12:
+        ranked = ordered(pairs12 + [mine12])
+        top = ranked[:10]
+        if c["id"] not in [x["id"] for x, _ in top]:
+            top = top[:9] + [mine12]
+        grp = "your chosen peers" if custom else f"{kb.sector_of(c)['name']} companies"
+        blk = bars(f"Scope 1 + Scope 2 emissions: {short} among {grp}", top, m12, focus_ids={c["id"]},
+                   median_v=median(x for _, x in pairs12), median_label="Peer median", log=True, show_rank=False,
+                   subtitle="FY 2024-25" + ("" if len(ranked) <= 10 else f", the ten largest of {len(ranked)}"
+                                            + ("" if c["id"] in [x["id"] for x, _ in ranked[:10]] else f" and {short}")))
+        blk["focus_label"] = short
+        a.blocks.append(blk)
     a.flag_notes(c, ["1330", "1331", "1332", "1333", "1334", "1335"])
     sname = kb.sector_of(c)["name"]
     a.follow(f"Who are {short}'s peers?", f"How does {short} compare with its peers on Scope 1 emissions?",

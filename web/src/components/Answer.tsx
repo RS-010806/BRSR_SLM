@@ -16,6 +16,8 @@ export function citeWhat(c: Citation): string {
   return c.label;
 }
 
+const srcValue = (c: Citation) => (c.kind === "filing" && typeof c.value === "string" && c.value.length <= 22 ? c.value : "");
+
 /* ---------------------------------------------------------------- source drawer */
 export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: Citation[]; onClose: () => void; onCite: (n: number) => void; ask: (q: string) => void }) {
   useEffect(() => {
@@ -30,7 +32,7 @@ export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: C
       <aside className="drawer" role="dialog" aria-label="Source">
         <div className="drawer-h">
           <div>
-            <div className="drawer-k"><span className="cite on" style={{ cursor: "default" }}>{c.id}</span>{kindLabel}</div>
+            <div className="drawer-k">{kindLabel}</div>
             <div className="drawer-t">{c.kind === "filing" ? c.company : c.label}</div>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Close"><I.x /></button>
@@ -62,7 +64,7 @@ export function Evidence({ c, all, onClose, onCite, ask }: { c: Citation; all: C
                     const src = all.find((x) => x.id === n);
                     return src ? (
                       <button key={ref} className="src" onClick={() => onCite(n)}>
-                        <span className="src-n">[{n}]</span><span className="src-what">{citeWhat(src)}</span><span className="src-where">{citeWhere(src)}</span>
+                        <span className="src-what">{citeWhat(src)}</span><span className="src-val tnum">{srcValue(src)}</span><span className="src-where">{citeWhere(src)}</span>
                       </button>
                     ) : null;
                   })}
@@ -153,7 +155,8 @@ export function AnswerView({ a, q, ctx, ask, index, prefetch, pickCompany }: {
     window.addEventListener("afterprint", done);
     setTimeout(() => window.print(), 320);
   };
-  const filings = a.citations.filter((x) => x.kind === "filing").length;
+  const sources = a.citations.filter((x) => x.kind !== "note");   // explanations are part of the answer, not sources
+  const filings = sources.filter((x) => x.kind === "filing").length;
   const hasData = a.citations.length > 0 || a.blocks.some((b) => b.export);
 
   return (
@@ -174,16 +177,16 @@ export function AnswerView({ a, q, ctx, ask, index, prefetch, pickCompany }: {
           </div>
         )}
         {a.followups.length > 0 && <Followups items={a.followups} ask={ask} />}
-        {a.citations.length > 0 && (
+        {sources.length > 0 && (
           <details className="sources">
             <summary>
-              <span><b style={{ color: "var(--ink)" }}>{a.citations.length} {a.citations.length === 1 ? "source" : "sources"}</b>{filings > 0 ? " · from company BRSR filings" : ""}</span>
+              <span><b style={{ color: "var(--ink)" }}>Sources</b>{filings > 0 ? " · company BRSR filings" : " · how this was calculated"}</span>
               <I.down style={{ width: 14, height: 14 }} />
             </summary>
             <div className="src-list">
-              {a.citations.map((x) => (
+              {sources.map((x) => (
                 <button key={x.id} className="src" onClick={() => setCite(x.id)}>
-                  <span className="src-n">[{x.id}]</span><span className="src-what">{citeWhat(x)}</span><span className="src-where">{citeWhere(x)}</span>
+                  <span className="src-what">{citeWhat(x)}</span><span className="src-val tnum">{srcValue(x)}</span><span className="src-where">{citeWhere(x)}</span>
                 </button>
               ))}
             </div>

@@ -51,15 +51,25 @@ export function Points({ b }: { b: any }) {
   );
 }
 
-/* =============================================================== Names (a plain list of companies) */
+/* =============================================================== Names (the peers, by name) */
+const initials = (name: string) => {
+  const w = name.replace(/[^A-Za-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+  return ((w[0]?.[0] || "") + (w[1]?.[0] || w[0]?.[1] || "")).toUpperCase();
+};
 export function Names({ b }: { b: any }) {
   const { ask } = useAnswer();
   const hover = useHoverPrefetch();
   return (
     <div className="names">
-      {b.items.map((it: any) => {
+      {b.items.map((it: any, i: number) => {
         const q = `Tell me about ${it.name}`;
-        return <button key={it.id} className="name" onClick={() => ask(q)} {...hover(q)}>{it.name}</button>;
+        return (
+          <button key={it.id} className="name" onClick={() => ask(q)} {...hover(q)} style={{ animation: `rise .4s ${Math.min(i, 24) * 18}ms both` }}>
+            <span className="name-av" aria-hidden>{initials(it.name)}</span>
+            <span className="name-t">{it.name}</span>
+            <I.arrow />
+          </button>
+        );
       })}
     </div>
   );

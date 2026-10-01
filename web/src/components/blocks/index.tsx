@@ -3,7 +3,7 @@ import type { Block } from "../../api";
 import { blockSheet, downloadBlock } from "../../exporting";
 import { I } from "../../icons";
 import { Card, CiteChip } from "../../ui";
-import { Bars, Grouped, Simulator, Stack, Strip, Treemap } from "./Charts";
+import { Bars, Grouped, Position, Simulator, Stack, Strip, Treemap } from "./Charts";
 import { Action, Callout, Capabilities, Checklist, Choices, Compare, Kpis, Links, Names, Points, Quotes, Table } from "./Content";
 
 const Infographic = lazy(() => import("./Infographic").then((m) => ({ default: m.Infographic })));
@@ -52,10 +52,11 @@ export function BlockView({ b, i }: { b: Block; i: number }) {
     case "grouped": return <ChartCard b={b} i={i}><Grouped b={b} /></ChartCard>;
     case "stack": return <ChartCard b={b} i={i}><Stack b={b} /></ChartCard>;
     case "treemap": return <ChartCard b={b} i={i}><Treemap b={b} /></ChartCard>;
+    case "position": return <ChartCard b={b} i={i}><Position b={b} /></ChartCard>;
     case "simulator": return <Card title="What-if" subtitle="Drag the slider to try a different cut." delay={i * 70}><Simulator b={b} /></Card>;
     case "checklist": return <Card title={b.title} delay={i * 70}><Checklist b={b} /></Card>;
     case "points": return <Points b={b} />;
-    case "names": return <Card title={b.title} tools={<Excel b={b} />} delay={i * 70}><Names b={b} /></Card>;
+    case "names": return <Card title={b.title} subtitle={b.sector ? `${b.sector} · select a company to see its figures` : "Select a company to see its figures"} tools={<Excel b={b} />} delay={i * 70}><Names b={b} /></Card>;
     case "quotes": return b.title ? <Card title={b.title} delay={i * 70}><Quotes b={b} /></Card> : <Quotes b={b} />;
     case "table": return <Card title={b.title} tools={<Excel b={b} />} delay={i * 70}><Table b={b} /></Card>;
     case "compare": return <Card title={b.title} tools={<Excel b={b} />} delay={i * 70}><Compare b={b} /></Card>;

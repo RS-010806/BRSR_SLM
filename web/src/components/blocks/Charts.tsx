@@ -1,6 +1,7 @@
 import { scaleLinear, scaleLog, type ScaleContinuousNumeric } from "d3-scale";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 import { useMemo, useState } from "react";
+import { I } from "../../icons";
 import { compact, useAnswer, useTip, useWidth } from "../../ui";
 
 type Row = { id?: string; label: string; value: number; display: string; full?: string; rank?: number | null; highlight?: boolean };
@@ -109,7 +110,7 @@ export function Bars({ b }: { b: any }) {
         {b.median && <span><i className="line" style={{ background: "var(--ink-2)" }} />{b.median.label} {b.median.display}</span>}
         {log && <span className="muted">Log scale</span>}
         {diverging && <><span><i style={{ background: "var(--div-neg)" }} />Decrease</span><span><i style={{ background: "var(--div-pos)" }} />Increase</span></>}
-        {hasHi && !diverging && <span><i style={{ background: "var(--focus)" }} />Selected company</span>}
+        {hasHi && !diverging && <span><i style={{ background: "var(--focus)" }} />{b.focus_label || "Selected company"}</span>}
       </div>
       {tip}
     </div>
@@ -305,7 +306,7 @@ export function Stack({ b }: { b: any }) {
                 if (s.value <= 0) return null;
                 return (
                   <div key={i} className={`seg ${s.tone || ""} ${s.highlight ? "hl" : ""}`} style={{ width: `${pct}%`, animationDelay: `${ri * 80 + i * 40}ms`, ...segStyle(s, i, b) }}
-                       onMouseMove={(e) => show(e, s.label, [`${s.value} of ${total} (${pct.toFixed(1)}%)`])} onMouseLeave={hide}>
+                       onMouseMove={(e) => show(e, s.label, [s.display ? `${s.display} (${pct.toFixed(1)}%)` : `${s.value} of ${total} (${pct.toFixed(1)}%)`])} onMouseLeave={hide}>
                     {pct >= 7 && !b.categorical && <span>{s.value}</span>}
                   </div>
                 );
@@ -365,6 +366,95 @@ export function Treemap({ b }: { b: any }) {
       <div className="legend">
         {["< 1%", "1-3%", "3-8%", "8-20%", "20%+"].map((l, i) => <span key={l}><i style={{ background: ORD[i] }} />{l}</span>)}
         <span className="muted">Area is proportional to emissions. Click a sector to open it.</span>
+      </div>
+      {tip}
+    </div>
+  );
+}
+
+/* =============================================================== Position among peers
+   One row per measure: every peer is a dot, the company is the highlighted dot,
+   and a vertical line marks the peer median. No ranks, no percentiles. */
+export function Position({ b }: { b: any }) {
+  const [ref, w] = useWidth<HTMLDivElement>();
+  const { tip, show, hide } = useTip();
+  const narrow = w < 640;
+  const chartW = narrow ? Math.max(200, w) : Math.max(200, w - 210 - 150 - 32);
+  const H = 46, cy = 20, pad = 10;
+  return (
+    <div ref={ref}>
+      <div className="pos">
+        {b.rows.map((r: any, i: number) => {
+          const pts: any[] = r.points || [];
+          const vals = pts.map((p) => p.value);
+          let scale: ScaleContinuousNumeric<number, number> | null = null;
+          let lo = 0, hi = 1;
+          const pos = vals.filter((v) => v > 0);
+          const log = !!r.log && pos.length > 1;
+          if (vals.length) {
+            if (log) {
+              lo = Math.min(...pos);
+              hi = Math.max(...pos);
+              scale = scaleLog().domain([lo, hi === lo ? lo * 10 : hi]).range([pad, chartW - pad]).clamp(true);
+            } else if (r.yoy) {
+              const s = [...vals].sort((x, y) => x - y);
+              lo = Math.min(s[Math.floor(s.length * 0.05)], -5);
+              hi = Math.max(s[Math.ceil(s.length * 0.95) - 1], 5);
+              scale = scaleLinear().domain([lo, hi]).range([pad, chartW - pad]).clamp(true);
+            } else {
+              lo = Math.min(...vals, 0);
+              hi = Math.max(...vals);
+              scale = scaleLinear().domain([lo, hi === lo ? lo + 1 : hi]).range([pad, chartW - pad]).clamp(true);
+            }
+          }
+          const X = (v: number) => scale!(log ? Math.max(v, lo) : v);
+          const end = (v: number) => (r.yoy ? `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(0)}%` : compact(v));
+          const rel = r.relation as string | null;
+          return (
+            <div className="pos-row" key={i} style={{ animation: `rise .5s ${i * 60}ms both` }}>
+              <div className="pos-l">
+                <b>{r.label}</b>
+                <small>{b.company}: <span className="tnum">{r.mine}</span>{r.yoy || !r.unit || /Not|See/.test(r.mine) ? "" : ` ${r.unit}`}</small>
+              </div>
+              <div className="pos-chart">
+                {scale && pts.length > 1 ? (
+                  <svg className="chart" width={chartW} height={H} role="img" aria-label={`${r.label}: ${b.company} ${r.mine}, peer median ${r.median ?? "not available"}`}>
+                    <line className="base" x1={pad} x2={chartW - pad} y1={cy} y2={cy} />
+                    {r.median_value != null && <line className="med" x1={X(r.median_value)} x2={X(r.median_value)} y1={cy - 15} y2={cy + 15} />}
+                    {pts.filter((p) => !p.focus).map((p, j) => (
+                      <g key={j} onMouseMove={(e) => show(e, p.label, [p.display])} onMouseLeave={hide}>
+                        <circle cx={X(p.value)} cy={cy + ((((j * 7919) % 13) / 13) - 0.5) * 16} r={8} fill="transparent" />
+                        <circle className="dot" cx={X(p.value)} cy={cy + ((((j * 7919) % 13) / 13) - 0.5) * 16} r={3.6} />
+                      </g>
+                    ))}
+                    {pts.filter((p) => p.focus).map((p, j) => (
+                      <g key={"f" + j} onMouseMove={(e) => show(e, p.label, [p.display])} onMouseLeave={hide}>
+                        <circle cx={X(p.value)} cy={cy} r={11} fill="var(--focus)" opacity={0.16} />
+                        <circle className="dot hi" cx={X(p.value)} cy={cy} r={6.5} />
+                      </g>
+                    ))}
+                    <text className="axis-t" x={pad} y={H - 2} textAnchor="start">{end(lo)}</text>
+                    <text className="axis-t" x={chartW - pad} y={H - 2} textAnchor="end">{end(hi)}</text>
+                  </svg>
+                ) : <span className="muted" style={{ fontSize: 12.5 }}>Not enough disclosed figures to compare</span>}
+              </div>
+              <div className="pos-r">
+                <span className={"rel" + (rel ? "" : " none")}>
+                  {rel === "Above median" ? <I.up /> : rel === "Below median" ? <I.down /> : null}
+                  {rel || "No comparable figure"}
+                </span>
+                {r.median && <small>Peer median <span className="tnum">{r.median}</span></small>}
+                <small>{r.n} of {r.of} peers disclosed</small>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="legend">
+        <span><i style={{ background: "var(--focus)", borderRadius: 99 }} />{b.company}</span>
+        <span><i style={{ background: "var(--peer-strong)", borderRadius: 99 }} />Peers</span>
+        <span><i className="line" style={{ background: "var(--ink-2)" }} />Peer median</span>
+        <span className="muted">Left is lower, right is higher. Wide ranges use a log scale.</span>
       </div>
       {tip}
     </div>

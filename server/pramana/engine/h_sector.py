@@ -92,6 +92,15 @@ def sector_overview(ctx, sid, mid=None):
     if pairs:
         a.blocks.append(bars(f"Largest emitters in {sname}", pairs, m12, limit=10, log=True,
                              subtitle="Scope 1 + Scope 2, FY 2024-25"))
+    dirs = [c["derived"]["scope12_direction"] for c in members]
+    down, up = dirs.count("decreased"), dirs.count("increased")
+    if down + up:
+        a.block("stack", title="How company emissions moved since FY 2023-24", subtitle="Combined Scope 1 and Scope 2, company by company",
+                rows=[{"label": sname, "segments": [{"label": "Lower", "value": down, "tone": "pos"},
+                                                     {"label": "Higher or unchanged", "value": up, "tone": "neg"},
+                                                     {"label": "Not comparable", "value": n - down - up, "tone": "muted"}]}],
+                export=export(f"{sname}: change in emissions", ["Direction", "Companies"],
+                              [["Lower", down], ["Higher or unchanged", up], ["Not comparable", n - down - up]]))
     _excluded_note(a, members)
     a.context.update({"sector": sid})
     a.follow(f"List all {sname} companies", f"Examples of GHG reduction projects from {sname} companies",
@@ -317,6 +326,14 @@ def aggregate(ctx, mid, sid, change=None):
             Y, N = yes_count(kb.companies, qid)
             line += f" Across all sectors the figure is {Y} of {N} ({share(Y, N)})."
         a.p(line)
+        srows = [{"label": sname or "All companies", "segments": [{"label": "Yes", "value": y, "tone": "pos"},
+                                                               {"label": "No or not disclosed", "value": n - y, "tone": "neg"}]}]
+        if sid:
+            srows.append({"label": "All sectors", "segments": [{"label": "Yes", "value": Y, "tone": "pos"},
+                                                             {"label": "No or not disclosed", "value": N - Y, "tone": "neg"}]})
+        a.block("stack", title=f"Companies that {plural}", rows=srows,
+                export=export(BOOL_TITLE.get(qid), ["Group", "Yes", "No or not disclosed"],
+                              [[r["label"], r["segments"][0]["value"], r["segments"][1]["value"]] for r in srows]))
         if qid == "1387":
             py = sum(1 for c in members if (c["values"].get("1389") or 0) > 0)
             a.p(f"In FY 2023-24, {py} of these companies disclosed a Scope 3 figure "
@@ -429,6 +446,14 @@ def highlights(ctx):
     proj, _ = yes_count(cos, "1341")
     tgt = sum(1 for c in cos if c["values"].get("286"))
     a.p("These are the main points across all companies covered, based on their BRSR disclosures for FY 2024-25.")
+    short_total = lambda v: compact(v).replace(" billion", "B").replace(" million", "M")
+    a.block("kpis", items=[
+        kpi("Scope 1 + Scope 2", short_total(t1 + t2), sub=CO2, delta=(pct(yoy) + " vs FY 2023-24") if yoy is not None else None,
+            tone="good" if yoy is not None and yoy < 0 else "bad"),
+        kpi("Report Scope 3", share(s3, N), sub=f"{s3} of {N} companies"),
+        kpi("Independently assured", share(asr, N), sub=f"{asr} of {N} companies"),
+        kpi("Have reduction projects", share(proj, N), sub=f"{proj} of {N} companies"),
+    ])
     a.block("points", items=[
         f"Total Scope 1 emissions were **{compact(t1)} {CO2}** {_total_cite(a, None, 'scope1', cos)} and total Scope 2 emissions "
         f"**{compact(t2)} {CO2}** {_total_cite(a, None, 'scope2', cos)}"
@@ -444,6 +469,13 @@ def highlights(ctx):
         f"**{proj} of {N}** ({share(proj, N)}) report projects to reduce GHG emissions, and {tgt} disclose targets with "
         f"timelines {a.c_calc('Companies with projects and targets', f'{proj} answered Yes on projects; {tgt} provided a targets disclosure')}.",
     ])
+    order = sorted(kb.sectors, key=lambda x: (-tot[x["id"]], x["name"]))
+    grand = t1 + t2
+    a.block("treemap", title="Share of Scope 1 + Scope 2 emissions by sector", subtitle="FY 2024-25",
+            items=[{"label": x["name"], "short": x["short"], "value": tot[x["id"]], "display": f"{compact(tot[x['id']])} {CO2}",
+                    "share": round(tot[x["id"]] / grand * 100, 1), "id": x["id"]} for x in order],
+            export=export("Emissions by sector", ["Sector", "Companies", "Scope 1 + Scope 2 (tCO2e)", "Share of total (%)"],
+                          [[x["name"], x["n"], tot[x["id"]], round(tot[x["id"]] / grand * 100, 2)] for x in order]))
     _excluded_note(a, cos)
     a.follow("Which sector emits the most?", "Top 10 emitters", "Examples of net zero targets")
 

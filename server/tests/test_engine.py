@@ -39,6 +39,8 @@ ADVERSARIAL = [
     ("who are the peers of NTPC", "peer_list"),
     ("how many companies increased their emissions?", "screen"),
     ("how many companies have net zero targets", "text_search"),
+    ("how well does ntpc do with respect to peers", "peer_benchmark"),
+    ("how does ACC fare in its sector", "peer_benchmark"),
 ]
 
 

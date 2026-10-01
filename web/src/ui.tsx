@@ -23,56 +23,24 @@ export function useHoverPrefetch() {
 }
 export const useAnswer = () => useContext(AnswerCtx);
 
-/* --------------------------------------------------------------- rich text */
-const TOKEN = /(\*\*[^*]+\*\*|\[\d+\])/g;
+/* --------------------------------------------------------------- rich text
+   Answers arrive with source markers such as [3] after each figure. They are
+   not shown as numbered links: the text reads cleanly, and the sources are
+   listed once, under the answer. */
+const MARKER = /\s*\[\d+\]/g;
+const BOLD = /(\*\*[^*]+\*\*)/g;
 
 export function Rich({ text }: { text: string }) {
-  const { openCite, activeCite } = useAnswer();
-  const parts = text.split(TOKEN).filter(Boolean);
-  const isCite = (x: string) => /^\[\d+\]$/.test(x);
-  const isBold = (x: string) => x.startsWith("**") && x.endsWith("**");
-  const chip = (n: number, k: number | string) => (
-    <button key={k} className={"cite" + (activeCite === n ? " on" : "")} onClick={() => openCite(n)} aria-label={`Source ${n}`}>{n}</button>
+  const parts = text.replace(MARKER, "").split(BOLD).filter(Boolean);
+  return (
+    <>
+      {parts.map((p, i) => (p.startsWith("**") && p.endsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : <Fragment key={i}>{p}</Fragment>))}
+    </>
   );
-  // Citation chips never wrap alone: each run of chips is glued to the word
-  // before it and to any punctuation right after it.
-  const out: ReactNode[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const p = parts[i];
-    const cites: number[] = [];
-    let j = isCite(p) ? i : i + 1;
-    while (j < parts.length && isCite(parts[j])) cites.push(Number(parts[j++].slice(1, -1)));
-    if (!cites.length) {
-      out.push(isBold(p) ? <strong key={i}><Rich text={p.slice(2, -2)} /></strong> : <Fragment key={i}>{p}</Fragment>);
-      continue;
-    }
-    let tail: ReactNode = null;
-    if (!isCite(p)) {
-      if (isBold(p)) tail = <strong><Rich text={p.slice(2, -2)} /></strong>;
-      else {
-        const cut = p.search(/\S+\s*$/);
-        if (cut > 0) out.push(<Fragment key={"p" + i}>{p.slice(0, cut)}</Fragment>);
-        tail = cut >= 0 ? p.slice(cut) : p;
-      }
-    }
-    let punct = "";
-    if (j < parts.length && /^[.,;:)]/.test(parts[j])) {
-      punct = parts[j][0];
-      parts[j] = parts[j].slice(1);
-    }
-    out.push(
-      <span key={"g" + i} style={{ whiteSpace: "nowrap" }}>
-        {tail}{cites.map((n, k) => chip(n, k))}{punct}
-      </span>,
-    );
-    i = j - 1;
-  }
-  return <>{out}</>;
 }
 
-export function CiteChip({ refText }: { refText?: string | null }) {
-  if (!refText) return null;
-  return <Rich text={refText} />;
+export function CiteChip(_: { refText?: string | null }) {
+  return null;
 }
 
 /* --------------------------------------------------------------- tooltip */

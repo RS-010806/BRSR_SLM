@@ -44,6 +44,15 @@ RE_PEER_NOUN = re.compile(r"\b(peers?|competitors?|peer group|peer set|peer comp
 RE_PEER_VERB = re.compile(r"\b(compare|compares|compared|comparison|analysis|analyse|analyze|versus|vs|against|benchmark|stand|stands|stack|fare|fares|"
                           r"perform|performs|performing|position|rank|ranks|better|worse|ahead|behind|lag|lead|"
                           r"how do|how does|how am|how are|how is|relative to|than)\b")
+# "how well does X do with respect to peers", "X against its competitors": an evaluation, not a request for names
+RE_PEER_EVAL = re.compile(r"\b(how|well|compar\w*|analysis|analy[sz]e|versus|vs|against|benchmark\w*|stand\w*|stack\w*|fare\w*|"
+                          r"perform\w*|position\w*|rank\w*|better|worse|ahead|behind|lag\w*|lead\w*|relative|respect|"
+                          r"doing|do|does|did|evaluat\w*|assess\w*|than|where|measure\w*|match\w*)\b")
+# "how does X stack up", "where does X stand in its sector": peers are implied
+RE_PEER_IMPLIED = re.compile(r"\b(stacks? up|measures? up|fares?|faring|stands? (?:in|within|among)|standing (?:in|within|among)|"
+                             r"(?:against|versus|vs|relative to|compared (?:to|with)) (?:the |its |our )?(?:sector|industry|others|rest)|"
+                             r"(?:in|within) (?:its|our|the) (?:sector|industry))\b")
+RE_PEER_ASK = re.compile(r"\b(who|which|list|names?|show|give|tell|identify|enumerate|what are|display|how many)\b")
 RE_DEFINE = re.compile(r"\b(define|definition|meaning of|mean|means|meant|stand for|stands for|difference between|"
                        r"explain what|what is meant|what exactly (is|are)|in simple terms)\b")
 RE_MARKET = re.compile(r"\b(how many|number of|count of|total|overall|all companies|companies|sector|sectors|sector wise|"
@@ -452,7 +461,10 @@ class Parser:
             self._set(p, "company_metric" if (p.companies or p.ambiguous) else "aggregate",
                       "covered measure present, model refusal overridden")
 
-        peer_list = bool(RE_PEER_NOUN.search(low)) and not RE_PEER_VERB.search(low) and not has_metric
+        has_peers = bool(RE_PEER_NOUN.search(low))
+        counting = bool(re.search(r"\bhow many\b", low))
+        peer_eval = has_peers and not counting and bool(RE_PEER_EVAL.search(low) or RE_PEER_VERB.search(low))
+        peer_list = has_peers and not has_metric and not peer_eval and (bool(RE_PEER_ASK.search(low)) or len(toks) <= 5)
         strict_define = bool(RE_DEFINE.search(low)) and (has_metric or not p.companies)
         if p.intent != "out_of_scope":
             if RE_CLEAR_LENS.search(low) and not p.companies:
@@ -471,6 +483,11 @@ class Parser:
                 self._set(p, "compare", "two or more companies named")
             elif peer_list and p.intent not in ("best_practice", "text_search"):
                 self._set(p, "peer_list", "asks who the peers are")
+            elif peer_eval and p.intent not in ("best_practice", "text_search", "peer_benchmark", "simulate"):
+                self._set(p, "peer_benchmark", "asks how a company does against its peers")
+            elif RE_PEER_IMPLIED.search(low) and len(p.companies) == 1 and not p.sector \
+                    and p.intent in ("company_profile", "company_metric", "ranking", "aggregate", "explain", "greeting", "unknown"):
+                self._set(p, "peer_benchmark", "asks how a company does within its sector")
             elif strict_define and not p.companies:
                 self._set(p, "explain", "asks what a term means")
             elif p.tech and p.intent in ("screen", "aggregate", "ranking", "company_metric", "best_practice") and not p.companies:

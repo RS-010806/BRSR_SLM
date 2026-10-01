@@ -7,7 +7,7 @@ from pramana.engine.fmt import short_name
 INTERNAL = re.compile(
     r"\bE1\b|IIMB|\bratings?\b|\brated\b|rubric|\bscore[ds]?\b|\bscoring\b|\bindex\b|\bQ\d{3,4}\b|Base Data|workbook|\bcells?\b|"
     r"\bdataset\b|\bTable \d|\bchapter\b|\bthe report\b|report's|percentile|\bbeats?\b|outperform|\bworse\b|laggard|"
-    r"weakness|/100\b|reconcil|\b597\b|\btrace\b|specificity|pillar|\bmodel\b|transformer|\bSQLite\b|\bPostgres\b", re.I)
+    r"weakness|/100\b|reconcil|(?<![\d,.])597(?![\d,.])|\btrace\b|specificity|pillar|\bmodel\b|transformer|\bSQLite\b|\bPostgres\b", re.I)
 # Fields that hold a company's own words, quoted exactly; they may contain anything.
 VERBATIM_KEYS = {"text"}
 
