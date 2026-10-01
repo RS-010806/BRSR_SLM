@@ -12,10 +12,10 @@ Pramana (Sanskrit for *proof*) answers questions about the GHG emissions and cli
 |---|---|
 | "What are our GHG emissions?" | Scope 1 and Scope 2 as two separate figures, the combined total, the change from last year, and Scope 3 if disclosed. Two or three sentences and one row of figures. |
 | "Who are our peers?" | The names of the other companies in the sector. Nothing else. |
-| "How do we compare with our peers?" | One table: your figure beside the peer median, whether you are above or below it, and how many peers disclosed each figure. No ranks or percentiles. |
+| "How do we compare with our peers?" (or "how well does NTPC do with respect to peers") | A chart for each measure with one dot per company, yours highlighted and a line at the peer median, plus a bar chart naming the largest companies in the group. It says whether you are above or below the median and how many peers disclosed each figure. No ranks or percentiles. |
 | "What are our targets?" / "Show our projects" | The disclosure exactly as filed, with the most specific points highlighted. |
 | "Examples of GHG reduction projects from cement companies" | Three detailed disclosures from other companies, in their own words. |
-| "Give me an overview of the power sector" / "Top 10 emitters" | Totals and one chart. Charts appear only for comparisons, rankings and sector views. |
+| "Give me an overview of the power sector" / "Top 10 emitters" | Totals and charts. Charts appear for questions about peers, sectors, comparisons and rankings; a plain question about one figure stays short. |
 | "Make an infographic of our emissions" | A one-page, post-style image for a company, a sector or all companies, with a Download button. |
 | "What if we cut Scope 1 by 20%?" | The resulting figure, with a slider to try other cuts. |
 | "What is Scope 3?" | A one-paragraph definition. |
@@ -23,7 +23,7 @@ Pramana (Sanskrit for *proof*) answers questions about the GHG emissions and cli
 Other things worth knowing:
 
 * **Your company.** Set it from the button under the question box or by saying "my company is ...". It is stored only in the browser. No sign-in.
-* **Sources.** Every figure links to its source: the company, the BRSR disclosure item and the financial year.
+* **Sources.** Each answer lists its sources once, underneath: the company, the BRSR disclosure item, the financial year and the value as disclosed. There are no numbered reference links in the text.
 * **Exports.** Any answer downloads as an Excel workbook (real numbers in cells, units in the headers) or as a PDF.
 * **Not available.** If something is not covered (water, energy, financials, forecasts, scores or ratings), the answer says so plainly and offers what is available.
 * **Same question, same answer.** Nothing is generated freely, so answers do not vary between runs.
@@ -50,7 +50,7 @@ Because the model never writes text and every number is looked up or calculated,
 | Answers were too long; basic questions came back with peer charts and tables | A plain question now gets the figure asked for, the previous year and nothing else. Comparisons and charts are offered as follow-up suggestions. |
 | Scope 1 and Scope 2 were added together | They are always shown as two figures, with the combined total alongside. |
 | The lens did not work | It failed on most natural phrasings ("my emissions", "who are my peers", "how am I doing"). All of these now work; it is renamed "Your company"; the separate company search bar is gone. |
-| Peers showed too much | "Who are my peers" is a list of names. |
+| Peers showed too much | "Who are my peers" is a list of names. A question about how a company does against its peers gets a chart against the peer median. |
 | Services showed 31 companies, not 35 | The sector has 35 companies; 31 disclosed Scope 1 and Scope 2. Answers now state the full count and, separately, how many disclosed each figure. |
 | Chat history was hard to reach | The sidebar is laid out like ChatGPT: New chat, Search chats, then a chat list grouped by date that takes the remaining height and scrolls on its own. |
 | Too many things on screen ("E1 intelligence", "597 of 597", Method and sources, both Ask and New question) | Removed. One "New chat" button. |
@@ -69,7 +69,7 @@ pipeline/            build_dataset.py, build_db.py, slm/ (grammar, training, eva
 server/pramana/      FastAPI app, knowledge base, analytics
   nlu/               normaliser, lexicon, aliases, linker, tokenizer, transformer, parser
   engine/            answer handlers, citations, public source labels, formatting
-server/tests/        246 tests
+server/tests/        265 tests
 web/                 React + TypeScript client: hand-built SVG charts, canvas infographics, xlsx writer
 ```
 
@@ -97,12 +97,12 @@ Retraining the question model (`python -m pipeline.slm.train`, about 2.5 minutes
 
 ## Tests
 
-246 tests cover:
+265 tests cover:
 
 * **Public-only content:** no internal term in any generated string, citation or export, for every evaluation question and with different companies set.
 * **Your company:** 21 phrasings resolve to the set company; market questions stay market questions; with no company set the tool asks instead of guessing.
-* **Short answers:** simple questions return no charts and at most three sentences; Scope 1 and Scope 2 are separate figures.
-* **Peers:** names only for "who are my peers"; no rank or percentile wording in comparisons; full sector counts.
+* **Short answers:** plain questions return no comparison charts and at most three sentences; Scope 1 and Scope 2 are separate figures.
+* **Peers:** names only for "who are my peers"; nine ways of asking how a company does against its peers all return the visual comparison; no rank or percentile wording; full sector counts.
 * **Grounding:** every numeric sentence carries a citation and every citation resolves.
 * **Determinism:** the same question gives a byte-identical answer on a fresh engine.
 * **Exports:** headers are plain text with units, cells are numbers.
