@@ -407,52 +407,59 @@ def _peer_bool(ctx, c, qid, others, where):
 
 
 def _peer_review(ctx, c, others, where):
-    """Who reviews the environment policy at the company and at its peers, and how often."""
-    from .h_company import HOW_OFTEN, WHO_MID, WHO_SHORT, review_phrase
+    """Who reviews the environment policy, and the other governance disclosures, at the company and across its peers."""
+    from .h_company import GOV_ITEMS, GOV_NOTE, HOW_OFTEN, WHO_MID, review_phrase
     a, kb = ctx.a, ctx.kb
     short = short_name(c["name"])
-    a.title = "Who reviews the environment policy"
+    a.title = "Governance of the environment policy: company and peers"
     mine = review_phrase(c, "308", "326")
     if mine:
-        a.p(f"At **{c['name']}**, performance against the environment policy is reviewed by {mine} {a.c_filing(c, '308')}.")
+        a.p(f"**{c['name']}** discloses that performance against its environment policy is reviewed by {mine} {a.c_filing(c, '308')}.")
     else:
         a.p(f"**{c['name']}** has not disclosed who reviews its environment policy {a.c_filing(c, '308')}.")
     order = ["Committee of the Board", "Director", "Any other Committee"]
     who = {k: [o for o in others if o["values"].get("308") == k] for k in order}
     nd = [o for o in others if o["values"].get("308") not in order]
     group = "your chosen peers" if where == "your chosen peers" else where.replace("the other ", f"{short}'s ", 1).replace(" companies", " peers")
-    cc = a.c_calc("Who reviews the environment policy, among peers", f"Count of each answer across {len(others)} peers")
+    n = len(others)
+    cc = a.c_calc("Who reviews the environment policy, among peers", f"Count of each answer across {n} peers")
     ranked = sorted(order, key=lambda k: (-len(who[k]), order.index(k)))
-    a.p(f"Among {group}, the most common reviewer is {WHO_MID[ranked[0]]} ({len(who[ranked[0]])} of {len(others)}), "
-        f"followed by {WHO_MID[ranked[1]]} ({len(who[ranked[1]])}) and {WHO_MID[ranked[2]]} ({len(who[ranked[2]])}) {cc}.")
+    a.p(f"Among {group}, the review is most often by {WHO_MID[ranked[0]]} ({len(who[ranked[0]])} of {n}), then "
+        f"{WHO_MID[ranked[1]]} ({len(who[ranked[1]])}) and {WHO_MID[ranked[2]]} ({len(who[ranked[2]])}) {cc}.")
     often = {}
     for o in others:
         k = o["values"].get("326")
         if k:
             often[k] = often.get(k, 0) + 1
-    oc = a.c_calc("How often peers review the environment policy", f"Count of each answer across {len(others)} peers")
-    top_often = sorted(often.items(), key=lambda kv: (-kv[1], kv[0]))
-    pts = [f"**{WHO_SHORT[k]}:** {len(who[k])} of {len(others)} peers {cc}." + (f" {short} is one of these." if c["values"].get("308") == k else "")
-           for k in ranked]
-    if nd:
-        pts.append(f"**Not disclosed:** {len(nd)} of {len(others)} peers {cc}.")
-    if top_often:
-        pts.append(f"**How often:** most peers review it {HOW_OFTEN.get(top_often[0][0], top_often[0][0].lower())} "
-                   f"({top_often[0][1]} of {len(others)}) {oc}."
-                   + (f" {short} reviews it {HOW_OFTEN.get(c['values'].get('326'), str(c['values'].get('326')).lower())}."
+    oc = a.c_calc("How often peers review the environment policy", f"Count of each answer across {n} peers")
+    gc = a.c_calc("Governance disclosures among peers", f"Peers answering Yes to each item, out of {n}")
+    pts = []
+    if often:
+        top = sorted(often.items(), key=lambda kv: (-kv[1], kv[0]))
+        pts.append("**How often peers review it:** " + join([f"{HOW_OFTEN.get(k, k.lower())} ({x})" for k, x in top]) + f" {oc}."
+                   + (f" {short}: {HOW_OFTEN.get(c['values'].get('326'), str(c['values'].get('326')).lower())}."
                       if c["values"].get("326") else ""))
+    for q, label in GOV_ITEMS:
+        if q == "1560" and c["values"].get("1560") is None and not any(o["values"].get("1560") is not None for o in others):
+            continue
+        k = sum(1 for o in others if yes(o, q))
+        pts.append(f"**{label}:** {k} of {n} peers {gc}; {short}: {'Yes' if yes(c, q) else 'No'} {a.c_filing(c, q)}.")
+    if nd:
+        pts.append(f"**Reviewer not disclosed:** {len(nd)} of {n} peers {cc}.")
     a.block("points", title="Key points", items=pts)
-    rows = [{"label": WHO_SHORT[k], "value": len(who[k]), "display": str(len(who[k])), "full": f"{len(who[k])} of {len(others)} peers",
+    rows = [{"label": k, "value": len(who[k]), "display": str(len(who[k])), "full": f"{len(who[k])} of {n} peers",
              "highlight": c["values"].get("308") == k} for k in ranked]
-    blk = {"type": "bars", "title": f"Who reviews the environment policy: {short}'s peers", "subtitle": "Number of peers, FY 2024-25",
-           "rows": rows, "unit": "peers", "log": False, "diverging": False, "better": "lower", "focus_label": f"{short}'s answer",
-           "export": export(f"Who reviews the environment policy: peers of {c['name']}",
-                            ["Company", "Reviewed by", "How often"],
-                            [[o["name"], o["values"].get("308") or "Not disclosed", o["values"].get("326") or "Not disclosed"]
-                             for o in sorted([c] + others, key=lambda o: o["name"].lower())])}
-    a.blocks.append(blk)
+    a.blocks.append({"type": "bars", "title": f"Who reviews the environment policy: {short}'s peers",
+                     "subtitle": "Number of peers giving each answer, FY 2024-25", "rows": rows, "unit": "peers", "log": False,
+                     "diverging": False, "better": "lower", "focus_label": f"{short}'s answer",
+                     "export": export(f"Governance of the environment policy: {c['name']} and its peers",
+                                      ["Company", "Reviewed by", "How often"] + [label for _, label in GOV_ITEMS],
+                                      [[o["name"], o["values"].get("308") or "Not disclosed", o["values"].get("326") or "Not disclosed"]
+                                       + ["Yes" if yes(o, q) else "No" for q, _ in GOV_ITEMS]
+                                       for o in sorted([c] + others, key=lambda o: o["name"].lower())])})
+    a.note("context", GOV_NOTE)
     a.context.update({"metric": ctx.plan.metric})
-    a.follow(f"Is {short}'s policy approved by the Board?", f"How does {short} compare with its peers?",
+    a.follow(f"Who reviews the environment policy at {short}?", f"How does {short} compare with its peers?",
              f"Which {kb.sector_of(c)['name']} companies have independent assurance of GHG emissions?")
 
 

@@ -728,15 +728,22 @@ def test_our_projects_about_one_scope(eng):
 # ---------------------------------------------------------------- who reviews: Director, Committee of the Board or another committee
 def test_who_reviews_for_the_company_and_its_peers(eng):
     a = eng.ask("Who reviews carbon emissions in our company and our peers", TCORP)
-    assert a["title"] == "Who reviews the environment policy" and "another committee" in a["lead"][0]
-    assert "Among Transport Corporation of India's 34 Services peers, the most common reviewer is a Committee of the Board" in a["lead"][1]
+    assert a["title"] == "Governance of the environment policy: company and peers"
+    assert "“Any other Committee”" in a["lead"][0]                                   # the disclosed answer, verbatim
+    assert "the review is most often by a Committee of the Board (18 of 34)" in a["lead"][1]
     assert [b["type"] for b in a["blocks"]] == ["points", "bars"]
+    items = a["blocks"][0]["items"]
+    assert any(t.startswith("**Board approval of the environment policy:** 33 of 34 peers") for t in items)
+    assert any("does not name the person or the committee" in n["text"] for n in a["notes"])
     b = eng.ask("who reviews our emissions performance", TCORP)
-    assert b["lead"][0].startswith("At **Transport Corporation of India Limited**, both performance")
-    assert eng.ask("who oversees climate at our peers", TCORP)["title"] == "Who reviews the environment policy"
+    assert b["title"] == "Who reviews the environment policy" and b["blocks"][0]["title"] == "Governance disclosures"
+    assert any("Any other Committee; frequency: Half Yearly" in t for t in b["blocks"][0]["items"])
+    n = eng.ask("who reviews emissions at NTPC")
+    assert any("agency named: Bureau Veritas India Pvt. Ltd" in t for t in n["blocks"][0]["items"])
+    assert eng.ask("who oversees climate at our peers", TCORP)["title"].startswith("Governance of the environment policy")
     c = eng.ask("who reviews the environment policy in cement companies")
     assert c["kicker"] == "Construction Materials" and "Committee of the Board (16 of 23)" in c["lead"][0]
     d = eng.ask("Who reviews the environment policy, sector by sector?")
     assert d["title"] == "Who reviews the environment policy, by sector"
-    for x in (a, b, c, d):
+    for x in (a, b, c, d, n):
         clean(x, eng)

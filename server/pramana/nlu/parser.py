@@ -228,6 +228,9 @@ COMBOS = [
     ({"scope12", "targets"}, "targets"),
     ({"scope3", "scope3_reported"}, "scope3_reported"),
     ({"scope1", "scope2"}, "scope12"),
+    ({"intensity", "intensity_phys"}, "intensity_phys"),
+    ({"intensity", "intensity_ppp"}, "intensity_ppp"),
+    ({"scope12", "intensity_phys"}, "intensity_phys"),
 ]
 
 
@@ -1140,7 +1143,8 @@ class Parser:
                 if (p.quality or p.extreme) and not versus and p.metric in (None,) + NUM:
                     p.sector = c["sector"]
                     return self._view(p, "focus_rank", "ranking", "asks who leads within the company's own sector")
-                if has_peers and p.change and RE_FILTER_ASK.search(low) and p.metric in (None, "scope12", "scope1", "scope2", "projects"):
+                if has_peers and p.change and RE_FILTER_ASK.search(low) and (p.metric in (None, "scope12", "scope1", "scope2") or (
+                        p.metric == "projects" and not re.search(r"\b(projects?|initiatives?|measures|steps)\b", low))):
                     p.sector, p.metric = c["sector"], None
                     return self._view(p, "peer_change", "screen", "asks which peers raised or lowered emissions")
                 if has_peers and terms and p.metric in TEXTY:

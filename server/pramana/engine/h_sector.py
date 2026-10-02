@@ -928,12 +928,12 @@ def scope_split(ctx, sid=None):
 # --------------------------------------------------------------------------- who reviews the environment policy
 
 def sector_review(ctx, sid):
-    from .h_company import HOW_OFTEN, WHO_MID, WHO_SHORT
+    from .h_company import GOV_ITEMS, GOV_NOTE, HOW_OFTEN, WHO_MID
     a, kb = ctx.a, ctx.kb
     members = kb.members(sid) if sid else kb.companies
     sname = kb.sector_by_id[sid]["name"] if sid else None
     a.kicker = sname or "All companies"
-    a.title = "Who reviews the environment policy"
+    a.title = "Governance of the environment policy"
     order = ["Committee of the Board", "Director", "Any other Committee"]
     who = {k: [c for c in members if c["values"].get("308") == k] for k in order}
     nd = [c for c in members if c["values"].get("308") not in order]
@@ -942,7 +942,7 @@ def sector_review(ctx, sid):
     cc = a.c_calc("Who reviews the environment policy", f"Count of each answer across {n} companies")
     where = f"{n} {sname} companies" if sname else f"{n} companies covered"
     a.p(f"Across the {where}, performance against the environment policy is most often reviewed by {WHO_MID[ranked[0]]} "
-        f"({len(who[ranked[0]])} of {n}), followed by {WHO_MID[ranked[1]]} ({len(who[ranked[1]])}) and {WHO_MID[ranked[2]]} "
+        f"({len(who[ranked[0]])} of {n}), then {WHO_MID[ranked[1]]} ({len(who[ranked[1]])}) and {WHO_MID[ranked[2]]} "
         f"({len(who[ranked[2]])}) {cc}.")
     often = {}
     for c in members:
@@ -950,23 +950,30 @@ def sector_review(ctx, sid):
         if k:
             often[k] = often.get(k, 0) + 1
     oc = a.c_calc("How often the environment policy is reviewed", f"Count of each answer across {n} companies")
-    pts = [f"**{WHO_SHORT[k]}:** {len(who[k])} of {n} companies {cc}." for k in ranked]
-    if nd:
-        pts.append(f"**Not disclosed:** {len(nd)} of {n} companies {cc}.")
+    gc = a.c_calc("Governance disclosures", f"Companies answering Yes to each item, out of {n}")
+    pts = []
     if often:
         top = sorted(often.items(), key=lambda kv: (-kv[1], kv[0]))
-        pts.append("**How often:** " + join([f"{HOW_OFTEN.get(k, k.lower())} ({v})" for k, v in top]) + f" {oc}.")
+        pts.append("**How often it is reviewed:** " + join([f"{HOW_OFTEN.get(k, k.lower())} ({v})" for k, v in top]) + f" {oc}.")
+    for q, label in GOV_ITEMS:
+        k = sum(1 for c in members if yes(c, q))
+        pts.append(f"**{label}:** {k} of {n} companies ({share(k, n)}) {gc}.")
+    if nd:
+        pts.append(f"**Reviewer not disclosed:** {len(nd)} of {n} companies {cc}.")
     a.block("points", title="Key points", items=pts)
     a.block("bars", title="Who reviews the environment policy", subtitle=f"{sname or 'All companies'}, number of companies, FY 2024-25",
-            unit="companies", rows=[{"label": WHO_SHORT[k], "value": len(who[k]), "display": str(len(who[k])),
+            unit="companies", rows=[{"label": k, "value": len(who[k]), "display": str(len(who[k])),
                                      "full": f"{len(who[k])} of {n} companies"} for k in ranked],
-            export=export("Who reviews the environment policy", ["Company"] + ([] if sid else ["Sector"]) + ["Reviewed by", "How often"],
+            export=export("Governance of the environment policy", ["Company"] + ([] if sid else ["Sector"])
+                          + ["Reviewed by", "How often"] + [label for _, label in GOV_ITEMS],
                           [[c["name"]] + ([] if sid else [kb.sector_of(c)["name"]]) + [c["values"].get("308") or "Not disclosed",
                                                                                         c["values"].get("326") or "Not disclosed"]
+                           + ["Yes" if yes(c, q) else "No" for q, _ in GOV_ITEMS]
                            for c in sorted(members, key=lambda c: c["name"].lower())]))
+    a.note("context", GOV_NOTE)
     a.context.update({"metric": "review_level", "sector": sid})
-    a.follow(f"How many {sname + ' ' if sname else ''}companies have Board approval of their environment policy?",
-             "Who reviews the environment policy, sector by sector?" if not sid else f"Give me an overview of the {sname} sector")
+    a.follow("Who reviews the environment policy, sector by sector?" if not sid else f"Give me an overview of the {sname} sector",
+             f"Which {sname + ' ' if sname else ''}companies have independent assurance of GHG emissions?")
 
 
 def _by_sector_review(ctx):

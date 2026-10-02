@@ -551,3 +551,12 @@ def learned(ctx):
              "What are NTPC's emissions?" if up.get("emissions") else None,
              "Top emitters in cement" if up.get("n") else None,
              "Forget my preferences")
+
+
+def not_available_measure(ctx, what: str):
+    a = ctx.a
+    a.status = "out_of_scope"
+    a.kicker = "Not available"
+    a.title = f"{what} are not available yet"
+    a.p(f"**{what} are not available yet.** For now I cover {COVERS}.")
+    a.follow("Which companies mention carbon credits?", ask(ctx, "projects"), "Examples of GHG reduction projects")

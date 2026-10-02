@@ -174,6 +174,8 @@ class Engine:
             return HS.ranking(ctx, p.metric, p.sector, p.n, p.extreme, p.quality, p.change, focus=c)
         if view == "peer_search" and c:
             return HP.text_search(ctx, p.sector, me=c)
+        if p.metric == "green_credits" and not c:
+            return HI.not_available_measure(ctx, "Green credit and carbon credit figures")
         if intent == "infographic":
             return HV.infographic(ctx, c, p.sector)
         if intent == "set_lens":
