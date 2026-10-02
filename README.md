@@ -145,5 +145,5 @@ No sign-in and no tracking cookies. Chats, your company and anything a chat was 
 * Covers GHG emissions and climate disclosures only. Other topics are answered with "not available yet".
 * Figures are shown exactly as companies disclosed them. A few appear to be in a different unit (for example Tata Steel's Scope 1 of 61 tCO2e); these are shown with a note and left out of comparisons and totals.
 * Sector classification is taken from the source data, with corrections listed in `pipeline/registry.py` (`SECTOR_CORRECTIONS`): the sector column was displaced by one row for the fifteen consecutive companies from Hi-Tech Pipes to Hindware Home Innovation (so Hindalco is now under Metals & Mining and Hindustan Unilever under FMCG), and Punjab & Sind Bank is under Financial Services. A few other entries may still be wrong and should be checked against an authoritative list.
-* Company names are shown in the casing used in the source data.
+* Company names filed in capitals are shown in ordinary title case with acronyms kept (NTPC Limited, Wipro Limited, ICICI Bank Limited); a few brand casings are listed in `server/pramana/engine/fmt.py`.
 * Unusual phrasings may be routed to the closest known kind of question; ambiguous company names ask for clarification rather than guessing.

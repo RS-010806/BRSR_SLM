@@ -52,6 +52,10 @@ class KB:
         for cid, qid, score, cell in con.execute("SELECT cid, qid, score, cell FROM ratings ORDER BY rowid"):
             companies[cid]["ratings"][qid] = score
             companies[cid]["rating_cells"][qid] = cell
+        from .engine.fmt import display_name
+        for c in companies.values():
+            c["source_name"] = c["name"]
+            c["name"] = display_name(c["name"])           # names filed in capitals read as ordinary names
         self.companies = list(companies.values())
         self.by_id = companies
         self.aliases = {a: json.loads(ids) for a, ids in con.execute("SELECT alias, ids FROM aliases ORDER BY alias")}

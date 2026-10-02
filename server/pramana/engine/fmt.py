@@ -25,6 +25,52 @@ def clip(text: str, n: int = 190) -> str:
     return t[:n].rsplit(" ", 1)[0].rstrip(",;:- ") + " …"
 
 
+# Names filed in capitals are shown in ordinary title case; acronyms stay in capitals. Brand casings that a rule cannot
+# guess are listed.
+NAME_WORDS = {"icici": "ICICI", "info": "Info", "jio": "Jio", "uno": "Uno", "dr": "Dr", "ltd": "Ltd", "gail": "GAIL",
+              "ltimindtree": "LTIMindtree", "indusind": "IndusInd", "interglobe": "InterGlobe", "glaxosmithkline": "GlaxoSmithKline",
+              "motocorp": "MotoCorp", "sona": "Sona", "ipca": "Ipca", "tata": "Tata", "divi": "Divi"}
+NAME_WHOLE = {"360 ONE WAM LIMITED": "360 ONE WAM Limited"}
+_SMALL = {"of", "and", "the", "for", "in", "on", "at", "to"}
+_ENGLISH = None
+
+
+def _english() -> set:
+    global _ENGLISH
+    if _ENGLISH is None:
+        import gzip
+        from pathlib import Path
+        p = Path(__file__).resolve().parents[1] / "nlu" / "artifacts" / "english.txt.gz"
+        _ENGLISH = set(gzip.decompress(p.read_bytes()).decode().split("\n")) if p.exists() else set()
+    return _ENGLISH
+
+
+def display_name(name: str) -> str:
+    """'NTPC LIMITED' -> 'NTPC Limited', 'WIPRO LIMITED' -> 'Wipro Limited'. Names already in mixed case are kept."""
+    if name in NAME_WHOLE:
+        return NAME_WHOLE[name]
+    letters = [ch for ch in name if ch.isalpha()]
+    if not letters or sum(ch.isupper() for ch in letters) / len(letters) < 0.9:
+        return name
+    out = []
+    for i, w in enumerate(re.split(r"([\s()\-/&.,']+)", name)):
+        if not w or not any(ch.isalpha() for ch in w):
+            out.append(w)
+            continue
+        lw = w.lower()
+        if lw == "s" and out and out[-1].endswith("'"):
+            out.append("s")                                # possessive: DIVI'S -> Divi's
+        elif lw in NAME_WORDS:
+            out.append(NAME_WORDS[lw])
+        elif lw in _SMALL and i > 0:
+            out.append(lw)
+        elif len(w) <= 4 and lw not in _english() and w.isalpha() and not (i > 0 and out and out[-1].endswith("'")):
+            out.append(w)                                  # an acronym: NTPC, ACC, HDFC
+        else:
+            out.append(w[:1] + w[1:].lower())
+    return "".join(out)
+
+
 def short_name(name: str) -> str:
     if name in SHORT_OVERRIDE:
         return SHORT_OVERRIDE[name]

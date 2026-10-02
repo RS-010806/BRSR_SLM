@@ -316,8 +316,8 @@ def test_a_table_request_opens_on_the_table(eng):
 
 # ---------------------------------------------------------------- comparisons say which is higher
 def test_comparisons_say_which_is_higher(eng):
-    assert "**AMBUJA CEMENTS** is the higher" in text(eng.ask("which is bigger acc or ambuja"))
-    assert "**AMBUJA CEMENTS** is the higher" in text(eng.ask("does acc or ambuja emit more"))
+    assert text(eng.ask("which is bigger acc or ambuja")).startswith("**Ambuja Cements** has the higher combined Scope 1 and Scope 2 emissions")
+    assert "**Ambuja Cements** is the higher" in text(eng.ask("does acc or ambuja emit more"))
     assert "reported the highest figure" in text(eng.ask("acc vs ambuja vs ultratech scope 1"))
 
 
@@ -512,7 +512,7 @@ def test_scopes_across_all_companies(eng):
 # ---------------------------------------------------------------- more misreadings
 def test_which_is_cleaner_names_the_lower_one(eng):
     a = eng.ask("Which is the cleaner company, Infosys or Wipro?")
-    assert "reported the lower figure" in text(a)
+    assert text(a).startswith("**Infosys** has the lower emission intensity")
     assert "the lower" in text(eng.ask("which emits less, acc or ambuja"))
 
 

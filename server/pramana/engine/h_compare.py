@@ -108,12 +108,20 @@ def _compare_numeric(ctx, cos, metric):
     if odd:
         a.note("data", f"{join(odd)}: the disclosed {lc(metric.label)} appears to use a different unit from most filings, "
                        f"so it is not compared here.")
-    if shown:
-        a.p(f"{metric.label} for FY 2024-25: {join(shown)}.")
     ok = [(c, v) for c, v, _, _ in vals if v is not None and (metric.level_ok is None or metric.level_ok(c))]
-    if len(ok) >= 2 and metric.comparable_levels and len({v for _, v in ok}) > 1:
+    if len(ok) == 2 and metric.comparable_levels and ok[0][1] != ok[1][1]:
+        # two companies: the answer in one sentence
         top, word = _edge(ctx, ok)
-        a.p(f"**{short_name(top[0]['name'])}** reported the {word} figure.")
+        o = next(x for x in ok if x[0]["id"] != top[0]["id"])
+        a.p(f"**{short_name(top[0]['name'])}** has the {word} {lc(metric.label)} for FY 2024-25: {fmt_value(metric, top[1])} "
+            f"{value_cite(a, top[0], metric)}, against {fmt_value(metric, o[1])} for {short_name(o[0]['name'])} "
+            f"{value_cite(a, o[0], metric)}.")
+    else:
+        if shown:
+            a.p(f"{metric.label} for FY 2024-25: {join(shown)}.")
+        if len(ok) >= 2 and metric.comparable_levels and len({v for _, v in ok}) > 1:
+            top, word = _edge(ctx, ok)
+            a.p(f"**{short_name(top[0]['name'])}** reported the {word} figure.")
     if missing:
         a.p(f"{join(missing)} {'has' if len(missing) == 1 else 'have'} not disclosed this figure.")
     if not shown and not missing:
@@ -167,13 +175,26 @@ def _compare_bool(ctx, cos, qid):
 
 def _side_by_side(ctx, cos):
     a, kb = ctx.a, ctx.kb
-    a.p(f"Here is how {join([f'**{short_name(c['name'])}**' for c in cos])} compare on their FY 2024-25 disclosures.")
-    m12 = M.NUMERIC["scope12"]
-    have = eligible(m12, cos)
-    if len(have) >= 2 and len({v for _, v in have}) > 1:
+    # the answer first: which is higher on total emissions, and on intensity, which allows for size
+    m12, mi = M.NUMERIC["scope12"], M.NUMERIC["intensity"]
+    lines = []
+    for m, what in ((m12, "combined Scope 1 and Scope 2 emissions"), (mi, "emission intensity, which allows for company size")):
+        have = eligible(m, cos)
+        if len(have) < 2 or len({v for _, v in have}) < 2:
+            continue
         top, word = _edge(ctx, have)
-        a.p(f"On combined Scope 1 and Scope 2 emissions, **{short_name(top[0]['name'])}** is the "
-            f"{word} at {num(top[1])} {CO2} {value_cite(a, top[0], m12)}.")
+        rest = [x for x in have if x[0]["id"] != top[0]["id"]]
+        if len(have) == 2:
+            o = rest[0]
+            lines.append(f"**{short_name(top[0]['name'])}** has the {word} {what}: {fmt_value(m, top[1])} {value_cite(a, top[0], m)}, "
+                         f"against {fmt_value(m, o[1])} for {short_name(o[0]['name'])} {value_cite(a, o[0], m)}.")
+        else:
+            lines.append(f"**{short_name(top[0]['name'])}** has the {word} {what}, {fmt_value(m, top[1])} {value_cite(a, top[0], m)}.")
+    if lines:
+        for x in lines:
+            a.p(x)
+    else:
+        a.p(f"Here is how {join([f'**{short_name(c['name'])}**' for c in cos])} compare on their FY 2024-25 disclosures.")
     notes = []
     for mid, label in SIDE_ROWS:
         m = M.NUMERIC[mid]
@@ -211,6 +232,7 @@ def _side_by_side(ctx, cos):
                           "cite": value_cite(a, c, m) if v is not None else None})
         rows.append({"label": label, "cells": cells})
         xrows.append([label] + [m.value(c) if (m.kind != "intensity" or m.level_ok(c)) else None for c in cos])
+    m12 = M.NUMERIC["scope12"]
     rows.append({"label": "Change in Scope 1 + Scope 2 vs FY 2023-24",
                  "cells": [{"text": pct(m12.yoy(c)) if m12.yoy(c) is not None else "n/a", "tone": change_tone(m12.yoy(c))}
                            for c in cos]})
