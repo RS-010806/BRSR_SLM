@@ -54,7 +54,7 @@ export function Points({ b }: { b: any }) {
         {b.items.map((t: string, i: number) => (
           <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}>
             <Rich text={t} />
-            {b.examples?.[i] && <span className="eg"><b>{b.examples[i].who}:</b> {"“"}{b.examples[i].text}{"”"}</span>}
+            {b.examples?.[i] && <span className="eg">{b.examples[i].who && <b>{b.examples[i].who}: </b>}{"“"}{b.examples[i].text}{"”"}</span>}
           </li>
         ))}
       </ul>

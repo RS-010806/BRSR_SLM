@@ -15,6 +15,11 @@ SHORT_OVERRIDE = {"Oil & Natural Gas Corporation Limited": "ONGC"}
 def clip(text: str, n: int = 190) -> str:
     """A sentence shortened at a word boundary, for use as a one-line point."""
     t = re.sub(r"\s+", " ", text).strip().strip("•-–·* ").rstrip(".;, ")
+    # list markers and a bare "Yes," in front of an answer are not part of the point
+    t = re.sub(r"^(?:\(?\d{1,2}[).:]?|\(?[ivx]{1,4}[).]|o|[a-h][).])\s+(?=\S)", "", t)
+    t = re.sub(r"^(?:yes|no)\s*[,.:-]\s*(?=\S)", "", t, flags=re.I)
+    if t[:1].islower() and not re.match(r"(?i)^(?:e\.g|i\.e|kwh|mw|kw)\b", t):
+        t = "… " + t                                      # the passage starts in the middle of a sentence: say so
     if len(t) <= n:
         return t
     return t[:n].rsplit(" ", 1)[0].rstrip(",;:- ") + " …"
@@ -23,7 +28,8 @@ def clip(text: str, n: int = 190) -> str:
 def short_name(name: str) -> str:
     if name in SHORT_OVERRIDE:
         return SHORT_OVERRIDE[name]
-    s = LEGAL_TAIL.sub("", name).strip()
+    s = LEGAL_TAIL.sub("", name.strip().rstrip(".")).strip()
+    s = re.sub(r"\s+(and|&)$", "", s, flags=re.I).strip()          # "S H Kelkar and Company Limited" -> "S H Kelkar"
     return s or name
 
 

@@ -31,7 +31,7 @@ THEMES: dict[str, list[str]] = {
     "Internal carbon pricing": [r"\binternal carbon pric", r"\bcarbon pric", r"\bshadow carbon"],
     "Logistics and transport optimisation": [r"\bmodal shift\b", r"\brail(way)? transport", r"\broute optimi[sz]",
                                              r"\blogistics optimi[sz]", r"\bfleet optimi[sz]"],
-    "Low-carbon products and clinker substitution": [r"\bblended cement", r"\bclinker factor\b", r"\bclinker substitution",
+    "Low-carbon products and materials": [r"\bblended cement", r"\bclinker factor\b", r"\bclinker substitution",
                                                      r"\bfly ash\b", r"\bslag\b", r"\bgreen steel\b", r"\blow[- ]carbon"],
 }
 _THEME_RE = {t: re.compile("|".join(ps), re.I) for t, ps in THEMES.items()}

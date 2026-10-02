@@ -67,12 +67,43 @@ def test_default_list_size_is_remembered(eng):
 
 
 def test_clarification_is_remembered(eng):
-    a = eng.ask("dalmia bharat intensity")
-    assert a["status"] == "clarify" and a["context"]["pending"]["text"] == "dalmia bharat"
-    b = eng.ask("Dalmia Bharat Limited intensity", a["context"])
-    assert b["context"]["prefs"]["aliases"] == {"dalmia bharat": "dalmia-bharat-limited"}
-    c = eng.ask("dalmia bharat scope 1", b["context"])
-    assert c["status"] == "answered" and c["entities"][0]["id"] == "dalmia-bharat-limited"
+    a = eng.ask("tci intensity")
+    assert a["status"] == "clarify" and a["context"]["pending"]["text"] == "tci"
+    b = eng.ask("TCI Express Limited intensity", a["context"])
+    assert b["context"]["prefs"]["aliases"] == {"tci": "tci-express-limited"}
+    c = eng.ask("tci scope 1", b["context"])
+    assert c["status"] == "answered" and c["entities"][0]["id"] == "tci-express-limited"
+
+
+def test_an_exact_display_name_is_not_ambiguous(eng):
+    assert eng.ask("dalmia bharat intensity")["entities"][0]["id"] == "dalmia-bharat-limited"
+    assert eng.ask("dalmia bharat sugar emissions")["entities"][0]["id"] == "dalmia-bharat-sugar-and-industries-limited"
+
+
+def test_every_company_is_found_by_its_name():
+    from pramana.engine.fmt import short_name
+    e = Engine(get_kb())
+    missing = []
+    for c in e.kb.companies:
+        for nm in (c["name"], short_name(c["name"])):
+            p = e.parser.parse(f"what are the emissions of {nm}", {})
+            if c["id"] not in p.companies and not any(c["id"] in a["ids"] for a in p.ambiguous):
+                missing.append(nm)
+    assert not missing, missing[:10]
+
+
+def test_one_word_company_names(eng):
+    for q, cid in (("Trent emissions", "trent-limited"), ("what are raymond's targets", "raymond-limited"),
+                   ("symphony scope 1", "symphony-limited"), ("compare trident and welspun living", "trident-limited")):
+        a = eng.ask(q)
+        assert cid in [x["id"] for x in a["entities"]], (q, a["title"])
+    assert not eng.ask("play a symphony for me")["entities"]
+    assert eng.ask("Alembic Pharmaceuticals emissions")["entities"][0]["id"] == "alembic-pharmaceuticals-limited"
+
+
+def test_company_names_never_trigger_rules(eng):
+    a = eng.ask("what are our GHG emissions", {"lens": "vodafone-idea-limited"})
+    assert a["title"] == "GHG emissions" and a["entities"][0]["id"] == "vodafone-idea-limited"
 
 
 def test_forget_clears_preferences(eng):

@@ -69,6 +69,17 @@ def _years_chart(a, c, rows):
                           [[lab, m.prev(c), m.value(c), None if m.yoy(c) is None else round(m.yoy(c), 2)] for lab, m in rows]))
 
 
+def _tidy(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text)).strip().rstrip(".").replace(" :", ":")
+
+
+def _looks_like_name(text: str) -> bool:
+    """'Deloitte Haskins & Sells LLP' is a name; 'Yes, independent assurance was carried out by ...' is a sentence."""
+    t = _tidy(text)
+    return len(t.split()) <= 9 and not re.match(r"(?i)(yes|no|not|the|this|our|we|it|independent|assurance|na\b|n/a)", t) \
+        and not re.search(r"(?i)\b(was|were|is|are|has|have|been|carried|conducted|obtained|done|by)\b", t)
+
+
 def kicker(ctx, c) -> str:
     s = ctx.kb.sector_of(c)["name"]
     mine = ctx.plan.used_context.get("lens") == c["id"]
@@ -328,8 +339,10 @@ def company_bool(ctx, c, qid):
         a.p(f"**{c['name']}** {pos if is_yes else neg} {a.c_filing(c, qid)}.")
         comp = M.COMPANION_TEXT.get(qid)
         agency = str(c["values"].get(comp) or "").strip() if comp else ""
-        if is_yes and agency and len(agency) <= 160:
-            a.p(f"The agency named is **{agency.rstrip('.')}** {a.c_filing(c, comp)}.")
+        if is_yes and agency and len(agency) <= 160 and _looks_like_name(agency):
+            a.p(f"The agency named is **{_tidy(agency)}** {a.c_filing(c, comp)}.")
+        elif is_yes and agency and len(agency) <= 260:
+            a.p(f"Its disclosure states: “{_tidy(agency)}” {a.c_filing(c, comp)}.")
         elif is_yes and agency:
             a.block("quotes", items=[quote_item(ctx, c, comp, k=1)], title="As disclosed")
         elif not is_yes:
@@ -337,8 +350,10 @@ def company_bool(ctx, c, qid):
         else:
             a.p("The name of the agency is not part of this disclosure.")
             s3 = str(c["values"].get("1561") or "").strip()
-            if qid == "1340" and yes(c, "1560") and s3 and len(s3) <= 160:
-                a.p(f"For its Scope 3 emissions, the agency named is **{s3.rstrip('.')}** {a.c_filing(c, '1561')}.")
+            if qid == "1340" and yes(c, "1560") and s3 and len(s3) <= 160 and _looks_like_name(s3):
+                a.p(f"For its Scope 3 emissions, the agency named is **{_tidy(s3)}** {a.c_filing(c, '1561')}.")
+            elif qid == "1340" and yes(c, "1560") and s3 and len(s3) <= 260:
+                a.p(f"On its Scope 3 emissions, the disclosure states: “{_tidy(s3)}” {a.c_filing(c, '1561')}.")
         a.context.update({"metric": ctx.plan.metric})
         a.follow(f"Tell me about {short}", f"How many {kb.sector_of(c)['name']} companies {BOOL_PHRASE[qid][2]}?")
         return
@@ -366,8 +381,8 @@ def company_bool(ctx, c, qid):
     comp = M.COMPANION_TEXT.get(qid)
     if is_yes and comp in ("1561", "353") and c["values"].get(comp):
         agency = str(c["values"][comp]).strip()
-        if len(agency) <= 160:
-            a.p(f"The agency named is {agency.rstrip('.')} {a.c_filing(c, comp)}.")
+        if len(agency) <= 160 and _looks_like_name(agency):
+            a.p(f"The agency named is {_tidy(agency)} {a.c_filing(c, comp)}.")
         else:
             a.block("quotes", items=[quote_item(ctx, c, comp, k=1)], title="As disclosed")
     sname = kb.sector_of(c)["name"]
@@ -579,6 +594,11 @@ def simulate(ctx, c, mid, pct_cut):
         a.follow(f"Tell me about {short}")
         return
     base = value_cite(a, c, metric)
+    if v == 0:
+        a.p(f"{c['name']} reported {lc(metric.label)} of zero for FY 2024-25 {base}, so a what-if on this figure would "
+            f"not change it.")
+        a.follow(f"What are {short}'s GHG emissions?", f"Tell me about {short}")
+        return
     low = (ctx.plan.resolved_query or ctx.plan.query).lower()
     if re.search(r"\b(rise|rises|rose|rising|increas\w*|grow|grows|grew|growth|higher|go(?:es)? up|went up|up by|more)\b", low) \
             and not re.search(r"\b(cut|cuts|reduc\w*|lower\w*|decreas\w*|less|halv\w*)\b", low):

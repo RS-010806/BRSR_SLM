@@ -6,6 +6,7 @@ import re
 from rapidfuzz import fuzz
 
 from ..nlu.lexicon import OFFTOPIC
+from .common import ASK, ask, example_company
 from .fmt import join, short_name
 
 OFF = {o["key"]: o for o in OFFTOPIC}
@@ -248,11 +249,7 @@ def thanks(ctx):
     a.kicker = "Pramana"
     a.title = "Glad to help"
     a.p("Glad to help. Ask me anything else about emissions and climate disclosures.")
-    lens = ctx.plan.lens
-    if lens:
-        a.follow("How do we compare with our peers?", "What are our targets?", "Make an infographic of our emissions")
-    else:
-        a.follow("What are NTPC's GHG emissions?", "Top 10 emitters", "Which sector emits the most?")
+    a.follow(ask(ctx, "peers"), ask(ctx, "targets"), ask(ctx, "infographic") if ctx.plan.lens else "Which sector emits the most?")
 
 
 def about(ctx):
@@ -264,7 +261,7 @@ def about(ctx):
         f"its BRSR filing, and each answer lists its sources.")
     a.p("You can ask about one company, compare companies, see how a company stands against its peers, look at a whole "
         "sector, or ask for examples of what other companies are doing.")
-    a.follow("What can you do?", "What are NTPC's GHG emissions?", "How does ACC compare with its peers?")
+    a.follow("What can you do?", ask(ctx, "emissions"), ask(ctx, "peers"))
 
 
 def export_help(ctx):
@@ -274,7 +271,7 @@ def export_help(ctx):
     a.p("Every answer can be downloaded. Use **Excel** or **PDF** under an answer to save the whole answer, or the "
         "**Excel** button on a chart or table to save just that part. Infographics have a **Download image** button.")
     a.p("Ask a question first, for example the ones below, and the buttons appear with the answer.")
-    a.follow("Top 10 emitters", "Give me an overview of the power sector", "Make an infographic for UltraTech")
+    a.follow(ask(ctx, "emissions"), "Top 10 emitters", ask(ctx, "infographic"))
 
 
 def peer_def(ctx):
@@ -285,7 +282,7 @@ def peer_def(ctx):
         "sector classification used here.")
     a.p("You can also name your own peer group, for example “my peers are Blue Dart and Delhivery”, and comparisons in "
         "that conversation will use those companies.")
-    a.follow("Who are NTPC's peers?", "How does ACC compare with its peers?", "How many sectors are there?")
+    a.follow(ask(ctx, "peer_list"), ask(ctx, "peers"), "How many sectors are there?")
 
 
 def greeting(ctx):
@@ -294,21 +291,23 @@ def greeting(ctx):
     a.title = "How can I help?"
     a.p(f"I answer questions about the GHG emissions and climate disclosures of **{len(ctx.kb.companies)} listed "
         f"companies**, based on their BRSR filings for FY 2024-25.")
+    c, own = example_company(ctx)
+    sname = ctx.kb.sector_of(c)["name"] if own else None
     a.block("capabilities", items=[
         {"title": "A company's figures", "text": "Scope 1, 2 and 3 emissions, intensity, targets and projects.",
-         "example": "What are NTPC's GHG emissions?"},
+         "example": ask(ctx, "emissions")},
         {"title": "Peers", "text": "See who the peers are and how a company compares.",
-         "example": "How does ACC compare with its peers?"},
-        {"title": "Good examples", "text": "Detailed disclosures from other companies, in their own words.",
-         "example": "Examples of GHG reduction projects from cement companies"},
-        {"title": "Sectors", "text": "Totals and the largest emitters in any sector.",
-         "example": "Give me an overview of the power sector"},
+         "example": ask(ctx, "peers") if own else "How does ACC compare with its peers?"},
+        {"title": "Good practice", "text": "What other companies do, in short points with their own words as examples.",
+         "example": f"How can we reduce emissions?" if own else "Best practices for reducing emissions in cement"},
+        {"title": "Sectors", "text": "Totals, trends and the largest emitters in any sector.",
+         "example": f"Give me an overview of the {sname} sector" if own else "Give me an overview of the power sector"},
         {"title": "Infographics", "text": "A shareable one-page visual for a company or sector.",
-         "example": "Make an infographic for UltraTech"},
+         "example": ask(ctx, "infographic") if own else "Make an infographic for UltraTech"},
         {"title": "What-if", "text": "See the effect of a cut in emissions.",
-         "example": "What if NTPC cuts Scope 1 by 10%?"},
+         "example": ask(ctx, "whatif")},
     ])
-    a.follow("What are NTPC's GHG emissions?", "Top 10 emitters", "Which sector emits the most?")
+    a.follow(ask(ctx, "emissions"), "Top 10 emitters", "Which sector emits the most?")
 
 
 def define(ctx):
@@ -336,7 +335,7 @@ def define(ctx):
                         items.append(f"**In the data:** {n} of the {N} companies covered mention it in their disclosures {cite}.")
                     a.block("points", items=items)
                 a.follow({"Net zero": "Which companies mention net zero?", "SBTi": "Which companies mention SBTi?"}.get(title),
-                         "What are NTPC's GHG emissions?", "Top 10 emitters")
+                         ask(ctx, "emissions"), "Top 10 emitters")
                 return True
     # "scope 1 and scope 2" arrives as one combined metric; show the two definitions separately
     if mids:
@@ -361,19 +360,16 @@ def define(ctx):
         if mine:
             a.block("points", items=[mine[0]])
             a.follow(mine[1])
-        ask = {"scope12": "What are NTPC's Scope 1 and Scope 2 emissions?", "scope1": "What are NTPC's Scope 1 emissions?",
-               "scope2": "What are NTPC's Scope 2 emissions?", "scope3": "What are Infosys's Scope 3 emissions?",
-               "intensity": "What is UltraTech's emission intensity?", "targets": "What are Infosys's targets?",
-               "projects": "Show UltraTech's projects to reduce GHG emissions",
-               "ghg_assurance": "How many companies have independent assurance of GHG emissions?"}.get(key)
-        a.follow(ask, "What is the difference between Scope 1, Scope 2 and Scope 3?" if key in ("scope1", "scope2", "scope3", "scope12") and "difference" not in low else None,
-                 "Top 10 emitters")
+        q = ask(ctx, key) if key in ASK else ("How many companies have independent assurance of GHG emissions?"
+                                                  if key == "ghg_assurance" else None)
+        a.follow(q, "What is the difference between Scope 1, Scope 2 and Scope 3?" if key in ("scope1", "scope2", "scope3", "scope12") and "difference" not in low else None,
+                 f"Which sector has the highest {GLOSSARY[key][0]}?" if key in ("scope1", "scope2", "scope3") else "Top 10 emitters")
         return True
     for rx, title, text in TERMS:
         if rx.search(low):
             a.title = title
             a.p(text)
-            a.follow("What are NTPC's GHG emissions?", "Top 10 emitters")
+            a.follow(ask(ctx, "emissions"), "Top 10 emitters")
             return True
     return False
 
@@ -390,14 +386,14 @@ def explain(ctx):
                 + ["**Why the split matters:** each scope is reduced in a different way: Scope 1 by changing fuels and "
                    "processes, Scope 2 by using less electricity or buying renewable power, and Scope 3 by working with "
                    "suppliers and customers."])
-        a.follow("What are NTPC's GHG emissions?", "How many companies report Scope 3 emissions?")
+        a.follow(ask(ctx, "emissions"), "How many companies report Scope 3 emissions?")
         return
     for rx, title, text in ABOUT:
         if rx.search(low) and not plan.metric:
             a.kicker = "About"
             a.title = title
             a.p(text)
-            a.follow("What can you do?", "What are NTPC's GHG emissions?")
+            a.follow("What can you do?", ask(ctx, "emissions"))
             return
     if define(ctx):
         return
@@ -406,13 +402,13 @@ def explain(ctx):
             a.kicker = "About"
             a.title = title
             a.p(text)
-            a.follow("What can you do?", "What are NTPC's GHG emissions?")
+            a.follow("What can you do?", ask(ctx, "emissions"))
             return
     a.status = "not_found"
     a.kicker = "Not available"
     a.title = "I do not have that"
     a.p(f"I could not find that in the disclosures I cover. I can help with {COVERS}.")
-    a.follow("What can you do?", "What are NTPC's GHG emissions?", "Top 10 emitters")
+    a.follow("What can you do?", ask(ctx, "emissions"), "Top 10 emitters")
 
 
 def no_scores(ctx):
@@ -429,7 +425,7 @@ def no_scores(ctx):
         a.company_ref(cos[0])
         a.follow(f"Tell me about {s}", f"What are {s}'s GHG emissions?", f"How does {s} compare with its peers?")
     else:
-        a.follow("What are NTPC's GHG emissions?", "Top 10 emitters", "Companies with the lowest emission intensity")
+        a.follow(ask(ctx, "emissions"), "Top 10 emitters", "Companies with the lowest emission intensity")
 
 
 def out_of_scope(ctx):
@@ -473,7 +469,7 @@ def out_of_scope(ctx):
                  f"What if {s} cuts Scope 1 by 10%?" if o["key"] == "FUTURE" else f"What are {s}'s targets?",
                  f"Tell me about {s}")
     else:
-        a.follow("What can you do?", "What are NTPC's GHG emissions?", "Top 10 emitters")
+        a.follow("What can you do?", ask(ctx, "emissions"), "Top 10 emitters")
 
 
 def not_found(ctx):

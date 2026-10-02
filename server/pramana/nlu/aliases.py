@@ -7,6 +7,7 @@ fires on "which page", and "Coal India" never fires on "coal".
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 
 from .lexicon import CURATED_ALIASES, CURATED_GROUPS, STOP
@@ -50,18 +51,44 @@ def build_aliases(companies: list[dict], english_words: set[str]) -> dict[str, l
         for toks in cands:
             if ok(toks):
                 by_alias[" ".join(toks)].add(c["id"])
+        # The official name always finds its company, even when every word in it is an ordinary one
+        # ("Bank of India", "Oil India Limited", "General Insurance Corporation of India").
+        plain = list(full)
+        while plain and plain[-1] in ("limited", "ltd"):
+            plain.pop()
+        # the name as it is shown on screen ("POWER FINANCE" for Power Finance Corporation Limited) must also resolve,
+        # because suggested follow-up questions are written with it
+        shown = norm_name(re.sub(r"(\s+(limited|ltd\.?|company limited|corporation limited))+\s*$", "", c["name"], flags=re.I))
+        while shown and shown[-1] in ("and",):
+            shown.pop()
+        for toks in (full, plain, shown):
+            if len(toks) >= 2:
+                by_alias[" ".join(toks)].add(c["id"])
         core = strip_suffix(full, True)
         if len(core) >= 3 and core[1] not in STOP and core[1] not in LEGAL:
             prefix_owner[" ".join(core[:2])].add(c["id"])
+        for k in range(3, len(core)):                        # "dalmia bharat sugar", "aditya birla fashion"
+            if core[k - 1] not in LEGAL:
+                prefix_owner[" ".join(core[:k])].add(c["id"])
         if core:
             first_owner[core[0]].add(c["id"])
 
+    # a display name that belongs to exactly one company names that company, even if it is also the start of another name
+    shown_owner: dict[str, set[str]] = defaultdict(set)
+    for c in companies:
+        shown = norm_name(re.sub(r"(\s+(limited|ltd\.?|company limited|corporation limited))+\s*$", "", c["name"], flags=re.I))
+        if len(shown) >= 2:
+            shown_owner[" ".join(shown)].add(c["id"])
     for p, owners in prefix_owner.items():
-        if len(owners) == 1 and ok(p.split()):
+        if len(owners) == 1 and ok(p.split()) and not (p in shown_owner and shown_owner[p] != owners):
             by_alias[p] |= owners
     for w, owners in first_owner.items():
         if len(owners) == 1 and ok([w]):
             by_alias[w] |= owners
+
+    for key, owners in shown_owner.items():
+        if len(owners) == 1:
+            by_alias[key] = set(owners)
 
     name_to_id = {c["name"]: c["id"] for c in companies}
     for alias, name in CURATED_ALIASES.items():

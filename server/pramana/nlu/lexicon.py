@@ -393,6 +393,6 @@ new green clean energy power gas oil steel cement metal metals mining bank banks
 capital goods chemicals chemical textiles textile realty media telecom health healthcare consumer products product
 motors motor auto systems solutions technologies technology tech international global national united general
 home life insurance infra infrastructure engineering electricals electric electronics foods food agro paper
-download export excel xlsx csv pdf spreadsheet print save file thanks thank okay
-pager poster infographic factsheet snapshot linkedin post paragraph visual kpis kpi line manager board
+download export excel xlsx csv pdf spreadsheet save file thanks thank okay
+pager poster infographic factsheet snapshot linkedin paragraph visual manager
 """.split())

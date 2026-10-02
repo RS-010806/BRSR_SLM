@@ -121,6 +121,7 @@ RE_ADVISE = re.compile(r"\b(best practices?|good practices?|ideas?|suggest\w*|re
                        r"what (?:can|should|could|must) (?!you\b).{0,50}\b(?:do|improve|learn|adopt|implement|change|focus)\b|"
                        r"what (?:does|do) (?:a |an )?good .{0,30}look like|good (?:example|target|disclosure)s?|"
                        r"how do (?:leading|top|the best|other) (?:companies|firms|peers))\b")
+RE_HOW_USING = re.compile(r"\bhow (?:are|do|is|does|have|has) .{0,40}\b(?:using|use|adopting|adopt|deploying|implementing|approaching)\b")
 RE_LEARN_FROM_CO = re.compile(r"(?:learn (?:from|about)|lessons from|take from|borrow from|copy from|adopt from|"
                               r"inspired by) (?:the |what )?<co>")
 RE_GAPS = re.compile(r"\b(gaps?|missing|fall(?:ing)? short|shortfalls?|weak(?:ness|nesses| spots?| areas?| points?)|"
@@ -292,6 +293,7 @@ class Plan:
     raw_metrics: list = field(default_factory=list)    # measures as named, before combining
     as_table: bool = False                             # a table was asked for
     about: list = field(default_factory=list)          # the company the conversation was about before this turn
+    about_sector: str | None = None                    # and the sector
     missing: list = field(default_factory=list)        # words that stand where a company name would, and match no company
     yesno: bool = False                                # phrased as a yes/no question
     who: bool = False                                  # asks for a name ("who assured ...")
@@ -314,6 +316,16 @@ class Parser:
         else:
             self.english = frozenset()
         self._vocab = sorted(w for w in (self.linker.vocab | self.model.known_words) if len(w) >= 4 and w.isalpha())
+        # companies known by one ordinary word ("Trent", "Raymond", "Symphony"): matched only where a name is meant
+        from .aliases import strip_suffix
+        from .normalize import norm_name
+        owners: dict[str, list] = {}
+        for c in kb.companies:
+            core = strip_suffix(norm_name(c["name"]), True)
+            if len(core) == 1 and core[0] not in self.linker.vocab and core[0] not in kb.aliases and len(core[0]) >= 3 \
+                    and "corporation" not in norm_name(c["name"]):
+                owners.setdefault(core[0], []).append(c)
+        self.single_names = {w: cs[0] for w, cs in owners.items() if len(cs) == 1}
         self._load_exemplars()
 
     def _names_a_company(self, word: str, low: str, raw: str = "") -> bool:
@@ -450,13 +462,42 @@ class Parser:
         return (out, True) if state["n"] else (query, False)
 
     # ------------------------------------------------------------------ main
+    def _name_single(self, query: str) -> str:
+        """Write out the official name of a company known by one ordinary word, where the word is used as a name:
+        capitalised, possessive, in a very short question, or where a company name would stand."""
+        if not self.single_names:
+            return query
+        low = query.lower()
+        if not any(re.search(rf"(?<![a-z]){re.escape(w)}(?![a-z])", low) for w in self.single_names):
+            return query
+        taken = {t for e in self.linker.link(query).of("company") if e.method == "exact" for t in e.text.split()}
+        n_words = len(re.findall(r"[A-Za-z0-9]+", query))
+        for w, c in self.single_names.items():
+            if w in taken:
+                continue                                  # part of a longer company name ("Alembic Pharmaceuticals")
+            m = re.search(rf"(?<![A-Za-z]){re.escape(w)}(?![A-Za-z])(?:\s+(?:corp|india|limited|ltd)\b\.?)*", query, re.I)
+            if not m or c["name"].lower() in low:
+                continue
+            word = query[m.start(): m.start() + len(w)]
+            named = word[0].isupper() or n_words <= 4 or low[m.end(): m.end() + 2] in ("'s", "’s") \
+                or re.search(rf"\b(?:of|for|about|from|at|by|compare|vs|versus|and|with|than|against)\s+{re.escape(w)}\b", low) \
+                or re.search(rf"\b{re.escape(w)}\s+(?:emissions?|scope|ghg|carbon|intensity|targets?|projects?|peers?|vs|versus|and)\b", low)
+            if named:
+                query = query[: m.start()] + c["name"] + query[m.end():]
+                low = query.lower()
+        return query
+
     def parse(self, query: str, context: dict | None = None) -> Plan:
         context = context or {}
         lens = context.get("lens") if context.get("lens") in self.kb.by_id else None
+        original = query
+        query = self._name_single(query)
         resolved, personal = self._personalise(query, lens)
         p = self._parse(resolved, context, lens, first_person=self._first_person(query))
-        p.query = query
+        p.query = original
         p.lens = lens
+        if query != original:
+            p.resolved_query = resolved
         if personal:
             p.resolved_query = resolved
             if lens in p.companies:
@@ -468,6 +509,8 @@ class Parser:
         p = Plan(query=query)
         low = prep(query)
         link = self.linker.link(query)
+        for e in sorted(link.of("company") + link.of("absent"), key=lambda e: -len(e.text)):
+            low = re.sub(rf"(?<![a-z0-9]){re.escape(e.text)}(?![a-z0-9])", "<co>", re.sub(r"\s+", " ", low))
         toks, nums, pcts = mask(link.masked)
         p.masked = " ".join(toks)
         pred = self.model.predict(p.masked)
@@ -636,6 +679,7 @@ class Parser:
         asks_meaning = bool(RE_WHAT_IS_METRIC.match(plain)) and not first_person and not p.companies and not p.ambiguous
         strict_define = (bool(RE_DEFINE.search(low)) or asks_meaning) and (has_metric or not p.companies)
         p.about = [c for c in context.get("companies", []) if c in self.kb.by_id][:1]
+        p.about_sector = context.get("sector") if context.get("sector") in self.kb.sector_by_id else None
         if p.intent != "out_of_scope":
             if RE_CLEAR_LENS.search(low) and not p.companies:
                 self._set(p, "clear_lens", "asks to stop answering as a company")
@@ -988,6 +1032,12 @@ class Parser:
             return self._set(p, "explain", "asks what a term means")
         pledge = RE_PLEDGE.search(low)
         terms = list(p.tech) or (["sbti" if pledge.group(1).startswith(("science", "sbt")) else "net zero"] if pledge else [])
+        if p.intent == "text_search" and (p.tech or terms) and (re.search(r"\b(examples?|best practices?|good practices?)\b", low)
+                                                                 or RE_HOW_USING.search(low)) and not RE_FILTER_ASK.search(low):
+            p.tech = p.tech or terms
+            if lens and not one:
+                p.companies = [lens]
+            return self._set(p, "best_practice", "asks for examples of one measure")
         if p.intent == "text_search" and not p.tech and not p.keywords:
             if terms:
                 p.tech = terms

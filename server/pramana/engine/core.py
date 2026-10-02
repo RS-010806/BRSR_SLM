@@ -224,8 +224,12 @@ class Engine:
         for b in a.blocks:
             if b["type"] == "points":
                 texts += b["items"]
+        # digits inside a company's name ("63 moons", "360 ONE") are not figures
+        names = sorted({n for e in a.entities for n in (e["name"], e["short"])}, key=len, reverse=True)
         for para in texts:
             stripped = LABEL_NUM.sub("", CITE.sub("", para))
+            for n in names:
+                stripped = stripped.replace(n, "")
             if NUM_IN_TEXT.search(stripped):
                 numeric += 1
                 if not CITE.search(para):

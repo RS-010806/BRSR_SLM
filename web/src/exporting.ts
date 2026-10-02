@@ -22,10 +22,24 @@ export function downloadBlock(b: Block) {
   if (s) downloadXlsx(s.title || "Pramana data", [s]);
 }
 
+/* Bullet points as lines: section title, then each point with its example in the company's own words. */
+export function pointLines(a: Answer): [string, string][] {
+  const out: [string, string][] = [];
+  a.blocks.filter((b) => b.type === "points").forEach((b) => {
+    if (b.title) out.push([b.title, ""]);
+    (b.verbatim || []).forEach((t: string) => out.push(["", `“${t}”`]));
+    b.items.forEach((t: string, i: number) => {
+      const ex = b.examples?.[i];
+      out.push(["", plain(t) + (ex ? ` ${ex.who ? ex.who + ": " : ""}“${ex.text}”` : "")]);
+    });
+  });
+  return out;
+}
+
 /* The whole answer as a workbook: the answer in words, every cited figure, then each table. */
 export function answerSheets(a: Answer, q: string): Sheet[] {
   const rows: Cell[][] = [["Question", q], ["Answer", a.lead.map(plain).join(" ")]];
-  a.blocks.filter((b) => b.type === "points").forEach((b) => b.items.forEach((t: string) => rows.push(["", plain(t)])));
+  pointLines(a).forEach(([k, v]) => rows.push([k, v]));
   a.notes.forEach((n) => rows.push(["Note", n.text]));
   const sheets: Sheet[] = [{ name: "Answer", title: a.title || "Answer", note: SOURCE_NOTE, columns: ["Item", "Detail"], rows }];
   const figs = a.citations.filter((c) => c.kind === "filing" && c.value != null);

@@ -187,4 +187,4 @@ def _market(ctx):
                   "items": [{"label": s["name"], "value": v, "display": tile(v)} for s, v in tot]},
             shares=_shares(cos), source=SOURCE)
     a.note("data", "Totals leave out disclosed values that are clearly in a different unit.")
-    a.follow("Which sector emits the most?", "Top 10 emitters", "Make an infographic for NTPC")
+    a.follow("Which sector emits the most?", "Top 10 emitters", "Top 10 emitters")

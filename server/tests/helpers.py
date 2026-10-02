@@ -54,6 +54,7 @@ def strip_names(s: str, kb) -> str:
 def leaks(answer: dict, kb) -> list[str]:
     out = []
     for s in generated_strings(public(answer), kb):
+        s = re.sub(r"“[^”]*”|https?://\S+", "QUOTE", s)        # a company's own words, quoted, and links it gave
         m = INTERNAL.search(strip_names(s, kb))
         if m:
             out.append(f"{m.group(0)!r} in: {s[:140]}")

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createShare, sendFeedback, type Answer, type Citation, type Ctx } from "../api";
-import { downloadAnswer } from "../exporting";
+import { downloadAnswer, pointLines } from "../exporting";
 import { I } from "../icons";
 import { AnswerCtx, Rich, toast, useHoverPrefetch } from "../ui";
 import { BlockView } from "./blocks";
@@ -129,7 +129,7 @@ export function AnswerView({ a, q, ctx, ask, index, prefetch, pickCompany }: {
     navigator.clipboard?.writeText(link).then(() => toast("Link copied"));
   };
   const copy = () => {
-    const pts = a.blocks.filter((b) => b.type === "points").flatMap((b) => b.items.map((t: string) => "• " + t));
+    const pts = pointLines(a).map(([k, v]) => (k && !v ? k : "• " + v));
     const clean = (p: string) => p.replace(/\*\*/g, "").replace(/\s*\[\d+\]/g, "");
     const src = a.citations.filter((x) => x.kind === "filing").map((x) => `${x.company}, BRSR ${x.fy}: ${x.item}`);
     const txt = `${a.title}\n\n${[...a.lead, ...pts].map(clean).join("\n\n")}${src.length ? `\n\nSources\n${[...new Set(src)].join("\n")}` : ""}`;

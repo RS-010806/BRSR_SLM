@@ -600,7 +600,7 @@ def _list(ctx, cos, sid, extra=None, names_only=False):
             x.append(extra[1](c))
         rows.append(r)
         xrows.append(x)
-    title = f"{len(rows)} companies"
+    title = f"{len(rows)} companies" if len(rows) != 1 else "1 company"
     a.block("table", title=title, columns=cols, rows=rows, export=export(a.title or title, xcols, xrows))
 
 

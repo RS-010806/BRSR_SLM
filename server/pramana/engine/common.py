@@ -182,3 +182,38 @@ def prev_cite(a, c, metric: M.Metric) -> str:
                         f"{num(v.get(metric.py_q))} {CO2} per rupee × 1 crore (10,000,000) = {num(metric.prev(c))} "
                         f"{CO2} per ₹ crore", [a.c_filing(c, metric.py_q)])
     return a.c_filing(c, metric.py_q) if metric.py_q else ""
+
+
+# --------------------------------------------------------------------------- suggested questions
+def example_company(ctx, mid: str = "scope12"):
+    """(company, is it the user's own): the user's company, else the one being discussed, else the largest discloser of
+    the measure in the sector being discussed, else across all companies. Suggestions follow the conversation."""
+    plan, kb = ctx.plan, ctx.kb
+    cid = plan.lens or next(iter(plan.about), None) or next(iter(plan.companies), None)
+    if cid in kb.by_id:
+        return kb.by_id[cid], cid == plan.lens
+    sid = plan.sector if plan.sector in kb.sector_by_id else plan.about_sector
+    pool = kb.members(sid) if sid in kb.sector_by_id else kb.companies
+    pairs = eligible(M.NUMERIC.get(mid) or M.NUMERIC["scope12"], pool) or eligible(M.NUMERIC["scope12"], kb.companies)
+    return max(pairs, key=lambda t: (t[1], t[0]["name"]))[0], False
+
+
+ASK = {"emissions": ("What are our GHG emissions?", "What are {s}'s GHG emissions?"),
+       "scope1": ("What are our Scope 1 emissions?", "What are {s}'s Scope 1 emissions?"),
+       "scope2": ("What are our Scope 2 emissions?", "What are {s}'s Scope 2 emissions?"),
+       "scope12": ("What are our Scope 1 and Scope 2 emissions?", "What are {s}'s Scope 1 and Scope 2 emissions?"),
+       "scope3": ("What are our Scope 3 emissions?", "What are {s}'s Scope 3 emissions?"),
+       "intensity": ("What is our emission intensity?", "What is {s}'s emission intensity?"),
+       "targets": ("What are our targets?", "What are {s}'s targets?"),
+       "projects": ("Show our projects to reduce GHG emissions", "Show {s}'s projects to reduce GHG emissions"),
+       "peers": ("How do we compare with our peers?", "How does {s} compare with its peers?"),
+       "peer_list": ("Who are our peers?", "Who are {s}'s peers?"),
+       "infographic": ("Make an infographic of our emissions", "Make an infographic for {s}"),
+       "whatif": ("What if we cut Scope 1 by 10%?", "What if {s} cuts Scope 1 by 10%?"),
+       "change": ("How did our emissions change?", "How did {s}'s emissions change?")}
+
+
+def ask(ctx, kind: str, mid: str | None = None) -> str:
+    c, own = example_company(ctx, mid or (kind if kind in M.NUMERIC else "scope12"))
+    mine, theirs = ASK[kind]
+    return mine if own else theirs.format(s=short_name(c["name"]))

@@ -638,3 +638,56 @@ def test_good_practice_is_a_summary_with_details_on_request(eng):
     assert a["blocks"][2]["collapsed"] is True
     assert len(a["lead"]) == 1
     clean(a, eng)
+
+
+# ---------------------------------------------------------------- good practice follows the question, not a fixed shape
+def test_good_practice_follows_the_topic_asked(eng):
+    a = eng.ask("best practices for solar in cement")
+    assert a["title"] == "Good practice: solar" and a["kicker"] == "Construction Materials"
+    assert [b.get("title") for b in a["blocks"] if b["type"] == "points"] == ["At a glance", "Examples"]
+    ex = next(b for b in a["blocks"] if b.get("title") == "Examples")
+    assert all("solar" in e["text"].lower() for e in ex["examples"])
+    b = eng.ask("examples of waste heat recovery")
+    assert b["title"] == "Good practice: waste heat recovery"
+    c = eng.ask("how are IT companies using renewable energy")
+    assert c["kicker"] == "Information Technology" and c["title"] == "Good practice: renewable energy"
+    for x in (a, b, c):
+        clean(x, eng)
+
+
+def test_good_practice_respects_the_number_asked_for(eng):
+    a = eng.ask("give me 5 examples of net zero targets")
+    ex = next(b for b in a["blocks"] if b.get("title") == "Examples")
+    assert len(ex["items"]) == 5
+    b = eng.ask("give me 2 examples of GHG reduction projects from cement companies")
+    assert len(next(x for x in b["blocks"] if x["type"] == "quotes")["items"]) == 2
+
+
+def test_good_practice_for_your_company_shows_what_it_could_add(eng):
+    a = eng.ask("how can we reduce emissions", TCI)
+    mine = next(b for b in a["blocks"] if b.get("title") == "For TCI Express")
+    assert any(t.startswith("**Already in its disclosure:**") for t in mine["items"])
+    assert any("not mentioned in its disclosure" in t for t in mine["items"])
+    s = eng.ask("best practices for solar", TCI)
+    assert any(b.get("title") == "For TCI Express" for b in s["blocks"])
+
+
+def test_example_sentences_read_as_sentences(eng):
+    for s in eng.kb.sectors:
+        a = eng.ask(f"best practices for reducing emissions in {s['name']}")
+        for b in a["blocks"]:
+            for e in b.get("examples") or []:
+                if e:
+                    t = e["text"]
+                    assert (not t[:1].islower() or t.startswith("… ")) and not t.startswith(("o ", "• ", "- ")), (s["name"], t)
+                    assert len(t) <= 260
+
+
+def test_suggestions_follow_the_user_and_the_conversation(eng):
+    a = eng.ask("hello", TCI)
+    examples = [c["example"] for c in a["blocks"][0]["items"]]
+    assert "What are our GHG emissions?" in examples and "How do we compare with our peers?" in examples
+    b = eng.ask("what is scope 3", {"lens": "infosys-limited"})
+    assert "What are our Scope 3 emissions?" in b["followups"]
+    c = chat(eng, ["overview of the cement sector", "what is scope 1"])[1]
+    assert any("UltraTech" in f for f in c["followups"])            # the largest emitter of the sector being discussed
