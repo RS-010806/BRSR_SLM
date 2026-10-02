@@ -112,6 +112,8 @@ def sector_overview(ctx, sid, mid=None):
 
 def all_sectors(ctx, mid=None, n=None, low=False):
     a, kb = ctx.a, ctx.kb
+    if mid in M.CATEGORY_Q:
+        return _by_sector_review(ctx)
     if mid in M.BOOL_Q and mid not in M.TEXT_Q:
         return _by_sector_bool(ctx, M.BOOL_Q[mid])
     if mid in ("scope1", "scope2", "scope3"):
@@ -222,6 +224,8 @@ def _by_sector_bool(ctx, qid):
 
 def ranking(ctx, mid, sid, n, extreme, quality, change, focus=None):
     a, kb = ctx.a, ctx.kb
+    if mid in M.CATEGORY_Q:
+        return sector_review(ctx, sid)
     if mid in M.TEXT_Q:
         from .h_practice import best_practice
         return best_practice(ctx, mid, sid, None)
@@ -387,18 +391,7 @@ def aggregate(ctx, mid, sid, change=None):
         return
 
     if mid in M.CATEGORY_Q:
-        qid = M.CATEGORY_Q[mid][0]
-        a.title = "Review of performance" if qid == "308" else "Review frequency"
-        cats: dict[str, int] = {}
-        for c in members:
-            k = c["values"].get(qid) or "Not disclosed"
-            cats[k] = cats.get(k, 0) + 1
-        rows = sorted(cats.items(), key=lambda t: (-t[1], t[0]))
-        cite = a.c_calc(a.title, f"Count of each answer across {len(members)} companies")
-        a.p(f"{_in(sname)[0].upper() + _in(sname)[1:]}: {join([f'{v} {k}' for k, v in rows])} {cite}.")
-        a.block("bars", title=a.title, unit="companies", rows=[{"label": k, "value": v, "display": str(v), "full": f"{v} companies"} for k, v in rows],
-                export=export(a.title, ["Answer", "Companies"], [[k, v] for k, v in rows]))
-        return
+        return sector_review(ctx, sid)
 
     metric = M.NUMERIC.get(mid) or M.NUMERIC["scope12"]
     mid = metric.id
@@ -529,6 +522,8 @@ def highlights(ctx):
 
 def screen(ctx, mid, sid, negated, change):
     a, kb = ctx.a, ctx.kb
+    if mid in M.CATEGORY_Q:
+        return sector_review(ctx, sid)
     members = kb.members(sid) if sid else kb.companies
     sname = kb.sector_by_id[sid]["name"] if sid else None
     a.kicker = sname or "All companies"
@@ -928,3 +923,72 @@ def scope_split(ctx, sid=None):
                           [[lab, v, round(100 * v / total, 2)] for lab, _, v in rows]))
     _excluded_note(a, members)
     a.follow("Emissions by sector", "Top 10 emitters", "How many companies report Scope 3 emissions?")
+
+
+# --------------------------------------------------------------------------- who reviews the environment policy
+
+def sector_review(ctx, sid):
+    from .h_company import HOW_OFTEN, WHO_MID, WHO_SHORT
+    a, kb = ctx.a, ctx.kb
+    members = kb.members(sid) if sid else kb.companies
+    sname = kb.sector_by_id[sid]["name"] if sid else None
+    a.kicker = sname or "All companies"
+    a.title = "Who reviews the environment policy"
+    order = ["Committee of the Board", "Director", "Any other Committee"]
+    who = {k: [c for c in members if c["values"].get("308") == k] for k in order}
+    nd = [c for c in members if c["values"].get("308") not in order]
+    ranked = sorted(order, key=lambda k: (-len(who[k]), order.index(k)))
+    n = len(members)
+    cc = a.c_calc("Who reviews the environment policy", f"Count of each answer across {n} companies")
+    where = f"{n} {sname} companies" if sname else f"{n} companies covered"
+    a.p(f"Across the {where}, performance against the environment policy is most often reviewed by {WHO_MID[ranked[0]]} "
+        f"({len(who[ranked[0]])} of {n}), followed by {WHO_MID[ranked[1]]} ({len(who[ranked[1]])}) and {WHO_MID[ranked[2]]} "
+        f"({len(who[ranked[2]])}) {cc}.")
+    often = {}
+    for c in members:
+        k = c["values"].get("326")
+        if k:
+            often[k] = often.get(k, 0) + 1
+    oc = a.c_calc("How often the environment policy is reviewed", f"Count of each answer across {n} companies")
+    pts = [f"**{WHO_SHORT[k]}:** {len(who[k])} of {n} companies {cc}." for k in ranked]
+    if nd:
+        pts.append(f"**Not disclosed:** {len(nd)} of {n} companies {cc}.")
+    if often:
+        top = sorted(often.items(), key=lambda kv: (-kv[1], kv[0]))
+        pts.append("**How often:** " + join([f"{HOW_OFTEN.get(k, k.lower())} ({v})" for k, v in top]) + f" {oc}.")
+    a.block("points", title="Key points", items=pts)
+    a.block("bars", title="Who reviews the environment policy", subtitle=f"{sname or 'All companies'}, number of companies, FY 2024-25",
+            unit="companies", rows=[{"label": WHO_SHORT[k], "value": len(who[k]), "display": str(len(who[k])),
+                                     "full": f"{len(who[k])} of {n} companies"} for k in ranked],
+            export=export("Who reviews the environment policy", ["Company"] + ([] if sid else ["Sector"]) + ["Reviewed by", "How often"],
+                          [[c["name"]] + ([] if sid else [kb.sector_of(c)["name"]]) + [c["values"].get("308") or "Not disclosed",
+                                                                                        c["values"].get("326") or "Not disclosed"]
+                           for c in sorted(members, key=lambda c: c["name"].lower())]))
+    a.context.update({"metric": "review_level", "sector": sid})
+    a.follow(f"How many {sname + ' ' if sname else ''}companies have Board approval of their environment policy?",
+             "Who reviews the environment policy, sector by sector?" if not sid else f"Give me an overview of the {sname} sector")
+
+
+def _by_sector_review(ctx):
+    a, kb = ctx.a, ctx.kb
+    a.kicker = "All sectors"
+    a.title = "Who reviews the environment policy, by sector"
+    rows = []
+    for s in kb.sectors:
+        m = kb.members(s["id"])
+        k = sum(1 for c in m if c["values"].get("308") == "Committee of the Board")
+        rows.append((s, 100 * k / len(m), k, len(m)))
+    rows.sort(key=lambda r: (-r[1], r[0]["name"]))
+    K = sum(1 for c in kb.companies if c["values"].get("308") == "Committee of the Board")
+    N = len(kb.companies)
+    cc = a.c_calc("Review by a Committee of the Board, by sector", "Companies answering 'Committee of the Board' ÷ companies in the sector")
+    a.p(f"**{rows[0][0]['name']}** has the highest share of companies whose environment policy is reviewed by a Committee of "
+        f"the Board, {rows[0][2]} of {rows[0][3]} ({rows[0][1]:.0f}%), and **{rows[-1][0]['name']}** the lowest, {rows[-1][2]} of "
+        f"{rows[-1][3]} ({rows[-1][1]:.0f}%). Across all companies it is {K} of {N} ({share(K, N)}) {cc}.")
+    a.block("bars", title="Share of companies where a Committee of the Board reviews the environment policy", unit="% of companies",
+            max=100, median={"value": 100 * K / N, "label": "All companies", "display": share(K, N)},
+            rows=[{"id": s["id"], "label": s["name"], "value": v, "display": f"{v:.0f}%", "full": f"{k} of {n} companies"}
+                  for s, v, k, n in rows],
+            export=export("Review by a Committee of the Board, by sector", ["Sector", "Companies", "Committee of the Board", "Share (%)"],
+                          [[s["name"], n, k, round(v, 1)] for s, v, k, n in rows]))
+    a.follow(f"Who reviews the environment policy in {rows[0][0]['name']}?", "How often do companies review their environment policy?")

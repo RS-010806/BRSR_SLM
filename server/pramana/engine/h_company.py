@@ -457,16 +457,54 @@ def _examples_topic(qid):
             "277": "certifications"}.get(qid, "disclosures")
 
 
+# Who reviews the environment policy, and how often (BRSR Section B), in plain words.
+WHO = {"Director": "a Director", "Committee of the Board": "a Committee of the Board",
+       "Any other Committee": "another committee, not a Board committee"}
+WHO_SHORT = {"Director": "A Director", "Committee of the Board": "A Committee of the Board", "Any other Committee": "Another committee"}
+WHO_MID = {"Director": "a Director", "Committee of the Board": "a Committee of the Board", "Any other Committee": "another committee"}
+HOW_OFTEN = {"Annually": "annually", "Half Yearly": "half-yearly", "Quarterly": "quarterly", "Any other": "at another interval"}
+REVIEW = (("308", "326", "performance against the environment policy"), ("317", "335", "compliance with statutory requirements"))
+
+
+def review_phrase(c, who_q, often_q) -> str | None:
+    who, often = c["values"].get(who_q), c["values"].get(often_q)
+    if not who:
+        return None
+    return WHO.get(who, who) + (f", {HOW_OFTEN.get(often, str(often).lower())}" if often else "")
+
+
 def company_category(ctx, c, qids):
+    """Who reviews the company's environment policy and how often: the answer first, then the four items as points."""
     a = ctx.a
     a.company_ref(c)
     a.kicker = kicker(ctx, c)
-    a.title = "Review of performance" if qids[0] == "308" else "Review frequency"
-    for q in qids:
-        v = c["values"].get(q)
-        label = item(q)[0]
-        a.p(f"{label}: **{v}** {a.c_filing(c, q)}." if v else f"{label}: not disclosed {a.c_filing(c, q)}.")
-    a.follow(f"Tell me about {short_name(c['name'])}")
+    a.title = "Who reviews the environment policy" if qids[0] == "308" else "How often the environment policy is reviewed"
+    short = short_name(c["name"])
+    perf, comp = review_phrase(c, "308", "326"), review_phrase(c, "317", "335")
+    cites = [a.c_filing(c, q) for q in ("308", "326", "317", "335")]
+    if not perf and not comp:
+        a.status = "partial"
+        a.p(f"**{c['name']}** has not disclosed who reviews its environment policy {cites[0]}.")
+        a.follow(f"Tell me about {short}")
+        return
+    v = c["values"]
+    if v.get("308") and v.get("308") == v.get("317"):
+        f1, f2 = HOW_OFTEN.get(v.get("326"), None), HOW_OFTEN.get(v.get("335"), None)
+        when = (f", {f1}" if f1 and f1 == f2 else f": performance {f1} and statutory compliance {f2}" if f1 and f2 else "")
+        a.p(f"At **{c['name']}**, both performance against the environment policy and compliance with statutory requirements "
+            f"are reviewed by {WHO.get(v['308'], v['308'])}{when} {cites[0]} {cites[2]}.")
+    else:
+        a.p(f"At **{c['name']}**, performance against the environment policy is reviewed by {perf or 'an undisclosed reviewer'} "
+            f"{cites[0]}, and compliance with statutory requirements by {comp or 'an undisclosed reviewer'} {cites[2]}.")
+    pts = []
+    for who_q, often_q, what in REVIEW:
+        who, often = c["values"].get(who_q), c["values"].get(often_q)
+        pts.append(f"**Review of {what}:** {WHO_SHORT.get(who, who) if who else 'Not disclosed'}"
+                   + (f", {HOW_OFTEN.get(often, str(often).lower())}" if often else "") + f" {a.c_filing(c, who_q)}.")
+    a.block("points", items=pts)
+    a.context.update({"metric": ctx.plan.metric})
+    a.follow(f"Who reviews the environment policy at {short}'s peers?", f"Is {short}'s policy approved by the Board?",
+             f"Tell me about {short}")
 
 
 def company_metric(ctx, c, mid, generic: bool = True):

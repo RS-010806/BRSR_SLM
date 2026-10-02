@@ -72,7 +72,7 @@ pipeline/            build_dataset.py, build_db.py, slm/ (grammar, training, eva
 server/pramana/      FastAPI app, knowledge base, analytics
   nlu/               normaliser, lexicon, aliases, linker, tokenizer, transformer, parser
   engine/            answer handlers, citations, public source labels, formatting
-server/tests/        380 tests
+server/tests/        381 tests
 web/                 React + TypeScript client: hand-built SVG charts, canvas infographics, xlsx writer
 ```
 
@@ -101,7 +101,7 @@ Retraining the question model (`python -m pipeline.slm.train`, about 2.5 minutes
 
 ## Tests
 
-380 tests cover:
+381 tests cover:
 
 * **Public-only content:** no internal term in any generated string, citation or export, for every evaluation question and with different companies set.
 * **Your company:** 21 phrasings resolve to the set company; market questions stay market questions; with no company set the tool asks instead of guessing.

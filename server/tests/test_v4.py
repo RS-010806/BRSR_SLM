@@ -723,3 +723,20 @@ def test_our_projects_about_one_scope(eng):
     assert a["title"] == "Projects to reduce GHG emissions" and "Scope 3" in a["lead"][0]
     b = eng.ask("our scope 2 targets", TCORP)
     assert b["title"] == "Commitments, goals and targets"
+
+
+# ---------------------------------------------------------------- who reviews: Director, Committee of the Board or another committee
+def test_who_reviews_for_the_company_and_its_peers(eng):
+    a = eng.ask("Who reviews carbon emissions in our company and our peers", TCORP)
+    assert a["title"] == "Who reviews the environment policy" and "another committee" in a["lead"][0]
+    assert "Among Transport Corporation of India's 34 Services peers, the most common reviewer is a Committee of the Board" in a["lead"][1]
+    assert [b["type"] for b in a["blocks"]] == ["points", "bars"]
+    b = eng.ask("who reviews our emissions performance", TCORP)
+    assert b["lead"][0].startswith("At **Transport Corporation of India Limited**, both performance")
+    assert eng.ask("who oversees climate at our peers", TCORP)["title"] == "Who reviews the environment policy"
+    c = eng.ask("who reviews the environment policy in cement companies")
+    assert c["kicker"] == "Construction Materials" and "Committee of the Board (16 of 23)" in c["lead"][0]
+    d = eng.ask("Who reviews the environment policy, sector by sector?")
+    assert d["title"] == "Who reviews the environment policy, by sector"
+    for x in (a, b, c, d):
+        clean(x, eng)

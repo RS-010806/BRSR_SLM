@@ -82,7 +82,8 @@ METRICS: dict[str, dict] = {
         "certifications", "certification", "certificates", "certificate", "standards", "iso14001", "iso", "codes",
         "labels", "frameworks adopted", "frameworks", "iso14064", "iso50001", "gri", "tcfd", "cdp"]),
     "review_level": dict(label="Governance level of review", kind="category", qids=["308", "317"], phrases=[
-        "who reviews", "reviewed by", "oversight", "governance level", "review level", "board oversight",
+        "who reviews", "reviewed by", "oversight", "governance level", "review level", "board oversight", "oversees",
+        "oversee", "overseen by", "overseeing", "who is responsible", "responsible for reviewing", "who monitors",
         "committee", "governance"]),
     "review_frequency": dict(label="Review frequency", kind="category", qids=["326", "335"], phrases=[
         "frequency", "how often", "review frequency", "quarterly", "annually", "half yearly", "how frequently",
