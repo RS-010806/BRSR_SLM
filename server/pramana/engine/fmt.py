@@ -12,6 +12,14 @@ LEGAL_TAIL = re.compile(r"(\s+(limited|ltd\.?|company limited|corporation limite
 SHORT_OVERRIDE = {"Oil & Natural Gas Corporation Limited": "ONGC"}
 
 
+def clip(text: str, n: int = 190) -> str:
+    """A sentence shortened at a word boundary, for use as a one-line point."""
+    t = re.sub(r"\s+", " ", text).strip().strip("•-–·* ").rstrip(".;, ")
+    if len(t) <= n:
+        return t
+    return t[:n].rsplit(" ", 1)[0].rstrip(",;:- ") + " …"
+
+
 def short_name(name: str) -> str:
     if name in SHORT_OVERRIDE:
         return SHORT_OVERRIDE[name]

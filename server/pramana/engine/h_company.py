@@ -11,7 +11,7 @@ import re
 from . import metrics as M
 from .common import change_tone, export, fmt_short, fmt_value, kpi, prev_cite, value_cite, yes
 from .evidence import highlight
-from .fmt import CO2, exact, join, lc, num, pct, short_name, tile
+from .fmt import CO2, clip, exact, join, lc, num, pct, short_name, tile
 from .public import FLAG_NOTE, TOPIC, item
 
 BOOL_PHRASE = {
@@ -401,13 +401,20 @@ def company_text(ctx, c, qid):
     asks_exists = ctx.plan.yesno and not ctx.plan.negated and qid != "295" and not re.search(
         r"\b(met|meet|meeting|achiev\w*|on track|hit|reach\w*|deliver\w*|progress\w*|enough|ambitious|good)\b",
         (ctx.plan.resolved_query or ctx.plan.query).lower())
+    # a long disclosure: its most specific sentences first, as points; the full text one click away
+    keys = [clip(text[s["start"]:s["end"]], 230) for s in it["segments"] if s["highlight"]][:4]
+    summarised = len(text) > 700 and len(keys) >= 2
+    tail = ("The key points are below, in the company's own words." if summarised else
+            "The most specific points are highlighted." if n_hl else "")
     if asks_exists:
-        a.p(f"**Yes.** {c['name']} has disclosed {topic} for FY 2024-25 {it['cite']}. The disclosure is shown below"
-            + (", with the most specific points highlighted." if n_hl else "."))
+        a.p(f"**Yes.** {c['name']} has disclosed {topic} for FY 2024-25 {it['cite']}. " + (tail or "The disclosure is shown below."))
     else:
-        a.p(f"This is what **{c['name']}** disclosed on {topic} for FY 2024-25 {it['cite']}"
-            + (". The most specific points are highlighted." if n_hl else "."))
-    a.block("quotes", items=[it])
+        a.p(f"This is what **{c['name']}** disclosed on {topic} for FY 2024-25 {it['cite']}." + (f" {tail}" if tail else ""))
+    if summarised:
+        a.block("points", title="Key points", items=[], verbatim=keys)
+        a.block("quotes", items=[it], collapsed=True, summary="View the full disclosure")
+    else:
+        a.block("quotes", items=[it])
     a.context.update({"metric": ctx.plan.metric})
     a.follow(f"Examples of {_examples_topic(qid)} from {kb.sector_of(c)['name']} companies",
              f"What are {short}'s GHG emissions?", f"Make an infographic for {short}")

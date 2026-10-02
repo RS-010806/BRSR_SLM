@@ -9,7 +9,7 @@ INTERNAL = re.compile(
     r"\bdataset\b|\bTable \d|\bchapter\b|\bthe report\b|report's|percentile|\bbeats?\b|outperform|\bworse\b|laggard|"
     r"weakness|/100\b|reconcil|(?<![\d,.])597(?![\d,.])|\btrace\b|specificity|pillar|\bmodel\b|transformer|\bSQLite\b|\bPostgres\b", re.I)
 # Fields that hold a company's own words, quoted exactly; they may contain anything.
-VERBATIM_KEYS = {"text"}
+VERBATIM_KEYS = {"text", "verbatim"}
 
 
 def public(answer: dict) -> dict:

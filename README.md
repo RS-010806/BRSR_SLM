@@ -12,13 +12,16 @@ Pramana (Sanskrit for *proof*) answers questions about the GHG emissions and cli
 |---|---|
 | "What are our GHG emissions?" | Scope 1 and Scope 2 as two separate figures, the combined total, the change from last year, and Scope 3 if disclosed. Two or three sentences and one row of figures. |
 | "Who are our peers?" | The names of the other companies in the sector. Nothing else. |
-| "How do we compare with our peers?" (or "how well does NTPC do with respect to peers") | A chart for each measure with one dot per company, yours highlighted and a line at the peer median, plus a bar chart naming the largest companies in the group. It says whether you are above or below the median and how many peers disclosed each figure. No ranks or percentiles. |
+| "How do we compare with our peers?" (or "how well does NTPC do with respect to peers") | Key points, measure by measure, then a chart for each measure with one dot per company, yours highlighted and a line at the peer median, plus a bar chart naming the largest companies in the group. It says whether you are above or below the median and how many peers disclosed each figure. No ranks or percentiles. |
 | "What are our targets?" / "Show our projects" | The disclosure exactly as filed, with the most specific points highlighted. |
-| "Examples of GHG reduction projects from cement companies" | Three detailed disclosures from other companies, in their own words. |
+| "Best practices for setting GHG targets" / "Examples of GHG reduction projects from cement companies" | A short summary in bullet points: what strong disclosures state and what companies commonly do, each with one named example in the company's own words. The full disclosures open on request. |
+| "Did our emissions go up?" / "Our emissions last year" | The change between the two years, or the previous year's figures, stated first. |
+| "Which peers emit less than us?" / "Who is the best in our sector?" | The peers that are lower, higher or closest, or the leaders in the company's own sector, with the company picked out. |
+| "How to improve our disclosures?" | A checklist of what the company has and has not disclosed, with how many peers disclose each item. |
 | "Give me an overview of the power sector" / "Top 10 emitters" | Totals and charts. Charts appear for questions about peers, sectors, comparisons and rankings; a plain question about one figure stays short. |
 | "Make an infographic of our emissions" | A one-page, post-style image for a company, a sector or all companies, with a Download button. |
 | "What if we cut Scope 1 by 20%?" | The resulting figure, with a slider to try other cuts. |
-| "What is Scope 3?" | A one-paragraph definition. |
+| "What is Scope 3?" | The definition, then four short points: what it covers, why it matters, an example and what the data shows. With a company set, its own figure is added as a closing point. |
 
 Other things worth knowing:
 
@@ -69,7 +72,7 @@ pipeline/            build_dataset.py, build_db.py, slm/ (grammar, training, eva
 server/pramana/      FastAPI app, knowledge base, analytics
   nlu/               normaliser, lexicon, aliases, linker, tokenizer, transformer, parser
   engine/            answer handlers, citations, public source labels, formatting
-server/tests/        265 tests
+server/tests/        368 tests
 web/                 React + TypeScript client: hand-built SVG charts, canvas infographics, xlsx writer
 ```
 
@@ -89,6 +92,7 @@ Rebuild from the source files and test:
 ```bash
 python -m pipeline.build_dataset       # source files -> data/build/*.json (intermediate, not committed)
 python -m pipeline.build_db            # -> data/build/pramana.db
+python -m pipeline.build_wordlist      # -> ordinary-word list used to tell words from company names (needs /usr/share/dict/words)
 python -m pipeline.slm.evaluate --write
 cd server && python -m pytest tests -q
 ```
@@ -97,7 +101,7 @@ Retraining the question model (`python -m pipeline.slm.train`, about 2.5 minutes
 
 ## Tests
 
-265 tests cover:
+368 tests cover:
 
 * **Public-only content:** no internal term in any generated string, citation or export, for every evaluation question and with different companies set.
 * **Your company:** 21 phrasings resolve to the set company; market questions stay market questions; with no company set the tool asks instead of guessing.
@@ -107,7 +111,9 @@ Retraining the question model (`python -m pipeline.slm.train`, about 2.5 minutes
 * **Determinism:** the same question gives a byte-identical answer on a fresh engine.
 * **Exports:** headers are plain text with units, cells are numbers.
 * **API:** the browser never receives how a question was routed; internal endpoints return 404 without the admin token.
-* **Data integrity (internal):** totals computed here still match the source analysis for all 597 published figures.
+* **The answer matches the question:** trends, previous-year figures, shares, peer filters, sector-level questions, advice and follow-ups each get the answer to what was asked, including after a definition or a refusal in the same chat.
+* **Companies not covered:** a name that is not among the companies is reported as such, never answered with totals for everyone else; ordinary words are not mistaken for company names.
+* **Data integrity (internal):** totals computed here still match the source analysis for the published figures, except in the sectors whose membership was corrected (see below).
 
 The contrast audit (`web/scripts/contrast-audit.js`) measures every visible text element against what is rendered behind it: 54 views across light and dark pass at 4.5:1 or better.
 
@@ -138,6 +144,6 @@ No sign-in and no tracking cookies. Chats, your company and anything a chat was 
 
 * Covers GHG emissions and climate disclosures only. Other topics are answered with "not available yet".
 * Figures are shown exactly as companies disclosed them. A few appear to be in a different unit (for example Tata Steel's Scope 1 of 61 tCO2e); these are shown with a note and left out of comparisons and totals.
-* Sector classification is taken from the source data as is. A few entries look wrong (for example Hindustan Unilever under Metals & Mining, Hindalco under Services).
+* Sector classification is taken from the source data, with corrections listed in `pipeline/registry.py` (`SECTOR_CORRECTIONS`): the sector column was displaced by one row for the fifteen consecutive companies from Hi-Tech Pipes to Hindware Home Innovation (so Hindalco is now under Metals & Mining and Hindustan Unilever under FMCG), and Punjab & Sind Bank is under Financial Services. A few other entries may still be wrong and should be checked against an authoritative list.
 * Company names are shown in the casing used in the source data.
 * Unusual phrasings may be routed to the closest known kind of question; ambiguous company names ask for clarification rather than guessing.

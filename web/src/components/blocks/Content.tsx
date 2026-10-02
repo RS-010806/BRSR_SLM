@@ -48,6 +48,9 @@ export function Points({ b }: { b: any }) {
     <section className="points-wrap">
       {b.title && <h3 className="points-h">{b.title}</h3>}
       <ul className="points">
+        {(b.verbatim || []).map((t: string, i: number) => (
+          <li key={"v" + i} className="q" style={{ animation: `rise .4s ${i * 40}ms both` }}>{"“"}{t}{"”"}</li>
+        ))}
         {b.items.map((t: string, i: number) => (
           <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}>
             <Rich text={t} />

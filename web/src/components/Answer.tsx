@@ -146,10 +146,15 @@ export function AnswerView({ a, q, ctx, ask, index, prefetch, pickCompany }: {
     const src = el.querySelector("details.sources") as HTMLDetailsElement | null;
     const wasOpen = src?.open ?? false;
     if (src) src.open = true;
+    // supporting detail that is folded away on screen is part of the printed answer
+    const more = Array.from(el.querySelectorAll("details.more")) as HTMLDetailsElement[];
+    const moreOpen = more.map((d) => d.open);
+    more.forEach((d) => (d.open = true));
     const done = () => {
       document.body.classList.remove("print-one");
       el.classList.remove("print-target");
       if (src) src.open = wasOpen;
+      more.forEach((d, i) => (d.open = moreOpen[i]));
       window.removeEventListener("afterprint", done);
     };
     window.addEventListener("afterprint", done);

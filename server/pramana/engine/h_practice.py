@@ -6,7 +6,7 @@ import re
 from . import metrics as M
 from .common import export
 from .evidence import THEMES, _THEME_RE
-from .fmt import join, lc, share, short_name
+from .fmt import clip as _clip, join, lc, share, short_name
 from .h_company import quote_item
 from .public import TOPIC, item
 
@@ -30,15 +30,6 @@ EXAMPLE_NAME = {"286": "targets", "295": "progress against targets", "1342": "GH
 TECH_LABEL = {"sbti": "SBTi", "net zero": "net zero", "renewable energy": "renewable energy", "ev": "EVs",
               "electric vehicles": "electric vehicles", "carbon capture": "carbon capture (CCUS)"}
 SEARCH_QIDS = {"286", "295", "1342", "277", "353", "1561"}
-
-
-def _clip(text: str, n: int = 190) -> str:
-    """A sentence shortened at a word boundary, for use as a one-line example."""
-    t = re.sub(r"\s+", " ", text).strip().strip("•-–·* ").rstrip(".;, ")
-    if len(t) <= n:
-        return t
-    cut = t[:n].rsplit(" ", 1)[0].rstrip(",;:- ")
-    return cut + " …"
 
 
 def _detail(ctx, c, qid):
