@@ -60,6 +60,104 @@ GLOSSARY: dict[str, tuple[str, str]] = {
 }
 GLOSSARY["scope12"] = ("Scope 1 and Scope 2 emissions", GLOSSARY["scope1"][1] + "\n" + GLOSSARY["scope2"][1])
 
+# What a term covers, why it matters and an everyday example: shown as short points under the definition.
+EXPLAIN: dict[str, dict[str, str]] = {
+    "scope1": {
+        "covers": "Fuel burned on site and in the company's own vehicles, emissions from industrial processes such as "
+                  "making cement or steel, and leaks of refrigerants and other gases.",
+        "why": "It is the part of the footprint a company controls most directly, so changes of fuel or process show up here first.",
+        "example": "A cement plant's kiln, a power station's boilers or a logistics company's own trucks."},
+    "scope2": {
+        "covers": "Electricity bought from the grid or another supplier, and any purchased heat, steam or cooling.",
+        "why": "It falls when a company uses less electricity or buys more of it from renewable sources.",
+        "example": "The power used by an IT campus, a bank's branches or the motors in a factory."},
+    "scope3": {
+        "covers": "Emissions outside the company's own operations: purchased goods and services, transport and "
+                  "distribution, business travel, employee commuting and the use of the products it sells.",
+        "why": "For many companies it is the largest part of the footprint and the hardest to measure. Under BRSR it is a "
+               "leadership indicator, so reporting it is voluntary.",
+        "example": "The fuel burned by the customers of an oil company, or the emissions of a retailer's suppliers."},
+    "intensity": {
+        "covers": "Scope 1 and Scope 2 emissions divided by turnover. BRSR also asks for intensity adjusted for purchasing "
+                  "power parity and per unit of physical output.",
+        "why": "It lets companies of different sizes be compared, and shows whether emissions are growing faster or slower "
+               "than the business.",
+        "example": "Two companies with the same emissions have very different intensities if one has twice the turnover."},
+    "ghg_assurance": {
+        "covers": "An independent agency checks the emissions data and how it was compiled, and gives a limited or "
+                  "reasonable assurance statement.",
+        "why": "It gives readers more confidence in the figures. BRSR asks whether such an assessment was carried out and "
+               "by which agency."},
+    "targets": {
+        "covers": "A target year, the size of the reduction, the baseline it is measured from and the scopes it applies to.",
+        "why": "A target with a year and a number can be tracked from one filing to the next; a general statement of intent cannot.",
+        "example": "Net zero for Scope 1 and Scope 2 by a stated year, or a stated percentage cut in emission intensity from a baseline year."},
+    "target_performance": {
+        "covers": "What was achieved against each target in the year, and the reasons where a target was missed.",
+        "why": "It shows whether targets are being delivered, not only set."},
+    "projects": {
+        "covers": "Measures such as renewable energy, energy efficiency, fuel switching, electrification and waste heat recovery.",
+        "why": "They show what a company is doing about its emissions, beyond what it has promised."},
+    "scope3_reported": {
+        "covers": "Whether the company discloses a Scope 3 figure at all.",
+        "why": "Reporting it is voluntary under BRSR, so the share of companies that do is a measure of how far disclosure has come."},
+    "certifications": {
+        "covers": "Standards such as ISO 14001 for environmental management and ISO 50001 for energy management, and frameworks "
+                  "such as GRI or CDP.",
+        "why": "They indicate that a recognised management system or reporting framework is in place."},
+    "policy": {
+        "covers": "A written policy on protecting the environment, whether the Board has approved it and whether it extends to "
+                  "value chain partners.",
+        "why": "It is the starting point for governance: targets and projects follow from it."},
+}
+SHORT = {"scope1": "what the company burns itself", "scope2": "the electricity and heat it buys",
+         "scope3": "everything else in its value chain"}
+
+
+def _in_the_data(ctx, key) -> str | None:
+    """One computed line that ties the definition to the companies covered."""
+    from . import metrics as M
+    from .common import eligible, yes_count
+    from .fmt import CO2, compact, num, share
+    from ..analytics import median
+    a, kb = ctx.a, ctx.kb
+    N = len(kb.companies)
+    if key in ("scope1", "scope2", "scope3"):
+        from .h_sector import _total
+        m = M.NUMERIC[key]
+        n = sum(1 for c in kb.companies if m.value(c) is not None)
+        cite = a.c_calc(f"{m.label} across all companies", f"{n} of {N} companies disclosed a figure; the sum is {num(_total(kb.companies, key))} {CO2}")
+        return f"{n} of the {N} companies covered disclosed it for FY 2024-25, a total of {compact(_total(kb.companies, key))} {CO2} {cite}."
+    if key == "intensity":
+        vals = [v for _, v in eligible(M.NUMERIC["intensity"], kb.companies)]
+        cite = a.c_calc("Emission intensity across all companies", f"Median of the comparable figures disclosed by {len(vals)} companies")
+        return f"{len(vals)} of the {N} companies covered disclosed a comparable figure; the median is {num(median(vals), 1)} {CO2} per ₹ crore {cite}."
+    qid = {"ghg_assurance": "1340", "scope3_reported": "1387", "projects": "1341", "policy": "232"}.get(key)
+    if qid:
+        y, n = yes_count(kb.companies, qid)
+        cite = a.c_calc("Companies answering Yes", f"{y} of {n} companies")
+        return f"{y} of the {n} companies covered ({share(y, n)}) answered Yes for FY 2024-25 {cite}."
+    tq = {"targets": "286", "target_performance": "295", "certifications": "277"}.get(key)
+    if tq:
+        y = sum(1 for c in kb.companies if c["values"].get(tq))
+        cite = a.c_calc("Companies disclosing", f"{y} of {N} companies provided this disclosure")
+        return f"{y} of the {N} companies covered ({share(y, N)}) provided this disclosure for FY 2024-25 {cite}."
+    return None
+
+
+def _points(ctx, key, label: str | None = None):
+    e = EXPLAIN.get(key)
+    if not e:
+        return
+    items = [f"**What it covers:** {e['covers']}", f"**Why it matters:** {e['why']}"]
+    if e.get("example"):
+        items.append(f"**Example:** {e['example']}")
+    data = _in_the_data(ctx, key)
+    if data:
+        items.append(f"**In the data:** {data}")
+    ctx.a.block("points", items=items, **({"title": label} if label else {}))
+
+
 TERMS = [
     (re.compile(r"\bbrsr\b|business responsibility"), "BRSR",
      "**BRSR** (Business Responsibility and Sustainability Report) is the sustainability disclosure that SEBI requires "
@@ -80,6 +178,18 @@ TERMS = [
      "**Greenhouse gases (GHG)** are gases that trap heat in the atmosphere, such as carbon dioxide, methane and "
      "nitrous oxide. Company emissions are reported in tonnes of carbon dioxide equivalent (tCO₂e)."),
 ]
+
+TERM_POINTS = {
+    "Net zero": ("A net zero year is the most common headline climate commitment, and it only means something when the "
+                 "scopes covered and the interim targets are stated.", "net zero"),
+    "SBTi": ("A target validated by SBTi has been checked against what climate science says is needed, which makes it "
+             "comparable across companies.", "sbti"),
+    "BRSR": ("It puts the sustainability disclosures of listed companies in one standard format, so they can be compared "
+             "company by company and year by year.", None),
+    "Greenhouse gases": ("They are grouped into Scope 1, Scope 2 and Scope 3 according to where they arise, which is how "
+                         "companies report them.", None),
+    "tCO₂e": ("One common unit lets emissions of different gases, and of different companies, be added up and compared.", None),
+}
 
 ABOUT = [
     (re.compile(r"hallucinat|make things up|made up|trust|reliable|accurate|accuracy|guardrail|how do you (work|answer)|grounded|sure"),
@@ -186,6 +296,17 @@ def define(ctx):
             if rx.search(low):
                 a.title = title
                 a.p(text)
+                extra = TERM_POINTS.get(title)
+                if extra:
+                    items = [f"**Why it matters:** {extra[0]}"]
+                    if extra[1]:
+                        from .h_practice import SEARCH_QIDS
+                        n = len(ctx.index.search([extra[1]], [], SEARCH_QIDS))
+                        N = len(ctx.kb.companies)
+                        cite = a.c_note("How mentions are counted", "An exact, case-insensitive match in what companies disclosed on "
+                                        "targets, progress, projects and certifications. A mention is not a verified commitment.")
+                        items.append(f"**In the data:** {n} of the {N} companies covered mention it in their disclosures {cite}.")
+                    a.block("points", items=items)
                 a.follow({"Net zero": "Which companies mention net zero?", "SBTi": "Which companies mention SBTi?"}.get(title),
                          "What are NTPC's GHG emissions?", "Top 10 emitters")
                 return True
@@ -195,10 +316,19 @@ def define(ctx):
         a.title = title
         for para in text.split("\n"):
             a.p(para)
+        second = None
         for extra in mids[1:2]:
             if extra != mids[0] and not (mids[0] == "scope12" and extra in ("scope1", "scope2")):
                 a.p(GLOSSARY[extra][1])
+                second = extra
         key = mids[0]
+        if key == "scope12":
+            _points(ctx, "scope1", "Scope 1")
+            _points(ctx, "scope2", "Scope 2")
+        else:
+            _points(ctx, key)
+            if second:
+                _points(ctx, second, GLOSSARY[second][0])
         ask = {"scope12": "What are NTPC's Scope 1 and Scope 2 emissions?", "scope1": "What are NTPC's Scope 1 emissions?",
                "scope2": "What are NTPC's Scope 2 emissions?", "scope3": "What are Infosys's Scope 3 emissions?",
                "intensity": "What is UltraTech's emission intensity?", "targets": "What are Infosys's targets?",
@@ -224,6 +354,10 @@ def explain(ctx):
         a.title = "Scope 1, Scope 2 and Scope 3"
         for k in ("scope1", "scope2", "scope3"):
             a.p(GLOSSARY[k][1])
+        a.block("points", title="In short", items=[f"**Scope {k[-1]}:** {SHORT[k]}." for k in ("scope1", "scope2", "scope3")]
+                + ["**Why the split matters:** each scope is reduced in a different way: Scope 1 by changing fuels and "
+                   "processes, Scope 2 by using less electricity or buying renewable power, and Scope 3 by working with "
+                   "suppliers and customers."])
         a.follow("What are NTPC's GHG emissions?", "How many companies report Scope 3 emissions?")
         return
     for rx, title, text in ABOUT:

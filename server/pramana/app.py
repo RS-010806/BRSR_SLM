@@ -63,6 +63,8 @@ class Ctx(BaseModel):
     sector: str | None = None
     metric: str | None = None
     tech: list[str] = Field(default_factory=list)
+    view: str | None = Field(default=None, max_length=40)
+    stat: str | None = Field(default=None, max_length=20)
     lens: str | None = None
     prefs: dict | None = None
     pending: dict | None = None

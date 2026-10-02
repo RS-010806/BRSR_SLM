@@ -199,7 +199,7 @@ def test_average_and_median(eng):
 def test_benchmark_and_position_mean_the_peer_comparison(eng):
     for q in ("benchmark us", "our position", "how do i compare"):
         a = eng.ask(q, TCI)
-        assert types(a) == ["position", "bars"], (q, a["title"])
+        assert types(a) == ["points", "position", "bars"], (q, a["title"])
     assert eng.ask("Brief me on Bosch Limited's climate position")["trace"]["final_intent"] == "company_profile"
 
 
@@ -387,7 +387,7 @@ def test_follow_ups_about_a_company(eng):
     assert a[4]["title"] == "Peers of NTPC"
     assert a[5]["lead"][0].startswith("**9 of NTPC's 19 Power peers**")
     assert a[6]["trace"]["final_intent"] == "compare" and [e["id"] for e in a[6]["entities"]] == ["ntpc-limited", "adani-power-limited"]
-    assert types(a[6]) == ["grouped", "compare"]                      # the general comparison, not the last measure
+    assert types(a[6]) == ["points", "grouped", "compare"]                      # the general comparison, not the last measure
 
 
 def test_follow_ups_after_a_definition_or_a_refusal_keep_the_company(eng):
@@ -499,7 +499,7 @@ def test_questions_about_our_sector_are_about_the_sector(eng):
     c = eng.ask("compare our sector with IT", TCI)
     assert c["title"] == "Services and Information Technology"
     # the company within its sector is still the peer comparison or the ranking
-    assert types(eng.ask("where do we stand in our sector", TCI)) == ["position", "bars"]
+    assert types(eng.ask("where do we stand in our sector", TCI)) == ["points", "position", "bars"]
     assert eng.ask("who is the best in our sector", TCI)["trace"]["final_intent"] == "ranking"
 
 
@@ -518,7 +518,7 @@ def test_which_is_cleaner_names_the_lower_one(eng):
 
 def test_two_measures_in_a_comparison_show_the_side_by_side(eng):
     a = eng.ask("us vs delhivery on intensity and scope 3", TCI)
-    assert types(a) == ["grouped", "compare"] and a["lead"]
+    assert types(a) == ["points", "grouped", "compare"] and a["lead"]
 
 
 def test_what_if_for_an_increase(eng):
@@ -583,3 +583,17 @@ def test_third_round_answers_are_public_only_and_cited(eng, lens):
         a = eng.ask(q, {"lens": lens} if lens else {})
         assert a["lead"], (lens, q)
         clean(a, eng)
+
+
+def test_follow_up_context_survives_the_api():
+    """The view and the company being discussed travel through the HTTP layer, not only through the engine."""
+    from fastapi.testclient import TestClient
+    from pramana import app as appmod
+    c = TestClient(appmod.app)
+    a = c.post("/api/ask", json={"q": "average intensity in cement"}).json()
+    assert a["context"]["view"] == "stat"
+    b = c.post("/api/ask", json={"q": "what about power", "context": a["context"]}).json()
+    assert b["kicker"] == "Power" and [x["type"] for x in b["blocks"]] == ["kpis", "strip"]
+    d = c.post("/api/ask", json={"q": "NTPC emissions"}).json()
+    e = c.post("/api/ask", json={"q": "and last year?", "context": d["context"]}).json()
+    assert e["title"] == "GHG emissions, FY 2023-24"

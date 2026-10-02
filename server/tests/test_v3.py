@@ -121,7 +121,7 @@ def test_simple_questions_get_no_charts(eng):
 
 def test_definitions(eng):
     a = eng.ask("what are scope 1 and scope 2 emissions")        # no company set: explain the terms
-    assert a["trace"]["final_intent"] == "explain" and not a["blocks"]
+    assert a["trace"]["final_intent"] == "explain" and {b["type"] for b in a["blocks"]} <= {"points"}   # points, never charts
     assert "direct" in a["lead"][0] and "electricity" in a["lead"][1]
     b = eng.ask("what does scope 1 mean", TCI)                    # an explicit definition request is honoured
     assert b["trace"]["final_intent"] == "explain" and not b["entities"]
@@ -139,15 +139,15 @@ def test_who_are_my_peers_is_a_list_of_names(eng):
 
 def test_peer_comparison_is_visual_and_has_no_ranks(eng):
     a = eng.ask("how do we compare with our peers", TCI)
-    assert [b["type"] for b in a["blocks"]] == ["position", "bars"]
-    pos = a["blocks"][0]
+    assert [b["type"] for b in a["blocks"]] == ["points", "position", "bars"]
+    pos = a["blocks"][1]
     assert [r["label"] for r in pos["rows"]][:3] == ["Scope 1 emissions", "Scope 2 emissions", "Scope 3 emissions"]
     row = pos["rows"][0]
     assert row["relation"] in ("Below median", "Above median", "Same as median")
     assert (row["n"], row["of"]) == (30, 34)                        # how many peers disclosed the figure
     assert sum(1 for p in row["points"] if p.get("focus")) == 1 and len(row["points"]) == 31
-    assert all("rank" not in r for r in a["blocks"][1]["rows"])     # the named chart carries no rank numbers
-    assert any(r["highlight"] for r in a["blocks"][1]["rows"])
+    assert all("rank" not in r for r in a["blocks"][2]["rows"])     # the named chart carries no rank numbers
+    assert any(r["highlight"] for r in a["blocks"][2]["rows"])
     text = json.dumps(public(a)).lower()
     assert not re.search(r"\brank|percentile|\d+(st|nd|rd|th) (highest|lowest|of)\b|beats|outperform", text)
     b = eng.ask("how do we compare with peers on scope 1", TCI)
@@ -161,7 +161,7 @@ def test_peer_comparison_is_visual_and_has_no_ranks(eng):
 def test_asking_how_a_company_does_against_peers_is_a_comparison(eng, q):
     a = eng.ask(q)
     assert a["trace"]["final_intent"] == "peer_benchmark", (q, a["trace"]["rules"])
-    assert a["blocks"][0]["type"] == "position"
+    assert a["blocks"][1]["type"] == "position"
 
 
 @pytest.mark.parametrize("q", ["who are NTPC's peers", "peers of NTPC", "NTPC peers", "list competitors of NTPC",
@@ -173,7 +173,7 @@ def test_asking_who_the_peers_are_is_a_list(eng, q):
 
 
 def test_comparative_answers_carry_visuals(eng):
-    assert [b["type"] for b in eng.ask("Compare ACC and Ambuja")["blocks"]] == ["grouped", "compare"]
+    assert [b["type"] for b in eng.ask("Compare ACC and Ambuja")["blocks"]] == ["points", "grouped", "compare"]
     assert [b["type"] for b in eng.ask("Give me an overview of the power sector")["blocks"]] == ["kpis", "bars", "stack"]
     assert [b["type"] for b in eng.ask("What are the key highlights?")["blocks"]] == ["kpis", "points", "treemap"]
 

@@ -174,6 +174,31 @@ def _side_by_side(ctx, cos):
         top, word = _edge(ctx, have)
         a.p(f"On combined Scope 1 and Scope 2 emissions, **{short_name(top[0]['name'])}** is the "
             f"{word} at {num(top[1])} {CO2} {value_cite(a, top[0], m12)}.")
+    notes = []
+    for mid, label in SIDE_ROWS:
+        m = M.NUMERIC[mid]
+        ok = eligible(m, cos)
+        name = label.split(" (")[0]
+        if len(ok) >= 2:
+            hi, lo = max(ok, key=lambda t: t[1]), min(ok, key=lambda t: t[1])
+            line = f"**{name}:** " + join([f"{short_name(x['name'])} {fmt_value(m, v)} {value_cite(a, x, m)}" for x, v in ok]) + "."
+            if lo[1] > 0 and hi[1] != lo[1]:
+                r = hi[1] / lo[1]
+                line += (f" {short_name(hi[0]['name'])} is about {r:,.0f} times {short_name(lo[0]['name'])}." if r >= 20 else
+                         f" {short_name(hi[0]['name'])} is about {r:.1f} times {short_name(lo[0]['name'])}." if r >= 1.5 else
+                         f" {short_name(hi[0]['name'])} is {(r - 1) * 100:.0f}% higher than {short_name(lo[0]['name'])}.")
+            notes.append(line)
+        elif len(ok) == 1:
+            notes.append(f"**{name}:** only {short_name(ok[0][0]['name'])} disclosed a comparable figure, "
+                         f"{fmt_value(m, ok[0][1])} {value_cite(a, ok[0][0], m)}.")
+    for q, label in SIDE_CHECKS:
+        ys = [short_name(x["name"]) for x in cos if yes(x, q)]
+        two = len(cos) == 2
+        who = ("both" if two else "all of them") if len(ys) == len(cos) else \
+            (("neither" if two else "none of them") if not ys else join(ys) + " only")
+        notes.append(f"**{label}:** {who} {a.c_filing(cos[0], q)}.")
+    if notes:
+        a.block("points", title="Key points", items=notes)
     rows, xrows = [], []
     for mid, label in SIDE_ROWS:
         m = M.NUMERIC[mid]
@@ -418,6 +443,22 @@ def _peer_overview(ctx, c, others, where, custom):
                       len(pairs), len(others)])
     cite = a.c_calc("Peer medians", "For each measure, the median of the peers that disclosed a comparable figure",
                     note="Figures that appear to use a different unit are left out of the medians.")
+    notes = []
+    for r in rows:
+        unit = "" if r["yoy"] else f" {r['unit']}"
+        if r["relation"]:
+            rel = {"Below median": "below", "Above median": "above", "Same as median": "the same as"}[r["relation"]]
+            notes.append(f"**{r['label']}:** {r['mine']}{unit}, {rel} the peer median of {r['median']}{unit} "
+                         f"({r['n']} of {r['of']} peers disclosed a figure) {cite}.")
+        elif r["mine"] in ("Not disclosed", "Not comparable", "See note"):
+            how = {"Not disclosed": "not disclosed", "Not comparable": "not comparable between the two years",
+                   "See note": "disclosed in a unit that cannot be compared"}[r["mine"]]
+            notes.append(f"**{r['label']}:** {how} by {short}; {r['n']} of {r['of']} peers disclosed a comparable figure {cite}.")
+    flags = []
+    for q, label in (("1340", "independent assurance of GHG emissions"), ("1387", "Scope 3 reporting"), ("1341", "projects to reduce GHG emissions")):
+        y, n = yes_count(others, q)
+        flags.append(f"{'has' if yes(c, q) else 'does not have'} {label} ({y} of {n} peers do)")
+    notes.append(f"**Disclosures:** {short} {join(flags)} {a.c_calc('Peer disclosure counts', 'Peers answering Yes to each item')}.")
     bits = []
     if below:
         bits.append(f"below the peer median on {join(below)}")
@@ -428,6 +469,7 @@ def _peer_overview(ctx, c, others, where, custom):
     else:
         a.status = "partial"
         a.p(f"{c['name']} has not disclosed figures that can be compared with {where} {cite}.")
+    a.block("points", title="Key points", items=notes)
     a.block("position", title=f"{short} and its peers", company=short, rows=rows,
             subtitle="Each dot is a company and the vertical line marks the peer median. Further left means a lower figure.",
             export=export(f"{c['name']} and the peer median", ["Measure", c["name"], "Peer median", "Position",
