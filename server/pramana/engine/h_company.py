@@ -418,9 +418,26 @@ def company_text(ctx, c, qid):
         (ctx.plan.resolved_query or ctx.plan.query).lower())
     # a long disclosure: its most specific sentences first, as points; the full text one click away
     keys = [clip(text[s["start"]:s["end"]], 230) for s in it["segments"] if s["highlight"]][:4]
-    summarised = len(text) > 700 and len(keys) >= 2
+    focus_note = ""
+    fs = ctx.plan.focus_scope
+    if fs:
+        from .h_practice import FOCUS
+        rx = FOCUS[fs][0] if fs in FOCUS else None
+        on = [s for s in it["segments"] if rx and rx.search(text[s["start"]:s["end"]])]
+        label = {"scope1": "Scope 1", "scope2": "Scope 2", "scope3": "Scope 3"}[fs]
+        if on:
+            keep = {id(s) for s in on[:4]}
+            for s in it["segments"]:
+                s["highlight"] = id(s) in keep
+            keys = [clip(text[s["start"]:s["end"]], 230) for s in on[:4]]
+            focus_note = f" The points below are the ones that concern {label}."
+        else:
+            focus_note = f" It does not mention {label} specifically; its key points are below."
+    summarised = (len(text) > 700 and len(keys) >= 2) or (bool(fs) and len(keys) >= 1)
     tail = ("The key points are below, in the company's own words." if summarised else
             "The most specific points are highlighted." if n_hl else "")
+    if focus_note:
+        tail = focus_note.strip()
     if asks_exists:
         a.p(f"**Yes.** {c['name']} has disclosed {topic} for FY 2024-25 {it['cite']}. " + (tail or "The disclosure is shown below."))
     else:

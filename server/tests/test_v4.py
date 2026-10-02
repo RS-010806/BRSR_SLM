@@ -215,11 +215,11 @@ def test_advice_is_examples_from_the_sector(eng):
     for q in ("ideas to cut scope 2", "give me recommendations", "suggest initiatives for us", "what are others doing",
               "what are our peers doing", "how can we reduce emissions"):
         a = eng.ask(q, TCI)
-        assert a["trace"]["final_intent"] == "best_practice" and a["title"] == "Good practice: GHG reduction projects", (q, a["title"])
+        assert a["trace"]["final_intent"] == "best_practice" and a["title"].startswith("Good practice: GHG reduction projects"), (q, a["title"])
         assert "Services" in a["lead"][0]
     assert "purchased electricity" in eng.ask("ideas to cut scope 2", TCI)["lead"][0]
     a = eng.ask("best practices for scope 3", TCI)
-    assert "value chain" in a["lead"][0] and a["title"] == "Good practice: GHG reduction projects"
+    assert "value chain" in a["lead"][0] and a["title"] == "Good practice: GHG reduction projects for Scope 3"
     assert eng.ask("What can you do?")["trace"]["final_intent"] != "best_practice"
 
 
@@ -691,3 +691,35 @@ def test_suggestions_follow_the_user_and_the_conversation(eng):
     assert "What are our Scope 3 emissions?" in b["followups"]
     c = chat(eng, ["overview of the cement sector", "what is scope 1"])[1]
     assert any("UltraTech" in f for f in c["followups"])            # the largest emitter of the sector being discussed
+
+
+# ---------------------------------------------------------------- "my competition" and projects or targets about one scope
+TCORP = {"lens": "transport-corporation-of-india-limited"}
+
+
+def test_scope_projects_of_the_competition(eng):
+    a = eng.ask("what are Scope 3 projects implemented by my competition", TCORP)
+    assert a["trace"]["final_intent"] == "best_practice" and a["title"] == "Good practice: GHG reduction projects for Scope 3"
+    assert a["kicker"] == "Services" and "Scope 3" in a["lead"][0]
+    assert any(b.get("title") == "For Transport Corporation of India" for b in a["blocks"])
+    for q in ("what scope 3 projects have our peers implemented", "scope 1 reduction projects by peers",
+              "what targets have my competitors set for scope 3", "what is our competition doing"):
+        b = eng.ask(q, TCORP)
+        assert b["trace"]["final_intent"] == "best_practice", (q, b["title"])
+    c = eng.ask("which peers have scope 3 targets", TCORP)
+    assert "targets that mention Scope 3" in c["lead"][0] and [x["type"] for x in c["blocks"]] == ["names"]
+    for x in (a, c):
+        clean(x, eng)
+
+
+def test_competition_means_peers(eng):
+    for q in ("who is our competition", "who are my competition", "list our competition"):
+        assert eng.ask(q, TCORP)["trace"]["final_intent"] == "peer_list", q
+    assert [b["type"] for b in eng.ask("how do we compare with the competition", TCORP)["blocks"]][1] == "position"
+
+
+def test_our_projects_about_one_scope(eng):
+    a = eng.ask("what are our scope 3 projects", TCORP)
+    assert a["title"] == "Projects to reduce GHG emissions" and "Scope 3" in a["lead"][0]
+    b = eng.ask("our scope 2 targets", TCORP)
+    assert b["title"] == "Commitments, goals and targets"

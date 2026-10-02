@@ -13,6 +13,7 @@ from .public import TOPIC, item
 PRACTICE_QIDS = {"targets": "286", "target_performance": "295", "projects": "1342", "certifications": "277",
                  "ghg_assurance": "1342", "scope12": "1342", "intensity": "1342", "scope1": "1342", "scope2": "1342",
                  "scope3": "1342"}
+SCOPE_NAME = {"scope1": "Scope 1", "scope2": "Scope 2", "scope3": "Scope 3"}
 # When advice is asked for one scope, prefer the disclosures that talk about what drives that scope.
 FOCUS = {
     "scope1": (re.compile(r"\bscope[- ]?1\b|\bfuels?\b|biomass|boilers?|furnaces?|\bdiesel\b|natural gas|\bcng\b|\bpng\b|"
@@ -169,7 +170,7 @@ def best_practice(ctx, mid, sid, cid):
         widened = bool(extra)
     leaders.sort(key=lambda c: (c["sector"] != sid if sid else False, -_detail(ctx, c, qid), c["name"].lower()))
     a.kicker = scope or "All companies"
-    a.title = f"Good practice: {what}"
+    a.title = f"Good practice: {what}" + (f" for {SCOPE_NAME[mid]}" if focus else "")
     how = a.c_note("How this is put together",
                    "Drawn from the disclosures with the most concrete detail: quantities, years, baselines and named "
                    "measures. Quoted text is exactly as the company disclosed it.")

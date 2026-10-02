@@ -42,7 +42,8 @@ RE_MINE = [
 RE_INFOGRAPHIC = re.compile(r"\b(infographics?|info graphic|poster|one[- ]pager|fact ?sheet|visual summary|summary card|"
                             r"linkedin post|post (?:on|for|about)|tweet|"
                             r"snapshot card|social(?: media)? post|post[- ]style|shareable (?:image|visual|card))\b")
-RE_PEER_NOUN = re.compile(r"\b(peers?|competitors?|peer group|peer set|peer companies|comparable companies|rivals?)\b")
+RE_PEER_NOUN = re.compile(r"\b(peers?|competitors?|competition|peer group|peer set|peer companies|comparable companies|rivals?|"
+                          r"counterparts?|other players|industry players|similar companies|companies like (?:us|me|ours|<co>))\b")
 RE_PEER_VERB = re.compile(r"\b(compare|compares|compared|comparison|analysis|analyse|analyze|versus|vs|against|benchmark|stand|stands|stack|fare|fares|"
                           r"perform|performs|performing|position|rank|ranks|better|worse|ahead|behind|lag|lead|"
                           r"how do|how does|how am|how are|how is|relative to|than)\b")
@@ -295,6 +296,7 @@ class Plan:
     about: list = field(default_factory=list)          # the company the conversation was about before this turn
     about_sector: str | None = None                    # and the sector
     missing: list = field(default_factory=list)        # words that stand where a company name would, and match no company
+    focus_scope: str | None = None                     # "our Scope 3 projects": the scope the projects or targets are about
     yesno: bool = False                                # phrased as a yes/no question
     who: bool = False                                  # asks for a name ("who assured ...")
 
@@ -949,6 +951,10 @@ class Parser:
                            r"\bpredict\w*|\bforecast\w*|\bexpected?\b", low)
         if p.intent == "out_of_scope" and not p.offtopic and len(p.companies) == 1 and not p.ambiguous and covered and not future:
             self._set(p, "company_metric" if p.metric else "company_profile", "a covered topic for a named company")
+        if p.intent == "out_of_scope" and not p.offtopic and not p.ambiguous and RE_PEER_NOUN.search(low) and not future \
+                and (len(p.companies) == 1 or lens):
+            p.companies = p.companies or [lens]
+            self._set(p, "peer_list" if RE_PEER_ASK.search(low) and not p.metric else "peer_benchmark", "a question about peers")
         hard = any(o in HARD_OFFTOPIC for o in p.offtopic)
         advice = bool(RE_ADVISE.search(low)) and not hard and not RE_SIM.search(low) and not p.infographic
         gaps = bool(RE_GAPS.search(low)) and not [o for o in p.offtopic if o != "FUTURE"]
@@ -1054,6 +1060,18 @@ class Parser:
                     r"ahead|behind|lag\w*|lead\w*|relative|doing|than|average|median)\b", low):
                 self._set(p, "company_metric" if p.metric else "company_profile", "no comparison is asked for")
             scopes = [m for m in p.raw_metrics if m in ("scope1", "scope2", "scope3")]
+            # "Scope 3 projects implemented by my competition", "our Scope 3 targets": projects or targets about one scope
+            practice_m = [m for m in p.raw_metrics if m in ("projects", "targets", "target_performance")]
+            if practice_m and scopes and not p.tech and p.intent not in ("simulate",):
+                if has_peers or RE_OTHERS.search(low):
+                    if not re.search(r"\b(how many|which of|which peers|which competitors|who)\b", low):
+                        p.metric, p.metrics = scopes[0], [scopes[0]] + practice_m
+                        return self._set(p, "best_practice", "asks what peers do about one scope")
+                    p.metric, p.metrics, p.focus_scope = practice_m[0], practice_m + scopes, scopes[0]
+                    return self._set(p, "peer_benchmark", "asks which peers have projects or targets about one scope")
+                elif not RE_TREND.search(low):
+                    p.metric, p.metrics, p.focus_scope = practice_m[0], practice_m + scopes, scopes[0]
+                    return self._set(p, "company_metric", "asks for the company's projects or targets about one scope")
             own_group = has_peers or (bool(RE_OWN_GROUP.search(low)) and not p.sector)
             versus = bool(re.search(r"\b(compar\w*|versus|vs|against|than)\b", low))
             direction = "similar" if RE_FILTER_NEAR.search(low) else \

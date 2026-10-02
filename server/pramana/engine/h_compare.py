@@ -409,17 +409,23 @@ def _peer_text_count(ctx, c, qid, others, where):
     a = ctx.a
     short = short_name(c["name"])
     title = TEXT_TITLE.get(qid, "This disclosure")
-    hits = sorted([o for o in others if o["values"].get(qid)], key=lambda o: o["name"].lower())
-    mine = bool(c["values"].get(qid))
-    cc = a.c_calc(f"{title} among peers", f"{len(hits)} of {len(others)} peers provided this disclosure")
+    fs = ctx.plan.focus_scope
+    label = {"scope1": "Scope 1", "scope2": "Scope 2", "scope3": "Scope 3"}.get(fs)
+    rx = re.compile(rf"\bscope[- ]?{fs[-1]}\b", re.I) if label else None
+    has = (lambda o: bool(o["values"].get(qid)) and (rx is None or bool(rx.search(o["values"][qid]))))
+    hits = sorted([o for o in others if has(o)], key=lambda o: o["name"].lower())
+    mine = has(c)
+    what = lc(title) + (f" that mention {label}" if label else "")
+    cc = a.c_calc(f"{title} among peers", f"{len(hits)} of {len(others)} peers provided this disclosure"
+                  + (f" and it mentions {label}" if label else ""))
     group = "your chosen peers" if where == "your chosen peers" else where.replace("the other ", f"{short}'s ", 1).replace(" companies", " peers")
-    a.p(f"**{len(hits)} of {group}** have disclosed {lc(title)} for FY 2024-25 {cc}" + ("; they are listed below. " if hits else ". ")
-        + f"{short} itself {'has' if mine else 'has not'} disclosed them {a.c_filing(c, qid)}.")
+    a.p(f"**{len(hits)} of {group}** have disclosed {what} for FY 2024-25 {cc}" + ("; they are listed below. " if hits else ". ")
+        + f"{short} itself {'has' if mine else 'has not'} {'disclosed them' if not label else 'done so'} {a.c_filing(c, qid)}.")
     if hits:
-        a.block("names", title=f"{title}: {len(hits)} of {len(others)} peers",
+        a.block("names", title=f"{title}{' mentioning ' + label if label else ''}: {len(hits)} of {len(others)} peers",
                 items=[{"id": o["id"], "name": short_name(o["name"])} for o in hits], sector=ctx.kb.sector_of(c)["name"],
                 export=export(f"Peers of {c['name']}: {title}", ["Company", "Disclosed"],
-                              [[o["name"], "Yes" if o["values"].get(qid) else "No"] for o in sorted(others, key=lambda o: o["name"].lower())]))
+                              [[o["name"], "Yes" if has(o) else "No"] for o in sorted(others, key=lambda o: o["name"].lower())]))
     a.context.update({"metric": ctx.plan.metric})
     sname = ctx.kb.sector_of(c)["name"]
     a.follow(f"Examples of {lc(title)} from {sname} companies", f"What are {short}'s targets?" if qid == "286" else None,
