@@ -57,6 +57,7 @@ METRICS: dict[str, dict] = {
         "assurance", "assured", "third party verification", "verified", "verification", "independent assurance",
         "external assurance", "audited emissions", "emissions audit", "independently verified", "external verification",
         "reasonable assurance", "limited assurance", "assurer", "assurance provider", "verify", "verifies",
+        "audits", "auditor", "auditors", "assures", "verifier", "assured by", "verified by",
         "verify its", "audit", "audited", "third party assurance", "external verification of emissions"]),
     "scope3_assurance": dict(label="Independent Scope 3 assurance", kind="bool", qids=["1560", "1561"], phrases=[
         "scope3 assurance", "scope3 assured", "scope3 verified", "scope3 verification", "scope3 assurer"]),
@@ -392,4 +393,6 @@ new green clean energy power gas oil steel cement metal metals mining bank banks
 capital goods chemicals chemical textiles textile realty media telecom health healthcare consumer products product
 motors motor auto systems solutions technologies technology tech international global national united general
 home life insurance infra infrastructure engineering electricals electric electronics foods food agro paper
+download export excel xlsx csv pdf spreadsheet print save file thanks thank okay
+pager poster infographic factsheet snapshot linkedin post paragraph visual kpis kpi line manager board
 """.split())

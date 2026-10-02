@@ -24,7 +24,7 @@ PRIORITY = {"company": 6, "absent": 5, "sector": 4, "metric": 3, "tech": 2, "off
 TECH_TERMS: dict[str, list[str]] = {
     "solar": ["solar", "rooftop solar", "solar power", "solar plant", "solar energy", "solar pv"],
     "wind": ["wind", "wind power", "wind energy", "wind turbines"],
-    "renewable energy": ["renewable energy", "renewables", "renewable power", "re100", "green power", "clean energy",
+    "renewable energy": ["renewable energy", "renewables", "renewable", "renewable power", "re100", "green power", "clean energy",
                          "open access", "power purchase agreement", "ppa", "hybrid renewable", "round the clock"],
     "green hydrogen": ["green hydrogen", "hydrogen"],
     "biomass": ["biomass", "bio fuel", "biofuel", "biofuels", "biogas", "compressed biogas", "cbg", "agro waste"],

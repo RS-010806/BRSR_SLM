@@ -36,6 +36,9 @@ def eligible(metric: M.Metric, companies, by: str = "value"):
         if by == "yoy":
             # A ratio does not depend on the unit, so filings in a different unit still compare on change.
             v = metric.yoy(c) if metric.yoy else None
+            # more than tenfold up or down between two years is a change of unit or reporting boundary, not of operations
+            if v is not None and (v > 900 or v < -90):
+                v = None
             if v is not None and metric.kind == "abs" and any(
                     f["type"] == "report_exclusion" and set(f["qids"]) & set(metric.qids) for f in c["flags"]):
                 v = None

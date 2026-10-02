@@ -33,7 +33,7 @@ export function Checklist({ b }: { b: any }) {
         return (
           <div key={i} className={"check " + cls} style={{ animation: `rise .4s ${i * 30}ms both` }}>
             <span className="ic">{it.value == null ? <I.minus /> : it.value ? <I.check /> : <I.x />}</span>
-            <span className="t">{it.label}</span>
+            <span className="t">{it.label}{it.sub && <small>{it.sub}</small>}</span>
             <CiteChip refText={it.cite} />
           </div>
         );
@@ -45,9 +45,17 @@ export function Checklist({ b }: { b: any }) {
 /* =============================================================== Points */
 export function Points({ b }: { b: any }) {
   return (
-    <ul className="points">
-      {b.items.map((t: string, i: number) => <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}><Rich text={t} /></li>)}
-    </ul>
+    <section className="points-wrap">
+      {b.title && <h3 className="points-h">{b.title}</h3>}
+      <ul className="points">
+        {b.items.map((t: string, i: number) => (
+          <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}>
+            <Rich text={t} />
+            {b.examples?.[i] && <span className="eg"><b>{b.examples[i].who}:</b> {"“"}{b.examples[i].text}{"”"}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -143,10 +151,18 @@ function QuoteCard({ it, excerpt, i }: { it: any; excerpt?: boolean; i: number }
 }
 
 export function Quotes({ b }: { b: any }) {
-  return (
+  const body = (
     <div className={"quotes" + (b.columns ? " cols" : "")}>
       {b.items.map((it: any, i: number) => <QuoteCard key={it.key || it.company_id + i} it={it} excerpt={b.excerpt} i={i} />)}
     </div>
+  );
+  if (!b.collapsed) return body;
+  /* supporting detail: closed by default so the answer stays short, one click to read the source text */
+  return (
+    <details className="more">
+      <summary><I.arrow />{b.summary || "View the full disclosures"}</summary>
+      {body}
+    </details>
   );
 }
 
@@ -217,7 +233,7 @@ export function Compare({ b }: { b: any }) {
         <thead>
           <tr>
             <th />
-            {b.columns.map((c: any) => <th key={c.id}><button className="colink" style={{ fontWeight: 600 }} onClick={() => ask(`Tell me about ${c.label}`)}>{c.label}</button><small>{c.sub}</small></th>)}
+            {b.columns.map((c: any) => <th key={c.id}><button className="colink" style={{ fontWeight: 600 }} onClick={() => ask(/^S\d+$/.test(c.id) ? `Give me an overview of the ${c.label} sector` : `Tell me about ${c.label}`)}>{c.label}</button><small>{c.sub}</small></th>)}
           </tr>
         </thead>
         <tbody>

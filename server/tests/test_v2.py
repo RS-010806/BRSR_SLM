@@ -92,9 +92,10 @@ def test_few_shot_memory(eng):
     assert a["trace"]["few_shot"] and a["trace"]["few_shot"][0]["intent"] == "company_profile"
 
 
-def test_unexpected_sector_is_explained(eng):
+def test_corrected_sector_needs_no_note(eng):
     a = eng.ask("tell me about hindustan unilever")
-    assert any("sector classification" in n["text"] for n in a["notes"])
+    assert a["entities"][0]["sector"] == "Fast Moving Consumer Goods"
+    assert not any("sector classification" in n["text"] for n in a["notes"])
 
 
 def test_today_is_not_a_web_request(eng):

@@ -27,8 +27,8 @@ function Excel({ b }: { b: Block }) {
 }
 
 function ChartCard({ b, i, children }: { b: Block; i: number; children: React.ReactNode }) {
-  const [mode, setMode] = useState<"chart" | "table">("chart");
   const t = asTable(b);
+  const [mode, setMode] = useState<"chart" | "table">(b.view === "table" && t ? "table" : "chart");
   const tools = (
     <>
       {b.cite && <CiteChip refText={b.cite} />}
@@ -57,7 +57,7 @@ export function BlockView({ b, i }: { b: Block; i: number }) {
     case "checklist": return <Card title={b.title} delay={i * 70}><Checklist b={b} /></Card>;
     case "points": return <Points b={b} />;
     case "names": return <Card title={b.title} subtitle={b.sector ? `${b.sector} · select a company to see its figures` : "Select a company to see its figures"} tools={<Excel b={b} />} delay={i * 70}><Names b={b} /></Card>;
-    case "quotes": return b.title ? <Card title={b.title} delay={i * 70}><Quotes b={b} /></Card> : <Quotes b={b} />;
+    case "quotes": return b.collapsed ? <Quotes b={b} /> : b.title ? <Card title={b.title} delay={i * 70}><Quotes b={b} /></Card> : <Quotes b={b} />;
     case "table": return <Card title={b.title} tools={<Excel b={b} />} delay={i * 70}><Table b={b} /></Card>;
     case "compare": return <Card title={b.title} tools={<Excel b={b} />} delay={i * 70}><Compare b={b} /></Card>;
     case "infographic": return <Suspense fallback={<div className="skeleton" style={{ height: 320 }} />}><Infographic b={b} /></Suspense>;

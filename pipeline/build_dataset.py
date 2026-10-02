@@ -36,7 +36,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 from pramana.nlu.aliases import build_aliases  # noqa: E402
 from pramana.nlu.normalize import norm_name  # noqa: E402
-from pipeline.registry import (CLASSIFICATION_NOTES, MAGNITUDE_RATIO, AI_RUBRICS, INTENSITY_PER_RUPEE_PLAUSIBLE_MAX, PILLARS, QUESTIONS,
+from pipeline.registry import (CLASSIFICATION_NOTES, SECTOR_CORRECTIONS, MAGNITUDE_RATIO, AI_RUBRICS, INTENSITY_PER_RUPEE_PLAUSIBLE_MAX, PILLARS, QUESTIONS,
                                REPORT_EXCLUSIONS, SECTIONS, SECTOR_NSE_CODE, SECTOR_SHORT)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -177,6 +177,8 @@ def build_companies(ws_b, ws_r, rubric_rows):
         sector = str(b_row[1]).strip()
         if sector.upper() == "SERVICES":
             sector = "Services"
+        source_sector = sector
+        sector = SECTOR_CORRECTIONS.get(name, sector)
         cid = slugify(name)
         assert cid not in seen_ids, cid
         seen_ids.add(cid)
@@ -209,6 +211,7 @@ def build_companies(ws_b, ws_r, rubric_rows):
             "id": cid,
             "name": name,
             "sector_name": sector,
+            "source_sector_name": source_sector,
             "base_row": b_row_idx,
             "rating_col": get_column_letter(j + 1),
             "values": values,

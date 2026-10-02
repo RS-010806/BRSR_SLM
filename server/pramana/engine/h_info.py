@@ -65,6 +65,9 @@ TERMS = [
      "**BRSR** (Business Responsibility and Sustainability Report) is the sustainability disclosure that SEBI requires "
      "from the largest listed companies in India. It is filed every year and covers environmental, social and "
      "governance topics in a standard format."),
+    (re.compile(r"\bsebi\b|securities and exchange board"), "SEBI",
+     "**SEBI** (the Securities and Exchange Board of India) regulates India's securities market. It requires the largest "
+     "listed companies to file a Business Responsibility and Sustainability Report (BRSR) every year."),
     (re.compile(r"\btco2e?\b|\bco2e\b|carbon dioxide equivalent|\bunit\b"), "tCO₂e",
      "**tCO₂e** means tonnes of carbon dioxide equivalent. It expresses all greenhouse gases as the amount of carbon "
      "dioxide that would have the same warming effect."),
@@ -92,13 +95,59 @@ ABOUT = [
      "Where the figures come from",
      "The figures are what each company disclosed in its BRSR filing for FY 2024-25, with FY 2023-24 shown for "
      "comparison. Totals and medians are calculated from those disclosures."),
-    (re.compile(r"\b(year|period|fy)\b.*\b(cover|covered|available|does)\b|which (year|fy)"),
+    (re.compile(r"\b(years?|period|fy)\b.*\b(cover\w*|available|does|have|data)\b|(which|what) (years?|fy|period)|"
+                r"\b20\d\d\b.{0,12}\bdata\b|\b(have|cover)\b.{0,14}\b20\d\d\b"),
      "Years covered",
      "I cover FY 2024-25, with FY 2023-24 figures for comparison. Other years are not available."),
     (re.compile(r"different unit|flag|outlier|unit|exclu|left out|missing from"), "Values in a different unit",
      "A few companies appear to have disclosed emissions in a different unit, for example thousand tonnes. Those "
      "figures are shown exactly as disclosed, with a note, and are left out of comparisons and totals."),
 ]
+
+
+def thanks(ctx):
+    a = ctx.a
+    a.kicker = "Pramana"
+    a.title = "Glad to help"
+    a.p("Glad to help. Ask me anything else about emissions and climate disclosures.")
+    lens = ctx.plan.lens
+    if lens:
+        a.follow("How do we compare with our peers?", "What are our targets?", "Make an infographic of our emissions")
+    else:
+        a.follow("What are NTPC's GHG emissions?", "Top 10 emitters", "Which sector emits the most?")
+
+
+def about(ctx):
+    a = ctx.a
+    a.kicker = "About"
+    a.title = "What Pramana is"
+    a.p(f"I am **Pramana**, an assistant for the GHG emissions and climate disclosures of the {len(ctx.kb.companies)} listed "
+        f"companies I cover. The name is Sanskrit for proof: every figure I give comes from what a company disclosed in "
+        f"its BRSR filing, and each answer lists its sources.")
+    a.p("You can ask about one company, compare companies, see how a company stands against its peers, look at a whole "
+        "sector, or ask for examples of what other companies are doing.")
+    a.follow("What can you do?", "What are NTPC's GHG emissions?", "How does ACC compare with its peers?")
+
+
+def export_help(ctx):
+    a = ctx.a
+    a.kicker = "How to"
+    a.title = "Downloading an answer"
+    a.p("Every answer can be downloaded. Use **Excel** or **PDF** under an answer to save the whole answer, or the "
+        "**Excel** button on a chart or table to save just that part. Infographics have a **Download image** button.")
+    a.p("Ask a question first, for example the ones below, and the buttons appear with the answer.")
+    a.follow("Top 10 emitters", "Give me an overview of the power sector", "Make an infographic for UltraTech")
+
+
+def peer_def(ctx):
+    a = ctx.a
+    a.kicker = "About"
+    a.title = "How peers are chosen"
+    a.p("A company's **peers** are the other companies in the same sector among the companies covered. Sectors follow the "
+        "sector classification used here.")
+    a.p("You can also name your own peer group, for example “my peers are Blue Dart and Delhivery”, and comparisons in "
+        "that conversation will use those companies.")
+    a.follow("Who are NTPC's peers?", "How does ACC compare with its peers?", "How many sectors are there?")
 
 
 def greeting(ctx):
@@ -131,6 +180,15 @@ def define(ctx):
     a.kicker = "Definition"
     mids = [m for m in ([plan.metric] + list(plan.metrics)) if m in GLOSSARY]
     mids = list(dict.fromkeys(mids))
+    # a named term (net zero, SBTi, GHG, BRSR) wins over the broad topic it belongs to
+    if not re.search(r"\bscope\s*[123]\b|intensity", low) and (not mids or mids[0] in ("targets", "scope12", "certifications")):
+        for rx, title, text in TERMS:
+            if rx.search(low):
+                a.title = title
+                a.p(text)
+                a.follow({"Net zero": "Which companies mention net zero?", "SBTi": "Which companies mention SBTi?"}.get(title),
+                         "What are NTPC's GHG emissions?", "Top 10 emitters")
+                return True
     # "scope 1 and scope 2" arrives as one combined metric; show the two definitions separately
     if mids:
         title, text = GLOSSARY[mids[0]]
@@ -161,7 +219,7 @@ def define(ctx):
 def explain(ctx):
     a, plan = ctx.a, ctx.plan
     low = plan.query.lower()
-    if re.search(r"difference between|scope 1,? (scope )?2 and (scope )?3|all three scopes", low):
+    if re.search(r"difference between.{0,40}scope|scope.{0,40}difference|scope 1,? (scope )?2 and (scope )?3|all three scopes", low):
         a.kicker = "Definition"
         a.title = "Scope 1, Scope 2 and Scope 3"
         for k in ("scope1", "scope2", "scope3"):

@@ -219,12 +219,27 @@ MAGNITUDE_RATIO = 1e-3
 # Source sector classifications that look like a row swap in the Base Data
 # "Actual Sector" column (adjacent rows 378 and 379). They are kept as filed so
 # that sector figures keep matching the report, and flagged wherever shown.
-CLASSIFICATION_NOTES = {
-    "Hindustan Unilever Limited": "The source data classifies Hindustan Unilever Limited under Metals & Mining, and the "
-                                  "adjacent row, Hindustan Zinc Limited, under Consumer Durables; the two appear to be "
-                                  "swapped. Pramana keeps the source classification so that sector figures match the "
-                                  "IIMB report.",
-    "HINDUSTAN ZINC LIMITED": "The source data classifies Hindustan Zinc Limited under Consumer Durables, and the adjacent "
-                              "row, Hindustan Unilever Limited, under Metals & Mining; the two appear to be swapped. "
-                              "Pramana keeps the source classification so that sector figures match the IIMB report.",
+# Sector corrections. In the source sheet the sector column is displaced by one row for the fifteen consecutive
+# companies from Hi-Tech Pipes to Hindware Home Innovation (each carries the sector of the row above it, and the first
+# carries the last one's). The corrected sectors below restore the alignment. Agreed in review on 2 Oct 2026, starting
+# with Hindalco Industries -> Metals & Mining.
+SECTOR_CORRECTIONS = {
+    "Hi-Tech Pipes Limited": "Capital Goods",
+    "Hikal Limited": "Healthcare",
+    "Himadri Speciality Chemical Limited": "Chemicals",
+    "Himatsingka Seide Limited": "Textiles",
+    "HINDALCO INDUSTRIES LIMITED": "Metals & Mining",
+    "Hinduja Global Solutions Limited": "Services",
+    "HINDUSTAN AERONAUTICS LIMITED": "Capital Goods",
+    "Hindustan Construction Company Limited": "Construction",
+    "Hindustan Copper Limited": "Metals & Mining",
+    "Hindustan Foods Limited": "Fast Moving Consumer Goods",
+    "Hindustan Oil Exploration Company Limited": "Oil Gas & Consumable Fuels",
+    "HINDUSTAN PETROLEUM CORPORATION LIMITED": "Oil Gas & Consumable Fuels",
+    "Hindustan Unilever Limited": "Fast Moving Consumer Goods",
+    "HINDUSTAN ZINC LIMITED": "Metals & Mining",
+    "Hindware Home Innovation Limited": "Consumer Durables",
+    "PUNJAB & SIND BANK": "Financial Services",
 }
+
+CLASSIFICATION_NOTES = {}

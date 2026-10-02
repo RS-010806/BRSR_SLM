@@ -21,6 +21,13 @@ _PRE = [
     (r"[–—−]", "-"),
     (r"'s\b", ""),
     (r"&", " and "),
+    # common misspellings of the words that decide what a question is about
+    (r"\b(?:emmiss?ions?|emisions?|emision|emissons?|emisson|emmisons?|emisss+ions?)\b", "emissions"),
+    (r"\b(?:scpoe|socpe|scoep|sope|scop)\b(?=\s*[-_]?\s*(?:[123]|one|two|three)\b)", "scope"),
+    (r"\b(?:intensty|intesity|intensitty|intencity|intensiti)\b", "intensity"),
+    (r"\b(?:targts|tragets|taregts|targetts)\b", "targets"),
+    (r"\b(?:competetors?|competitiors?|compititors?|competiters?)\b", "competitors"),
+    (r"\b(?:assurence|asurance|assurrance)\b", "assurance"),
     (r"\bco\s*2\s*e?\b", "co2"),
     (r"\bghgs\b", "ghg"),
     (r"\bscopes?\s*[-_]?\s*(?:1|one|i)\s*(?:\+|and|,|/)?\s*(?:scope\s*)?(?:2|two|ii)\s*(?:\+|and|,|/|,\s*and)?\s*(?:scope\s*)?(?:3|three|iii)\b", " scope12 scope3 "),

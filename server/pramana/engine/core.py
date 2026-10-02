@@ -19,6 +19,8 @@ from .evidence import DisclosureIndex
 
 NUM_IN_TEXT = re.compile(r"(?<![\w\[])\d[\d,]*(?:\.\d+)?")
 CITE = re.compile(r"\[(\d+)\]")
+PASSING = ("greeting", "explain", "out_of_scope", "need_company", "no_scores", "set_pref")
+RE_DOWNLOAD = re.compile(r"\b(export|download|excel|xlsx|csv|spreadsheet|pdf)\b")
 # Numbers that are labels, not figures: years, scope names, "Principle 6", "top 10".
 LABEL_NUM = re.compile(r"\b(FY \d{4}-\d{2}|Scope [123]|1 \+ Scope 2|Principle 6|top \d+|"
                        r"\d[\d,]* (?:listed )?companies(?:\*\*)? (?:covered|I cover|match)|\d[\d,]* listed companies)\b")
@@ -52,6 +54,11 @@ class Engine:
             # a company whose sector looks unexpected: say where the classification comes from
             if any(f["type"] == "classification" for f in self.kb.by_id[e["id"]]["flags"]):
                 a.note("data", f"{e['short']} is shown under {e['sector']}, as in the sector classification used here.")
+        if plan.view == "from_infographic":
+            a.note("context", "An infographic covers one company or one sector at a time, so the two companies are shown "
+                              "side by side instead. Ask for an infographic of either company to get the image.")
+        elif RE_DOWNLOAD.search(query.lower()) and a.status == "answered" and plan.view != "export" and a.blocks:
+            a.note("context", "To download this, use the Excel button on a chart or table, or Excel and PDF under the answer.")
         if plan.fy_out_of_range:
             a.note("scope", f"Only FY 2024-25 and FY 2023-24 are available; {plan.fy_out_of_range} is not, so the figures "
                             f"shown are for FY 2024-25.")
@@ -66,11 +73,18 @@ class Engine:
             if a.status not in ("not_found",):
                 a.note("scope", f"{name} is not among the {len(self.kb.companies)} companies covered.")
         # context for the next turn (explicit, client-held, so the server stays stateless)
+        if (not plan.companies and not plan.sector and plan.intent in PASSING) or a.status in ("not_found", "out_of_scope"):
+            # small talk, a definition or a refusal does not change what the conversation is about
+            for k in ("intent", "companies", "sector", "metric", "tech", "view", "stat"):
+                if context.get(k) is not None and not (k == "companies" and plan.companies):
+                    a.context[k] = context[k]
         a.context.setdefault("intent", plan.intent)
         a.context.setdefault("companies", plan.companies[:6])
         a.context.setdefault("sector", plan.sector)
         a.context.setdefault("metric", plan.metric)
         a.context.setdefault("tech", plan.tech)
+        a.context.setdefault("view", plan.view)
+        a.context.setdefault("stat", plan.stat)
         # what the conversation has been told to remember travels with it (client-held)
         a.context["prefs"] = plan.prefs
         a.context["pending"] = {"text": plan.ambiguous[0]["text"], "ids": plan.ambiguous[0]["ids"]} \
@@ -84,10 +98,24 @@ class Engine:
     def _route(self, ctx: Ctx):
         p, kb = ctx.plan, ctx.kb
         intent = p.intent
+        # a company that is not covered must never be answered with figures for everyone else
+        if (p.absent or p.missing) and not p.offtopic and not p.ambiguous and not p.sector \
+                and (not p.companies or intent == "compare" or p.view == "learn_from") \
+                and intent not in ("set_pref", "clear_lens", "best_practice", "text_search", "no_scores"):
+            if p.missing:
+                p.unknown_names = list(p.missing)
+            return HI.not_found(ctx)
         if intent == "out_of_scope":
             return HI.out_of_scope(ctx)
         if intent == "no_scores":
             return HI.no_scores(ctx)
+        view = p.view
+        if view == "thanks":
+            return HI.thanks(ctx)
+        if view == "about":
+            return HI.about(ctx)
+        if view == "export":
+            return HI.export_help(ctx)
         if intent == "greeting":
             return HI.greeting(ctx)
         if intent == "set_pref":
@@ -96,10 +124,12 @@ class Engine:
             return HC.clear_lens(ctx)
         if intent == "need_company":
             return HC.need_company(ctx)
-        if p.ambiguous and (intent in COMPANY_INTENTS or intent in ("compare", "best_practice", "infographic")):
+        if p.ambiguous and (intent in COMPANY_INTENTS or intent in ("compare", "best_practice", "infographic")
+                            or (not p.companies and not p.sector and intent in ("aggregate", "explain", "report_insights"))):
             return HI.clarify(ctx)
         if (p.absent or p.unknown_names) and not p.companies and intent in COMPANY_INTENTS | {"compare", "infographic"}:
             return HI.not_found(ctx)
+
         cos = p.companies
         if intent == "compare" and len(cos) < 2:
             intent = "company_metric" if p.metric else "company_profile"
@@ -107,6 +137,43 @@ class Engine:
             return HC.need_company(ctx)
         c = kb.by_id[cos[0]] if cos else None
         generic = p.generic_emissions or "scope3" in p.metrics
+        # ---- specific readings decided by the wording
+        if view == "gaps" and c:
+            return HC.company_gaps(ctx, c)
+        if view == "scopes" and c:
+            return HC.company_scopes(ctx, c)
+        if view == "change" and c:
+            return HC.company_change(ctx, c, p.metric, generic)
+        if view == "mentions" and c:
+            return HC.company_mentions(ctx, c)
+        if view == "share" and c:
+            return HC.company_share(ctx, c, p.metric)
+        if view == "peer_filter" and c:
+            return HM.peer_filter(ctx, c, p.metric, p.direction, p.prefs.get("peers"))
+        if view == "learn_from" and c:
+            return HP.learn_from(ctx, c, kb.by_id[cos[1]] if len(cos) > 1 else (kb.by_id.get(p.lens) if p.lens else None))
+        if view == "stat":
+            return HS.statistic(ctx, p.metric, p.sector, c, p.stat)
+        if view == "sector_compare":
+            return HS.sector_compare(ctx, p.sectors)
+        if view == "sector_list":
+            return HS.sector_list(ctx)
+        if view == "sector_share":
+            return HS.sector_share(ctx, p.sector, p.metric)
+        if view == "sector_change":
+            return HS.sector_change(ctx, p.change)
+        if view == "total_change":
+            return HS.total_change(ctx, p.sector, p.metric)
+        if view == "coverage":
+            return HS.coverage(ctx)
+        if view == "market_scopes":
+            return HS.scope_split(ctx, p.sector)
+        if view == "peer_def":
+            return HI.peer_def(ctx)
+        if view == "focus_rank" and c:
+            return HS.ranking(ctx, p.metric, p.sector, p.n, p.extreme, p.quality, p.change, focus=c)
+        if view == "peer_search" and c:
+            return HP.text_search(ctx, p.sector, me=c)
         if intent == "infographic":
             return HV.infographic(ctx, c, p.sector)
         if intent == "set_lens":
@@ -125,10 +192,10 @@ class Engine:
             return HC.simulate(ctx, c, p.metric or "scope12", p.pct)
         if intent == "sector_overview":
             if p.metric and not p.sector:
-                return HS.all_sectors(ctx, p.metric)
+                return HS.all_sectors(ctx, p.metric, p.n, low=p.extreme == "low" or p.quality == "best")
             return HS.sector_overview(ctx, p.sector, p.metric)
         if p.by_sector and not p.sector and intent in ("ranking", "aggregate", "screen"):
-            return HS.all_sectors(ctx, p.metric)
+            return HS.all_sectors(ctx, p.metric, p.n, low=p.extreme == "low" or p.quality == "best")
         if intent == "ranking":
             return HS.ranking(ctx, p.metric, p.sector, p.n, p.extreme, p.quality, p.change)
         if intent == "aggregate":

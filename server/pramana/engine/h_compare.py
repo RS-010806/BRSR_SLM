@@ -5,6 +5,8 @@ plain words. They never give a rank position or a percentile.
 """
 from __future__ import annotations
 
+import re
+
 from ..analytics import median
 from . import metrics as M
 from .common import bars, change_tone, eligible, export, fmt_short, fmt_value, ordered, strip, value_cite, yes, yes_count
@@ -32,6 +34,9 @@ def compare(ctx, cids, mid):
     if len({c["sector"] for c in cos}) > 1:
         a.note("context", "These companies are in different sectors, so total emissions reflect the nature of each "
                           "business. Emission intensity is the fairer comparison.")
+    named = [m for m in dict.fromkeys(ctx.plan.metrics) if m in M.NUMERIC]
+    if len(named) >= 2 and set(named) != {"scope12", "scope3"}:
+        mid = None                                    # several measures named: the side-by-side shows them all
     if mid == "scope12":
         _compare_emissions(ctx, cos)
     elif mid in M.NUMERIC:
@@ -45,6 +50,17 @@ def compare(ctx, cids, mid):
     for c in cos:
         a.flag_notes(c, M.NUMERIC[mid].qids if mid in M.NUMERIC else ["1330", "1331", "1332", "1333", "1334", "1335"], name=True)
     a.context.update({"companies": [c["id"] for c in cos], "metric": mid})
+
+
+RE_ASKS_LOW = re.compile(r"\b(cleaner|greener|lower|less|smaller|least|lowest|fewer|better|efficient)\b")
+
+
+def _edge(ctx, pairs):
+    """(company, word): the highest of the figures, or the lowest when that is what the question asks about."""
+    low = bool(RE_ASKS_LOW.search((ctx.plan.resolved_query or ctx.plan.query).lower()))
+    pick = min(pairs, key=lambda t: t[1]) if low else max(pairs, key=lambda t: t[1])
+    two = len(pairs) == 2
+    return pick, ("lower" if two else "lowest") if low else ("higher" if two else "highest")
 
 
 def _compare_emissions(ctx, cos):
@@ -65,6 +81,11 @@ def _compare_emissions(ctx, cos):
                        "displays": [tile(v1) if v1 is not None else "n/a", tile(v2) if v2 is not None else "n/a"]})
         rows.append([c["name"], v1, v2, m12.value(c), None if m12.yoy(c) is None else round(m12.yoy(c), 2)])
     a.p("For FY 2024-25: " + ". ".join(parts) + ".")
+    have = [(c, m12.value(c)) for c in cos if m1.value(c) is not None and m2.value(c) is not None]
+    if len(have) >= 2 and len({v for _, v in have}) > 1:
+        top, word = _edge(ctx, have)
+        a.p(f"On the combined figure, **{short_name(top[0]['name'])}** is the {word} "
+            f"at {num(top[1])} {CO2} {value_cite(a, top[0], m12)}.")
     a.block("grouped", title="Scope 1 and Scope 2 emissions", subtitle=f"FY 2024-25, {CO2}", series=["Scope 1", "Scope 2"],
             groups=groups, log=True,
             export=export("Scope 1 and Scope 2 emissions", ["Company", "Scope 1 (tCO2e)", "Scope 2 (tCO2e)",
@@ -76,12 +97,28 @@ def _compare_emissions(ctx, cos):
 def _compare_numeric(ctx, cos, metric):
     a = ctx.a
     vals = [(c, metric.value(c), metric.prev(c), metric.yoy(c) if metric.yoy else None) for c in cos]
+    odd = []
+    if metric.kind == "intensity" and metric.comparable_levels:
+        # a figure that appears to use a different unit is not set beside the others
+        odd = [short_name(c["name"]) for c, v, _, _ in vals if v is not None and not metric.level_ok(c)]
+        vals = [(c, v if (v is None or metric.level_ok(c)) else None, pv if (v is None or metric.level_ok(c)) else None, y)
+                for c, v, pv, y in vals]
     shown = [f"**{short_name(c['name'])}** {fmt_value(metric, v)} {value_cite(a, c, metric)}" for c, v, _, _ in vals if v is not None]
-    missing = [short_name(c["name"]) for c, v, _, _ in vals if v is None]
+    missing = [short_name(c["name"]) for c, v, _, _ in vals if v is None and short_name(c["name"]) not in odd]
+    if odd:
+        a.note("data", f"{join(odd)}: the disclosed {lc(metric.label)} appears to use a different unit from most filings, "
+                       f"so it is not compared here.")
     if shown:
         a.p(f"{metric.label} for FY 2024-25: {join(shown)}.")
+    ok = [(c, v) for c, v, _, _ in vals if v is not None and (metric.level_ok is None or metric.level_ok(c))]
+    if len(ok) >= 2 and metric.comparable_levels and len({v for _, v in ok}) > 1:
+        top, word = _edge(ctx, ok)
+        a.p(f"**{short_name(top[0]['name'])}** reported the {word} figure.")
     if missing:
         a.p(f"{join(missing)} {'has' if len(missing) == 1 else 'have'} not disclosed this figure.")
+    if not shown and not missing:
+        a.status = "partial"
+        a.p(f"None of these companies disclosed {lc(metric.label)} in a unit that can be compared.")
     if not metric.comparable_levels and metric.note:
         a.note("method", metric.note)
     unit = metric.unit if metric.comparable_levels else "unit as disclosed"
@@ -131,6 +168,12 @@ def _compare_bool(ctx, cos, qid):
 def _side_by_side(ctx, cos):
     a, kb = ctx.a, ctx.kb
     a.p(f"Here is how {join([f'**{short_name(c['name'])}**' for c in cos])} compare on their FY 2024-25 disclosures.")
+    m12 = M.NUMERIC["scope12"]
+    have = eligible(m12, cos)
+    if len(have) >= 2 and len({v for _, v in have}) > 1:
+        top, word = _edge(ctx, have)
+        a.p(f"On combined Scope 1 and Scope 2 emissions, **{short_name(top[0]['name'])}** is the "
+            f"{word} at {num(top[1])} {CO2} {value_cite(a, top[0], m12)}.")
     rows, xrows = [], []
     for mid, label in SIDE_ROWS:
         m = M.NUMERIC[mid]
@@ -143,7 +186,6 @@ def _side_by_side(ctx, cos):
                           "cite": value_cite(a, c, m) if v is not None else None})
         rows.append({"label": label, "cells": cells})
         xrows.append([label] + [m.value(c) if (m.kind != "intensity" or m.level_ok(c)) else None for c in cos])
-    m12 = M.NUMERIC["scope12"]
     rows.append({"label": "Change in Scope 1 + Scope 2 vs FY 2023-24",
                  "cells": [{"text": pct(m12.yoy(c)) if m12.yoy(c) is not None else "n/a", "tone": change_tone(m12.yoy(c))}
                            for c in cos]})
@@ -230,6 +272,10 @@ def peer_compare(ctx, c, mid, peers=None):
     if mid in M.BOOL_Q and mid not in M.TEXT_Q:
         return _peer_bool(ctx, c, M.BOOL_Q[mid], others, where)
     if mid in M.TEXT_Q:
+        low = (ctx.plan.resolved_query or ctx.plan.query).lower()
+        if re.search(r"\b(which|who|how many|number of|list|any|do|does|have|has)\b", low) and not re.search(
+                r"\b(what|compar\w*|examples?|show|how (?:do|does|are|is))\b", low):
+            return _peer_text_count(ctx, c, M.TEXT_Q[mid], others, where)
         from .h_practice import best_practice
         return best_practice(ctx, mid, c["sector"], c["id"])
     if mid == "scope12" or mid not in M.NUMERIC:
@@ -243,7 +289,7 @@ def peer_compare(ctx, c, mid, peers=None):
         a.status = "partial"
         raw = metric.value(c)
         a.p(f"{c['name']} {'has not disclosed' if raw is None else 'has no comparable figure for'} {label}, so it cannot "
-            f"be compared with {where}.")
+            f"be compared with {where} {a.c_filing(c, metric.cy_q or '1330')}.")
         a.flag_notes(c, metric.qids)
         a.follow(f"What are {short}'s GHG emissions?", f"Who are {short}'s peers?")
         return
@@ -294,8 +340,43 @@ def _peer_bool(ctx, c, qid, others, where):
     is_yes = yes(c, qid)
     y, n = yes_count(others, qid)
     cc = a.c_calc(f"{BOOL_TITLE.get(qid)} among peers", f"{y} of {n} peers answered Yes")
-    a.p(f"{c['name']} {pos if is_yes else neg} {a.c_filing(c, qid)}. Among {where}, **{y} of {n}** {plural} {cc}.")
+    low = (ctx.plan.resolved_query or ctx.plan.query).lower()
+    if not re.search(r"\b(compar\w*|versus|vs|against|how (?:do|does|am|are|is)|where (?:do|does))\b", low):
+        group = "your chosen peers" if where == "your chosen peers" else where.replace("the other ", f"{short}'s ", 1).replace(" companies", " peers")
+        a.p(f"**{y} of {group}** {plural} {cc}" + ("; they are listed below. " if y else ". ")
+            + f"{short} itself {pos if is_yes else neg} {a.c_filing(c, qid)}.")
+    else:
+        a.p(f"{c['name']} {pos if is_yes else neg} {a.c_filing(c, qid)}. Among {where}, **{y} of {n}** {plural} {cc}.")
+    hits = sorted([o for o in others if yes(o, qid)], key=lambda o: o["name"].lower())
+    if hits:
+        a.block("names", title=f"{BOOL_TITLE.get(qid)}: {y} of {n} peers",
+                items=[{"id": o["id"], "name": short_name(o["name"])} for o in hits], sector=ctx.kb.sector_of(c)["name"],
+                export=export(f"Peers of {c['name']}: {BOOL_TITLE.get(qid)}", ["Company", BOOL_TITLE.get(qid)],
+                              [[o["name"], "Yes" if yes(o, qid) else "No"] for o in sorted(others, key=lambda o: o["name"].lower())]))
+    a.context.update({"metric": ctx.plan.metric})
     a.follow(f"Which {ctx.kb.sector_of(c)['name']} companies {plural}?", f"How does {short} compare with its peers?")
+
+
+def _peer_text_count(ctx, c, qid, others, where):
+    """How many peers have a narrative disclosure (targets, projects, certifications), with their names."""
+    a = ctx.a
+    short = short_name(c["name"])
+    title = TEXT_TITLE.get(qid, "This disclosure")
+    hits = sorted([o for o in others if o["values"].get(qid)], key=lambda o: o["name"].lower())
+    mine = bool(c["values"].get(qid))
+    cc = a.c_calc(f"{title} among peers", f"{len(hits)} of {len(others)} peers provided this disclosure")
+    group = "your chosen peers" if where == "your chosen peers" else where.replace("the other ", f"{short}'s ", 1).replace(" companies", " peers")
+    a.p(f"**{len(hits)} of {group}** have disclosed {lc(title)} for FY 2024-25 {cc}" + ("; they are listed below. " if hits else ". ")
+        + f"{short} itself {'has' if mine else 'has not'} disclosed them {a.c_filing(c, qid)}.")
+    if hits:
+        a.block("names", title=f"{title}: {len(hits)} of {len(others)} peers",
+                items=[{"id": o["id"], "name": short_name(o["name"])} for o in hits], sector=ctx.kb.sector_of(c)["name"],
+                export=export(f"Peers of {c['name']}: {title}", ["Company", "Disclosed"],
+                              [[o["name"], "Yes" if o["values"].get(qid) else "No"] for o in sorted(others, key=lambda o: o["name"].lower())]))
+    a.context.update({"metric": ctx.plan.metric})
+    sname = ctx.kb.sector_of(c)["name"]
+    a.follow(f"Examples of {lc(title)} from {sname} companies", f"What are {short}'s targets?" if qid == "286" else None,
+             f"How does {short} compare with its peers?")
 
 
 def _peer_overview(ctx, c, others, where, custom):
@@ -315,7 +396,7 @@ def _peer_overview(ctx, c, others, where, custom):
         show = (lambda x: pct(x)) if by == "yoy" else (lambda x: (tile(x) if metric.kind == "abs" else num(x)))
         if mine is None:
             raw = metric.value(c) if by == "value" else None
-            pos, mine_s = None, ("Not disclosed" if raw is None else "See note")
+            pos, mine_s = None, (("Not disclosed" if raw is None else "See note") if by == "value" else "Not comparable")
         else:
             mine_s = show(mine[1])
             if med is None:
@@ -370,4 +451,75 @@ def _peer_overview(ctx, c, others, where, custom):
     a.flag_notes(c, ["1330", "1331", "1332", "1333", "1334", "1335"])
     sname = kb.sector_of(c)["name"]
     a.follow(f"Who are {short}'s peers?", f"How does {short} compare with its peers on Scope 1 emissions?",
+             f"Examples of GHG reduction projects from {sname} companies")
+
+
+def peer_filter(ctx, c, mid, direction, peers=None):
+    """Which peers reported a lower or higher figure than the company, or the ones closest to it."""
+    a, kb = ctx.a, ctx.kb
+    a.company_ref(c)
+    others, grp, custom = _peer_group(ctx, c, peers)
+    sname = kb.sector_of(c)["name"]
+    short = short_name(c["name"])
+    metric = M.NUMERIC.get(mid) or M.NUMERIC["scope12"]
+    by = "value" if metric.comparable_levels else "yoy"
+    what = lc(metric.label) + (" (change vs FY 2023-24)" if by == "yoy" else "")
+    a.kicker = kicker(ctx, c)
+    pairs = eligible(metric, others, by=by)
+    mine = next(iter(eligible(metric, [c], by=by)), None)
+    show = (lambda x: pct(x)) if by == "yoy" else (lambda x: fmt_value(metric, x))
+    if mine is None:
+        a.status = "partial"
+        a.title = f"{short} and its peers"
+        raw = metric.value(c)
+        a.p(f"{c['name']} {'has not disclosed' if raw is None else 'has no comparable figure for'} {what}, so its peers "
+            f"cannot be set against it.")
+        a.flag_notes(c, metric.qids)
+        a.follow(f"Who are {short}'s peers?", f"Tell me about {short}")
+        return
+    v = mine[1]
+    mc = value_cite(a, c, metric, by)
+    group = "your chosen peers" if custom else f"{sname} peers"
+    if direction == "similar":
+        near = sorted(pairs, key=lambda t: (abs(t[1] - v), t[0]["name"].lower()))[:6]
+        a.title = f"Peers closest to {short}"
+        cc = a.c_calc(f"Peers closest to {short} on {what}", f"The {len(near)} peers with the smallest difference from {show(v)}",
+                      note=f"{len(pairs)} of {len(others)} peers disclosed a comparable figure.")
+        a.p(f"On {what}, the peers closest to **{c['name']}** ({show(v)} {mc}) are "
+            f"{join([f'**{short_name(o['name'])}**' for o, _ in near[:3]])} {cc}.")
+        chosen = near
+        title = f"{metric.label}: {short} and its closest peers"
+    else:
+        lower = direction == "lower"
+        hits = [(o, x) for o, x in pairs if (x < v if lower else x > v)]
+        word = "lower" if lower else "higher"
+        a.title = f"Peers with {word} {lc(metric.label)}"
+        cc = a.c_calc(f"Peers with {word} {what} than {short}", f"{len(hits)} of the {len(pairs)} peers that disclosed a comparable figure",
+                      note=f"{len(pairs)} of {len(others)} peers disclosed a comparable figure.")
+        if not hits:
+            a.p(f"None of the {len(pairs)} {group} that disclosed {what} reported a {word} figure than **{c['name']}** "
+                f"({show(v)} {mc}) {cc}.")
+            a.follow(f"How does {short} compare with its peers?", f"Who are {short}'s peers?")
+            return
+        a.p(f"**{len(hits)} of the {len(pairs)}** {group} that disclosed {what} reported a {word} figure than "
+            f"**{c['name']}** ({show(v)} {mc}) {cc}.")
+        # the ones nearest to the company first: they are the most useful to look at
+        chosen = sorted(hits, key=lambda t: (abs(t[1] - v), t[0]["name"].lower()))[:12]
+        title = f"{metric.label}: peers {'below' if lower else 'above'} {short}"
+        if len(hits) > len(chosen):
+            a.note("context", f"The chart shows the {len(chosen)} peers closest to {short}. The Excel download lists all {len(hits)}.")
+    rows = ordered(chosen + [mine])
+    blk = bars(title, rows, metric, focus_ids={c["id"]}, log=by == "value" and metric.kind in ("abs", "intensity"),
+               show_rank=False, value_kind=by, subtitle="FY 2024-25" + (" vs FY 2023-24" if by == "yoy" else ""))
+    blk["focus_label"] = short
+    full = ordered((chosen if direction == "similar" else hits) + [mine])
+    unit = "% change" if by == "yoy" else metric.unit
+    blk["export"] = export(title, ["Company", f"{metric.label} ({unit})"], [[o["name"], x] for o, x in full])
+    a.blocks.append(blk)
+    if metric.note:
+        a.note("method", metric.note)
+    a.flag_notes(c, metric.qids)
+    a.context.update({"metric": metric.id})
+    a.follow(f"How does {short} compare with its peers?",
+             f"Compare {short} with {short_name(chosen[0][0]['name'])}",
              f"Examples of GHG reduction projects from {sname} companies")
