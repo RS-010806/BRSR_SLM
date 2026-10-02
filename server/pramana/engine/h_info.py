@@ -145,6 +145,34 @@ def _in_the_data(ctx, key) -> str | None:
     return None
 
 
+def _for_company(ctx, key):
+    """With a company set or being discussed, one closing line with its own figure, and the question that gives the rest."""
+    from . import metrics as M
+    from .common import fmt_value, value_cite
+    from .fmt import CO2, num
+    a, kb, plan = ctx.a, ctx.kb, ctx.plan
+    cid = plan.lens or next(iter(plan.about), None)
+    if not cid or cid not in kb.by_id:
+        return None
+    c = kb.by_id[cid]
+    short = short_name(c["name"])
+    mids = ["scope1", "scope2"] if key == "scope12" else [key]
+    if any(m not in M.NUMERIC for m in mids):
+        return None
+    bits = []
+    for m in mids:
+        metric = M.NUMERIC[m]
+        v = metric.value(c)
+        ok = v is not None and (metric.kind != "intensity" or metric.level_ok(c))
+        bits.append(f"{metric.label[0].lower() + metric.label[1:] if m not in ('scope1', 'scope2', 'scope3') else metric.label} of "
+                    f"{fmt_value(metric, v)} {value_cite(a, c, metric)}" if ok else
+                    f"no comparable figure for {metric.label} {a.c_filing(c, metric.cy_q)}")
+    ask = f"What are {short}'s GHG emissions?" if key in ("scope12", "scope1", "scope2") else f"What is {short}'s {GLOSSARY[key][0].lower() if key not in ('scope3',) else 'Scope 3 emissions'}?"
+    if key == "scope3":
+        ask = f"What are {short}'s Scope 3 emissions?"
+    return f"**For {short}:** it reported {join(bits)} for FY 2024-25.", ask
+
+
 def _points(ctx, key, label: str | None = None):
     e = EXPLAIN.get(key)
     if not e:
@@ -329,6 +357,10 @@ def define(ctx):
             _points(ctx, key)
             if second:
                 _points(ctx, second, GLOSSARY[second][0])
+        mine = _for_company(ctx, key)
+        if mine:
+            a.block("points", items=[mine[0]])
+            a.follow(mine[1])
         ask = {"scope12": "What are NTPC's Scope 1 and Scope 2 emissions?", "scope1": "What are NTPC's Scope 1 emissions?",
                "scope2": "What are NTPC's Scope 2 emissions?", "scope3": "What are Infosys's Scope 3 emissions?",
                "intensity": "What is UltraTech's emission intensity?", "targets": "What are Infosys's targets?",

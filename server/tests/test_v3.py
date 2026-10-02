@@ -34,7 +34,7 @@ MINE = [
     ("what is my company ghg emissions", "company_metric"), ("what are my company's ghg emissions", "company_metric"),
     ("what are my emissions", "company_metric"), ("what are our scope 1 emissions", "company_metric"),
     ("my ghg emissions", "company_metric"), ("ghg emissions", "company_metric"), ("scope 3", "company_metric"),
-    ("what are scope 1 and scope 2 emissions", "company_metric"), ("what is our emission intensity", "company_metric"),
+    ("what are our scope 1 and scope 2 emissions", "company_metric"), ("what is our emission intensity", "company_metric"),
     ("do we have assurance", "company_metric"), ("what are my targets", "company_metric"),
     ("our ghg reduction projects", "company_metric"), ("who are my peers", "peer_list"), ("show my peers", "peer_list"),
     ("list my competitors", "peer_list"), ("how do we compare with our peers", "peer_benchmark"),
@@ -97,13 +97,13 @@ def test_emissions_answer_is_direct(eng):
 
 
 def test_scope1_and_scope2_are_separate_figures(eng):
-    for q, ctx in (("what are scope 1 and scope 2 emissions", TCI), ("What are NTPC's Scope 1 and Scope 2 emissions?", {})):
+    for q, ctx in (("what are our scope 1 and scope 2 emissions", TCI), ("What are NTPC's Scope 1 and Scope 2 emissions?", {})):
         a = eng.ask(q, ctx)
         lead = a["lead"][0]
         assert "Scope 1 emissions of" in lead and "Scope 2 emissions of" in lead
         labels = [k["label"] for k in a["blocks"][0]["items"]]
         assert labels[:2] == ["Scope 1", "Scope 2"]
-    t = eng.ask("what are scope 1 and scope 2 emissions", TCI)["blocks"][0]["items"]
+    t = eng.ask("what are our scope 1 and scope 2 emissions", TCI)["blocks"][0]["items"]
     assert t[0]["value"] == "394.25" and t[1]["value"] == "0.85"
 
 

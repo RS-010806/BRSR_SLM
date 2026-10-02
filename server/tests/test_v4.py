@@ -597,3 +597,44 @@ def test_follow_up_context_survives_the_api():
     d = c.post("/api/ask", json={"q": "NTPC emissions"}).json()
     e = c.post("/api/ask", json={"q": "and last year?", "context": d["context"]}).json()
     assert e["title"] == "GHG emissions, FY 2023-24"
+
+
+def test_what_is_a_term_is_always_a_definition(eng):
+    """Asked plainly, 'what is scope 3' is a question about the term, even with a company set or being discussed."""
+    a = eng.ask("what is scope 3", TCI)
+    assert a["trace"]["final_intent"] == "explain" and a["title"] == "Scope 3 emissions"
+    pts = [t for b in a["blocks"] for t in b["items"]]
+    assert any(t.startswith("**What it covers:**") for t in pts) and any(t.startswith("**Why it matters:**") for t in pts)
+    assert any(t.startswith("**For TCI Express:**") and "582.68" in t for t in pts)       # and its own figure, as a closing point
+    b = chat(eng, ["how does transport corporation of india compare with its peers", "what is scope 3"])[1]
+    assert b["trace"]["final_intent"] == "explain" and any("For Transport Corporation of India" in t for x in b["blocks"] for t in x["items"])
+    c = eng.ask("what are scope 1 and scope 2 emissions", TCI)
+    assert c["trace"]["final_intent"] == "explain" and [x.get("title") for x in c["blocks"]][:2] == ["Scope 1", "Scope 2"]
+    # asking for the figure still gives the figure
+    assert eng.ask("what is our scope 3", TCI)["trace"]["final_intent"] == "company_metric"
+    assert eng.ask("what is NTPC's scope 3")["trace"]["final_intent"] == "company_metric"
+    assert eng.ask("scope 3", TCI)["trace"]["final_intent"] == "company_metric"
+    for x in (a, b, c):
+        clean(x, eng)
+
+
+def test_comparisons_open_with_key_points(eng):
+    a = eng.ask("how does transport corporation of india compare with its peers")
+    assert a["blocks"][0]["type"] == "points" and a["blocks"][0]["title"] == "Key points"
+    items = a["blocks"][0]["items"]
+    assert items[0].startswith("**Scope 1 emissions:**") and "peer median" in items[0] and items[-1].startswith("**Disclosures:**")
+    assert "HINDALCO" not in str(a["blocks"])                           # no longer a Services company
+    b = eng.ask("compare tci express and delhivery")
+    assert b["blocks"][0]["title"] == "Key points" and "times" in b["blocks"][0]["items"][0]
+    for x in (a, b):
+        clean(x, eng)
+
+
+def test_good_practice_is_a_summary_with_details_on_request(eng):
+    a = eng.ask("Share some of the best practices in terms of setting GHG emission targets")
+    assert a["title"] == "Good practice: targets" and types(a) == ["points", "points", "quotes"]
+    assert a["blocks"][0]["title"] == "What a strong target states" and a["blocks"][1]["title"] == "What companies commonly do"
+    assert all(e and e["who"] and len(e["text"]) <= 200 for e in a["blocks"][1]["examples"])
+    assert a["blocks"][2]["collapsed"] is True
+    assert len(a["lead"]) == 1
+    clean(a, eng)

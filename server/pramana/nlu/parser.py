@@ -59,6 +59,9 @@ RE_DEFINE = re.compile(r"\b(define|definition|meaning of|mean|means|meant|stand 
                        r"explain what|what is meant|what exactly (is|are)|in simple terms|in simple words|"
                        r"what (?:is|are) .{0,30}\b(?:exactly|precisely|actually)$|"
                        r"how (?:to|do you|do i|does one|is|are) .{0,25}(?:calculat\w*|comput\w*|measured?|defined|worked out|estimated?))\b")
+RE_WHAT_IS_METRIC = re.compile(r"^(?:what|whats|what s) (?:is|are) (?:a |an |the )?(?:scope(?:12|1|2|3)(?: (?:and )?scope(?:12|1|2|3))*"
+                               r"(?: emissions?| intensity| ghg emissions?)?|(?:emissions?|ghg|carbon) intensity|intensity|"
+                               r"(?:independent |external |third party )?assurance)$")
 RE_MARKET = re.compile(r"\b(how many|number of|count of|total|overall|all companies|companies|sector|sectors|sector wise|"
                        r"industry|industries|market|india|across|average|median|top|highest|lowest|largest|biggest|"
                        r"smallest|most|least|best|worst|rank|ranking|list|which|who|everyone|each)\b")
@@ -288,6 +291,7 @@ class Plan:
     direction: str | None = None                       # lower | higher | similar (which peers ...)
     raw_metrics: list = field(default_factory=list)    # measures as named, before combining
     as_table: bool = False                             # a table was asked for
+    about: list = field(default_factory=list)          # the company the conversation was about before this turn
     missing: list = field(default_factory=list)        # words that stand where a company name would, and match no company
     yesno: bool = False                                # phrased as a yes/no question
     who: bool = False                                  # asks for a name ("who assured ...")
@@ -627,7 +631,11 @@ class Parser:
         counting = bool(re.search(r"\bhow many\b", low))
         peer_eval = has_peers and not counting and bool(RE_PEER_EVAL.search(low) or RE_PEER_VERB.search(low))
         peer_list = has_peers and not has_metric and not peer_eval and (bool(RE_PEER_ASK.search(low)) or len(toks) <= 5)
-        strict_define = bool(RE_DEFINE.search(low)) and (has_metric or not p.companies)
+        # "what is scope 3", "what are scope 1 and scope 2 emissions": asks what the term means, whoever is asking
+        plain = re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", low)).strip()
+        asks_meaning = bool(RE_WHAT_IS_METRIC.match(plain)) and not first_person and not p.companies and not p.ambiguous
+        strict_define = (bool(RE_DEFINE.search(low)) or asks_meaning) and (has_metric or not p.companies)
+        p.about = [c for c in context.get("companies", []) if c in self.kb.by_id][:1]
         if p.intent != "out_of_scope":
             if RE_CLEAR_LENS.search(low) and not p.companies:
                 self._set(p, "clear_lens", "asks to stop answering as a company")
