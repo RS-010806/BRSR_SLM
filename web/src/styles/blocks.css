@@ -115,6 +115,10 @@
 .check .ic svg { width: 12px; height: 12px; }
 .check span.t { flex: 1; min-width: 0; }
 .check span.t small { display: block; margin-top: 1px; font-size: 12px; color: var(--ink-3); }
+.checks.wide { grid-template-columns: 1fr; }
+.checks.wide .check { align-items: flex-start; font-size: 14.5px; font-weight: 500; }
+.checks.wide .check .ic { margin-top: 2px; }
+.checks.wide .check span.t small { margin-top: 2px; font-size: 13.5px; font-weight: 400; line-height: 1.5; color: var(--ink-2); }
 
 /* simulator */
 .sim { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
@@ -208,6 +212,20 @@ input[type="range"].rng { width: 100%; accent-color: var(--accent); height: 28px
 .points .eg { display: block; margin-top: 3px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
 .points li.q { color: var(--ink); }
 .points .eg b { font-weight: 600; color: var(--ink); }
+/* a practice explained: its name, then labelled lines (what it is, why it matters, an example) */
+ol.points { padding-left: 22px; }
+ol.points > li::marker { font-weight: 600; color: var(--ink-2); }
+.points.explained { gap: 18px; }
+.points.explained > li > strong:first-child, .points.explained > li > span > strong:first-child { font-size: 16px; }
+.points .pd { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 6px 0 0; font-size: 14.5px; line-height: 1.55; }
+.points .pd > div { display: contents; }
+.points .pd dt { color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+.points .pd dd { margin: 0; color: var(--ink); }
+.points .pd dd.eg { display: block; margin: 0; font-size: 14.5px; color: var(--ink-2); }
+@media (max-width: 560px) {
+  .points .pd { grid-template-columns: 1fr; gap: 0; }
+  .points .pd dt { margin-top: 6px; font-size: 13px; }
+}
 .points-h { font-family: inherit; font-weight: 600; font-size: 15px; line-height: 1.3; color: var(--ink); margin: 14px 0 8px; letter-spacing: 0; }
 details.more { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
 details.more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px;

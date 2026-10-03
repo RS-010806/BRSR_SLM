@@ -225,7 +225,7 @@ class Engine:
         texts = list(a.lead)
         for b in a.blocks:
             if b["type"] == "points":
-                texts += b["items"]
+                texts += b["items"] + [d["text"] for ds in b.get("details") or [] for d in ds]
         # digits inside a company's name ("63 moons", "360 ONE") are not figures
         names = sorted({n for e in a.entities for n in (e["name"], e["short"])}, key=len, reverse=True)
         for para in texts:

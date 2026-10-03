@@ -64,34 +64,52 @@ def _edge(ctx, pairs):
 
 
 def _compare_emissions(ctx, cos):
-    """Scope 1 and Scope 2 kept as separate figures for every company."""
+    """Scope 1 and Scope 2 as separate figures for every company, and Scope 3 whenever it was asked for or disclosed."""
     a = ctx.a
-    m1, m2, m12 = M.NUMERIC["scope1"], M.NUMERIC["scope2"], M.NUMERIC["scope12"]
+    m1, m2, m12, m3 = M.NUMERIC["scope1"], M.NUMERIC["scope2"], M.NUMERIC["scope12"], M.NUMERIC["scope3"]
+    with3 = "scope3" in ctx.plan.metrics or ctx.plan.generic_emissions
     parts, groups, rows = [], [], []
     for c in cos:
-        v1, v2 = m1.value(c), m2.value(c)
+        v1, v2, v3 = m1.value(c), m2.value(c), m3.value(c)
         bits = []
         if v1 is not None:
             bits.append(f"Scope 1 emissions of {num(v1)} {CO2} {a.c_filing(c, '1330')}")
         if v2 is not None:
             bits.append(f"Scope 2 emissions of {num(v2)} {CO2} {a.c_filing(c, '1332')}")
+        if with3:
+            bits.append(f"Scope 3 emissions of {num(v3)} {CO2} {a.c_filing(c, '1388')}" if v3 is not None
+                        else f"no Scope 3 figure {a.c_filing(c, '1388')}")
         parts.append(f"**{short_name(c['name'])}** reported {join(bits)}" if bits else
                      f"**{short_name(c['name'])}** has not disclosed these figures {a.c_filing(c, '1330')}")
-        groups.append({"label": short_name(c["name"]), "values": [v1, v2],
-                       "displays": [tile(v1) if v1 is not None else "n/a", tile(v2) if v2 is not None else "n/a"]})
-        rows.append([c["name"], v1, v2, m12.value(c), None if m12.yoy(c) is None else round(m12.yoy(c), 2)])
-    a.p("For FY 2024-25: " + ". ".join(parts) + ".")
+        vals = [v1, v2] + ([v3] if with3 else [])
+        groups.append({"label": short_name(c["name"]), "values": vals,
+                       "displays": [tile(v) if v is not None else "n/a" for v in vals]})
+        rows.append([c["name"], v1, v2, m12.value(c)] + ([v3] if with3 else []) + [None if m12.yoy(c) is None else round(m12.yoy(c), 2)])
     have = [(c, m12.value(c)) for c in cos if m1.value(c) is not None and m2.value(c) is not None]
     if len(have) >= 2 and len({v for _, v in have}) > 1:
         top, word = _edge(ctx, have)
-        a.p(f"On the combined figure, **{short_name(top[0]['name'])}** is the {word} "
-            f"at {num(top[1])} {CO2} {value_cite(a, top[0], m12)}.")
-    a.block("grouped", title="Scope 1 and Scope 2 emissions", subtitle=f"FY 2024-25, {CO2}", series=["Scope 1", "Scope 2"],
-            groups=groups, log=True,
-            export=export("Scope 1 and Scope 2 emissions", ["Company", "Scope 1 (tCO2e)", "Scope 2 (tCO2e)",
-                                                           "Scope 1 + Scope 2 (tCO2e)", "Change in Scope 1 + 2 vs FY 2023-24 (%)"], rows))
+        o = next(x for x in have if x[0]["id"] != top[0]["id"]) if len(have) == 2 else None
+        a.p(f"**{short_name(top[0]['name'])}** has the {word} combined Scope 1 and Scope 2 emissions: {num(top[1])} {CO2} "
+            f"{value_cite(a, top[0], m12)}" + (f", against {num(o[1])} {CO2} for {short_name(o[0]['name'])} {value_cite(a, o[0], m12)}"
+                                               if o else "") + ".")
+    if with3:
+        h3 = [(c, m3.value(c)) for c in cos if m3.value(c) is not None]
+        if len(h3) >= 2 and len({v for _, v in h3}) > 1:
+            top3, word3 = _edge(ctx, h3)
+            a.p(f"On Scope 3, **{short_name(top3[0]['name'])}** has the {word3} figure, {num(top3[1])} {CO2} {a.c_filing(top3[0], '1388')}.")
+        elif len(h3) < len(cos):
+            missing = [short_name(c["name"]) for c in cos if m3.value(c) is None]
+            a.p(f"{join(missing)} {'has' if len(missing) == 1 else 'have'} not disclosed Scope 3 emissions "
+                f"{a.c_filing(next(c for c in cos if m3.value(c) is None), '1388')}.")
+    a.block("points", title="Figures for FY 2024-25", items=[p + "." for p in parts])
+    series = ["Scope 1", "Scope 2"] + (["Scope 3"] if with3 else [])
+    title = "Scope 1, Scope 2 and Scope 3 emissions" if with3 else "Scope 1 and Scope 2 emissions"
+    a.block("grouped", title=title, subtitle=f"FY 2024-25, {CO2}", series=series, groups=groups, log=True,
+            export=export(title, ["Company", "Scope 1 (tCO2e)", "Scope 2 (tCO2e)", "Scope 1 + Scope 2 (tCO2e)"]
+                          + (["Scope 3 (tCO2e)"] if with3 else []) + ["Change in Scope 1 + 2 vs FY 2023-24 (%)"], rows))
     names = join([short_name(c["name"]) for c in cos])
-    a.follow(f"Compare {names} on emission intensity", f"Compare {names} on Scope 3 emissions", f"Compare {names} on targets")
+    a.follow(f"Compare {names} on emission intensity", f"Compare {names} on Scope 3 emissions" if not with3 else
+             f"How did {short_name(cos[0]['name'])}'s emissions change?", f"Compare {names} on targets")
 
 
 def _compare_numeric(ctx, cos, metric):

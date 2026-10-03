@@ -30,7 +30,12 @@ export function pointLines(a: Answer): [string, string][] {
     (b.verbatim || []).forEach((t: string) => out.push(["", `“${t}”`]));
     b.items.forEach((t: string, i: number) => {
       const ex = b.examples?.[i];
-      out.push(["", plain(t) + (ex ? ` ${ex.who ? ex.who + ": " : ""}“${ex.text}”` : "")]);
+      const quote = ex ? `${ex.who ? ex.who + ": " : ""}“${ex.text}”` : "";
+      if (b.details?.[i]) {
+        out.push(["", `${b.numbered ? i + 1 + ". " : ""}${plain(t)}`]);
+        b.details[i].forEach((d: any) => out.push(["", `   ${d.label}: ${plain(d.text)}`]));
+        if (quote) out.push(["", `   Example: ${quote}`]);
+      } else out.push(["", plain(t) + (quote ? " " + quote : "")]);
     });
   });
   return out;

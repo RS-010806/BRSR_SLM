@@ -215,11 +215,11 @@ def test_advice_is_examples_from_the_sector(eng):
     for q in ("ideas to cut scope 2", "give me recommendations", "suggest initiatives for us", "what are others doing",
               "what are our peers doing", "how can we reduce emissions"):
         a = eng.ask(q, TCI)
-        assert a["trace"]["final_intent"] == "best_practice" and a["title"].startswith("Good practice: GHG reduction projects"), (q, a["title"])
+        assert a["trace"]["final_intent"] == "best_practice" and a["title"].startswith("Good practice: reducing"), (q, a["title"])
         assert "Services" in a["lead"][0]
     assert "purchased electricity" in eng.ask("ideas to cut scope 2", TCI)["lead"][0]
     a = eng.ask("best practices for scope 3", TCI)
-    assert "value chain" in a["lead"][0] and a["title"] == "Good practice: GHG reduction projects for Scope 3"
+    assert "value chain" in a["lead"][0] and a["title"] == "Good practice: reducing Scope 3 emissions"
     assert eng.ask("What can you do?")["trace"]["final_intent"] != "best_practice"
 
 
@@ -317,7 +317,7 @@ def test_a_table_request_opens_on_the_table(eng):
 # ---------------------------------------------------------------- comparisons say which is higher
 def test_comparisons_say_which_is_higher(eng):
     assert text(eng.ask("which is bigger acc or ambuja")).startswith("**Ambuja Cements** has the higher combined Scope 1 and Scope 2 emissions")
-    assert "**Ambuja Cements** is the higher" in text(eng.ask("does acc or ambuja emit more"))
+    assert text(eng.ask("does acc or ambuja emit more")).startswith("**Ambuja Cements** has the higher")
     assert "reported the highest figure" in text(eng.ask("acc vs ambuja vs ultratech scope 1"))
 
 
@@ -632,10 +632,14 @@ def test_comparisons_open_with_key_points(eng):
 
 def test_good_practice_is_a_summary_with_details_on_request(eng):
     a = eng.ask("Share some of the best practices in terms of setting GHG emission targets")
-    assert a["title"] == "Good practice: targets" and types(a) == ["points", "points", "quotes"]
-    assert a["blocks"][0]["title"] == "What a strong target states" and a["blocks"][1]["title"] == "What companies commonly do"
-    assert all(e and e["who"] and len(e["text"]) <= 200 for e in a["blocks"][1]["examples"])
-    assert a["blocks"][2]["collapsed"] is True
+    assert a["title"] == "Good practice: setting GHG targets" and types(a) == ["points", "bars", "quotes"]
+    pts = a["blocks"][0]
+    assert pts["title"] == "The practices, explained" and pts["numbered"] and len(pts["items"]) == 7
+    assert all(i.startswith("**") and i.endswith("**") for i in pts["items"])               # the practice, by name
+    assert all([d["label"] for d in ds] == ["What it means", "Why it matters"] for ds in pts["details"])
+    assert all(e and e["who"] and len(e["text"]) <= 240 for e in pts["examples"])           # a real target as the example
+    assert not any("of the" in i for i in pts["items"])                                      # counts are in the chart, not the points
+    assert a["blocks"][1]["rows"][0]["full"].endswith("companies") and a["blocks"][2]["collapsed"] is True
     assert len(a["lead"]) == 1
     clean(a, eng)
 
@@ -644,9 +648,9 @@ def test_good_practice_is_a_summary_with_details_on_request(eng):
 def test_good_practice_follows_the_topic_asked(eng):
     a = eng.ask("best practices for solar in cement")
     assert a["title"] == "Good practice: solar" and a["kicker"] == "Construction Materials"
-    assert [b.get("title") for b in a["blocks"] if b["type"] == "points"] == ["At a glance", "Examples"]
-    ex = next(b for b in a["blocks"] if b.get("title") == "Examples")
-    assert all("solar" in e["text"].lower() for e in ex["examples"])
+    assert [b.get("title") for b in a["blocks"] if b["type"] == "points"] == ["What it is and why it matters", "How to describe it well"]
+    ex = next(b for b in a["blocks"] if b.get("title") == "How to describe it well")
+    assert all("solar" in e["text"].lower() for e in ex["examples"] if e) and not any("of the" in i for i in ex["items"])
     b = eng.ask("examples of waste heat recovery")
     assert b["title"] == "Good practice: waste heat recovery"
     c = eng.ask("how are IT companies using renewable energy")
@@ -665,9 +669,17 @@ def test_good_practice_respects_the_number_asked_for(eng):
 
 def test_good_practice_for_your_company_shows_what_it_could_add(eng):
     a = eng.ask("how can we reduce emissions", TCI)
-    mine = next(b for b in a["blocks"] if b.get("title") == "For TCI Express")
-    assert any(t.startswith("**Already in its disclosure:**") for t in mine["items"])
-    assert any("not mentioned in its disclosure" in t for t in mine["items"])
+    mine = next(b for b in a["blocks"] if b.get("title") == "What TCI Express already does, and next steps")
+    assert any(it["value"] and it["sub"] == "Described in its disclosure" for it in mine["items"])
+    assert any(not it["value"] and it["sub"].startswith("Next step: ") for it in mine["items"])
+    g = a["blocks"][0]
+    assert g["title"] == "The practices, explained"
+    assert all([d["label"] for d in ds] == ["What it is", "Why it matters"] and all(len(d["text"]) > 60 for d in ds)
+               for ds in g["details"])                                                       # each practice is explained
+    bars = next(b for b in a["blocks"] if b["type"] == "bars")
+    assert any(r["highlight"] for r in bars["rows"]) and bars["focus_label"] == "In TCI Express's disclosure"
+    t = eng.ask("what are the best practices for setting GHG targets", TCORP)
+    assert any(b.get("title") == "How Transport Corporation of India's target measures up" for b in t["blocks"])
     s = eng.ask("best practices for solar", TCI)
     assert any(b.get("title") == "For TCI Express" for b in s["blocks"])
 
@@ -699,9 +711,12 @@ TCORP = {"lens": "transport-corporation-of-india-limited"}
 
 def test_scope_projects_of_the_competition(eng):
     a = eng.ask("what are Scope 3 projects implemented by my competition", TCORP)
-    assert a["trace"]["final_intent"] == "best_practice" and a["title"] == "Good practice: GHG reduction projects for Scope 3"
+    assert a["trace"]["final_intent"] == "best_practice" and a["title"] == "Good practice: reducing Scope 3 emissions"
     assert a["kicker"] == "Services" and "Scope 3" in a["lead"][0]
-    assert any(b.get("title") == "For Transport Corporation of India" for b in a["blocks"])
+    mine = next(b for b in a["blocks"] if b.get("title") == "What Transport Corporation of India already does, and next steps")
+    assert mine["type"] == "checklist" and all(it["value"] or it["sub"].startswith("Next step: ") for it in mine["items"])
+    pts = a["blocks"][0]
+    assert {"Move goods more efficiently", "Work with suppliers to cut their emissions"} & {i.strip("*") for i in pts["items"]}
     for q in ("what scope 3 projects have our peers implemented", "scope 1 reduction projects by peers",
               "what targets have my competitors set for scope 3", "what is our competition doing"):
         b = eng.ask(q, TCORP)
@@ -742,7 +757,7 @@ def test_who_reviews_for_the_company_and_its_peers(eng):
     assert any("agency named: Bureau Veritas India Pvt. Ltd" in t for t in n["blocks"][0]["items"])
     assert eng.ask("who oversees climate at our peers", TCORP)["title"].startswith("Governance of the environment policy")
     c = eng.ask("who reviews the environment policy in cement companies")
-    assert c["kicker"] == "Construction Materials" and "Committee of the Board (16 of 23)" in c["lead"][0]
+    assert c["kicker"] == "Construction Materials" and "Committee of the Board (15 of 23)" in c["lead"][0]
     d = eng.ask("Who reviews the environment policy, sector by sector?")
     assert d["title"] == "Who reviews the environment policy, by sector"
     for x in (a, b, c, d, n):

@@ -14,7 +14,7 @@ SHORT_OVERRIDE = {"Oil & Natural Gas Corporation Limited": "ONGC"}
 
 def clip(text: str, n: int = 190) -> str:
     """A sentence shortened at a word boundary, for use as a one-line point."""
-    t = re.sub(r"\s+", " ", text).strip().strip("•-–·* ").rstrip(".;, ")
+    t = re.sub(r"\s+", " ", text).strip().strip("•-–·*> ").rstrip(".;, ")
     # list markers and a bare "Yes," in front of an answer are not part of the point
     t = re.sub(r"^(?:\(?\d{1,2}[).:]?|\(?[ivx]{1,4}[).]|o|[a-h][).])\s+(?=\S)", "", t)
     t = re.sub(r"^(?:yes|no)\s*[,.:-]\s*(?=\S)", "", t, flags=re.I)

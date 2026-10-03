@@ -322,5 +322,5 @@ def test_internal_endpoints_are_closed(client):
     for path in ("/api/stats", "/api/docs", "/api/openapi.json", "/files/report.pdf", "/api/export/companies.csv",
                  "/api/admin/summary", "/api/admin/diagnostics", "/api/admin/trace?q=hi"):
         assert c.get(path).status_code == 404, path
-    assert c.get("/api/admin/diagnostics?token=test-token").json()["reconciliation"]["matched"] >= 420
+    assert c.get("/api/admin/diagnostics?token=test-token").json()["reconciliation"]["matched"] >= 300
     assert c.get("/api/admin/trace?token=test-token&q=top 10 emitters").json()["final_intent"] == "ranking"

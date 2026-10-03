@@ -154,7 +154,7 @@ def _answer(q: str, ctx: dict):
 
 intents = LRU(4096)   # answer id -> how it was routed, for feedback records
 
-WARM = ["What are NTPC's GHG emissions?", "How does ACC compare with its peers?",
+WARM = ["Best practices for reducing GHG emissions", "Best practices for setting GHG targets", "What are NTPC's GHG emissions?", "How does ACC compare with its peers?",
         "Examples of GHG reduction projects from cement companies", "Give me an overview of the power sector",
         "What if NTPC cuts Scope 1 by 10%?", "Which companies mention green hydrogen?", "What can you do?",
         "Top 10 emitters", "Which sector emits the most?", "Make an infographic for UltraTech"]

@@ -27,7 +27,7 @@ export function Kpis({ b }: { b: any }) {
 /* =============================================================== Checklist */
 export function Checklist({ b }: { b: any }) {
   return (
-    <div className="checks">
+    <div className={"checks" + (b.items.some((it: any) => (it.sub || "").length > 40) ? " wide" : "")}>
       {b.items.map((it: any, i: number) => {
         const cls = it.value == null ? "u" : it.value ? "y" : "n";
         return (
@@ -44,20 +44,32 @@ export function Checklist({ b }: { b: any }) {
 
 /* =============================================================== Points */
 export function Points({ b }: { b: any }) {
+  const List = b.numbered ? "ol" : "ul";
   return (
     <section className="points-wrap">
       {b.title && <h3 className="points-h">{b.title}</h3>}
-      <ul className="points">
+      <List className={"points" + (b.details ? " explained" : "")}>
         {(b.verbatim || []).map((t: string, i: number) => (
           <li key={"v" + i} className="q" style={{ animation: `rise .4s ${i * 40}ms both` }}>{"“"}{t}{"”"}</li>
         ))}
-        {b.items.map((t: string, i: number) => (
-          <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}>
-            <Rich text={t} />
-            {b.examples?.[i] && <span className="eg">{b.examples[i].who && <b>{b.examples[i].who}: </b>}{"“"}{b.examples[i].text}{"”"}</span>}
-          </li>
-        ))}
-      </ul>
+        {b.items.map((t: string, i: number) => {
+          const ex = b.examples?.[i];
+          const quote = ex && <>{ex.who && <b>{ex.who}: </b>}{"“"}{ex.text}{"”"}</>;
+          return (
+            <li key={i} style={{ animation: `rise .4s ${i * 40}ms both` }}>
+              <Rich text={t} />
+              {b.details?.[i] ? (
+                <dl className="pd">
+                  {b.details[i].map((d: any, k: number) => (
+                    <div key={k}><dt>{d.label}</dt><dd><Rich text={d.text} /></dd></div>
+                  ))}
+                  {ex && <div className="eg-row"><dt>Example</dt><dd className="eg">{quote}</dd></div>}
+                </dl>
+              ) : ex && <span className="eg">{quote}</span>}
+            </li>
+          );
+        })}
+      </List>
     </section>
   );
 }

@@ -240,6 +240,31 @@ SECTOR_CORRECTIONS = {
     "HINDUSTAN ZINC LIMITED": "Metals & Mining",
     "Hindware Home Innovation Limited": "Consumer Durables",
     "PUNJAB & SIND BANK": "Financial Services",
+    # isolated entries filed under an unrelated sector
+    "Narayana Hrudayalaya Limited": "Healthcare",
+    "Dr. Lal Path Labs Limited": "Healthcare",
+    "UNITED BREWERIES LIMITED": "Fast Moving Consumer Goods",
+    # the V block (rows from V-Mart Retail to Vishnu Chemicals): the sector column is displaced, mostly by two rows
+    "V-Mart Retail Limited": "Consumer Services",
+    "VA Tech Wabag Limited": "Utilities",
+    "Vadilal Industries Limited": "Fast Moving Consumer Goods",
+    "Vaibhav Global Limited": "Consumer Durables",
+    "Vakrangee Limited": "Information Technology",
+    "Valiant Organics Limited": "Chemicals",
+    "Valor Estate Limited": "Realty",
+    "Vardhman Special Steels Limited": "Capital Goods",
+    "Vardhman Textiles Limited": "Textiles",
+    "Varroc Engineering Limited": "Automobile and Auto Components",
+    "Vedant Fashions Limited": "Consumer Services",
+    "VEDANTA LIMITED": "Metals & Mining",
+    "Venky's (India) Limited": "Fast Moving Consumer Goods",
+    "Venus Pipes & Tubes Limited": "Capital Goods",
+    "Veranda Learning Solutions Limited": "Consumer Services",
+    "Vijaya Diagnostic Centre Limited": "Healthcare",
+    "Vindhya Telelinks Limited": "Telecommunication",
+    "VIP Industries Limited": "Consumer Durables",
+    "Visaka Industries Limited": "Construction Materials",
+    "Vishnu Chemicals Limited": "Chemicals",
 }
 
 CLASSIFICATION_NOTES = {}
